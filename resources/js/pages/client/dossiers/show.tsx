@@ -388,10 +388,18 @@ const ClientDossierShowPage = () => {
       })
 
       if (response.ok) {
+        const newDocument = await response.json()
+        // Add document directly to state for instant update
+        setDossier((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            documents: [newDocument, ...(prev.documents || [])],
+          }
+        })
         setShowUploadModal(false)
         setUploadFile(null)
         setUploadData({ nom: '', typeDocument: 'piece_client' })
-        fetchDossier()
       }
     } catch (error) {
       console.error('Error uploading document:', error)

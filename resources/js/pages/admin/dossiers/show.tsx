@@ -452,7 +452,15 @@ const DossierShowPage = () => {
       })
 
       if (response.ok) {
-        await fetchDossier()
+        const newDocument = await response.json()
+        // Add document directly to state for instant update
+        setDossier((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            documents: [newDocument, ...(prev.documents || [])],
+          }
+        })
         setUploadModalOpen(false)
         setUploadFile(null)
         setUploadForm({ nom: '', typeDocument: 'autre', visibleClient: true, sensible: false })
