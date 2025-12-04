@@ -55,6 +55,7 @@ export const GOOGLE_CALENDARS_API = GOOGLE_API + 'calendars'
 export const GOOGLE_SELECT_CALENDAR_API = GOOGLE_API + 'select-calendar'
 export const GOOGLE_SYNC_API = GOOGLE_API + 'sync'
 export const GOOGLE_SYNC_HISTORY_API = GOOGLE_API + 'sync-history'
+export const GOOGLE_SYNC_MODE_API = GOOGLE_API + 'sync-mode'
 
 // Currency formatter
 export const EUR = new Intl.NumberFormat('fr-FR', {

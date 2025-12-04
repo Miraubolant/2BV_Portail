@@ -33,6 +33,9 @@ export default class GoogleToken extends BaseModel {
   @column()
   declare selectedCalendarName: string | null
 
+  @column()
+  declare syncMode: string // 'auto' | 'manual'
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
@@ -128,5 +131,22 @@ export default class GoogleToken extends BaseModel {
       selectedCalendarId: calendarId,
       selectedCalendarName: calendarName,
     })
+  }
+
+  /**
+   * Update sync mode for a service
+   */
+  static async updateSyncMode(service: string, mode: 'auto' | 'manual'): Promise<void> {
+    await this.query().where('service', service).update({
+      syncMode: mode,
+    })
+  }
+
+  /**
+   * Get sync mode for a service (defaults to 'auto')
+   */
+  static async getSyncMode(service: string): Promise<'auto' | 'manual'> {
+    const token = await this.findByService(service)
+    return (token?.syncMode as 'auto' | 'manual') || 'auto'
   }
 }

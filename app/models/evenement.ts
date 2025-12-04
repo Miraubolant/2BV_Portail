@@ -11,7 +11,7 @@ export default class Evenement extends BaseModel {
   declare id: string
 
   @column()
-  declare dossierId: string
+  declare dossierId: string | null
 
   @column()
   declare titre: string

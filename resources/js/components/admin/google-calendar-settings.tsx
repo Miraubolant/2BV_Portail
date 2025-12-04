@@ -30,7 +30,9 @@ import {
   GOOGLE_CALENDARS_API,
   GOOGLE_SELECT_CALENDAR_API,
   GOOGLE_SYNC_API,
+  GOOGLE_SYNC_MODE_API,
 } from '@/lib/constants'
+import { Switch } from '@/components/ui/switch'
 
 interface GoogleCalendarStatus {
   configured: boolean
@@ -39,6 +41,7 @@ interface GoogleCalendarStatus {
   accountName?: string | null
   selectedCalendarId?: string | null
   selectedCalendarName?: string | null
+  syncMode?: string
   message?: string
 }
 
@@ -59,6 +62,7 @@ export function GoogleCalendarSettings() {
   const [syncing, setSyncing] = useState(false)
   const [loadingCalendars, setLoadingCalendars] = useState(false)
   const [selectingCalendar, setSelectingCalendar] = useState(false)
+  const [updatingSyncMode, setUpdatingSyncMode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -233,7 +237,7 @@ export function GoogleCalendarSettings() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ pullFromGoogle: false }),
+        body: JSON.stringify({ pullFromGoogle: true }), // Import events from Google
       })
       const data = await response.json()
 
@@ -248,6 +252,38 @@ export function GoogleCalendarSettings() {
       setError('Erreur lors de la synchronisation')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const handleSyncModeChange = async (isAuto: boolean) => {
+    setUpdatingSyncMode(true)
+    setError(null)
+    try {
+      const response = await fetch(GOOGLE_SYNC_MODE_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ mode: isAuto ? 'auto' : 'manual' }),
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        setStatus((prev) =>
+          prev
+            ? {
+                ...prev,
+                syncMode: data.syncMode,
+              }
+            : null
+        )
+        setSuccess(isAuto ? 'Synchronisation automatique activee' : 'Synchronisation manuelle activee')
+      } else {
+        setError(data.message || 'Erreur lors du changement de mode')
+      }
+    } catch (err) {
+      setError('Erreur lors du changement de mode')
+    } finally {
+      setUpdatingSyncMode(false)
     }
   }
 
@@ -389,6 +425,45 @@ export function GoogleCalendarSettings() {
               )}
             </div>
 
+            {/* Sync Mode Toggle */}
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="sync-mode">Synchronisation automatique</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Synchronisation bidirectionnelle avec Google Calendar
+                  </p>
+                </div>
+                <Switch
+                  id="sync-mode"
+                  checked={status.syncMode === 'auto'}
+                  onCheckedChange={handleSyncModeChange}
+                  disabled={updatingSyncMode}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 space-y-1">
+                {status.syncMode === 'auto' ? (
+                  <>
+                    <p className="font-medium text-foreground">Mode automatique active:</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      <li>Les evenements du portail sont envoyes vers Google Calendar</li>
+                      <li>Les evenements de Google Calendar sont importes automatiquement</li>
+                      <li>Si un evenement contient une reference dossier (ex: 2025-001-MIR), il sera associe au dossier correspondant</li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium text-foreground">Mode manuel active:</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      <li>Aucune synchronisation automatique</li>
+                      <li>Cochez "Synchroniser avec Google Calendar" lors de la creation d'un evenement pour le synchroniser individuellement</li>
+                      <li>Utilisez le bouton "Synchroniser" ci-dessous pour une synchronisation manuelle</li>
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={handleTest} disabled={testing}>
                 {testing ? (
@@ -408,7 +483,7 @@ export function GoogleCalendarSettings() {
                 ) : (
                   <FolderSync className="mr-2 h-4 w-4" />
                 )}
-                Synchroniser
+                Synchroniser maintenant
               </Button>
               <Button
                 variant="outline"
@@ -423,19 +498,6 @@ export function GoogleCalendarSettings() {
                 )}
                 Deconnecter
               </Button>
-            </div>
-
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm">
-              <p className="font-medium mb-2">Fonctionnement de la synchronisation:</p>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>
-                  Les evenements avec l'option "Sync Google" seront automatiquement synchronises
-                </li>
-                <li>Creation, modification et suppression sont synchronisees en temps reel</li>
-                <li>
-                  Les evenements apparaissent dans Google Calendar avec le prefixe du dossier
-                </li>
-              </ul>
             </div>
           </div>
         )}

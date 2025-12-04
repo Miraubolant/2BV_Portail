@@ -29,6 +29,10 @@ Portail client securise pour cabinet d'avocats avec gestion des dossiers, docume
 - **Gestion clients** - CRUD complet, permissions, types (particulier/institutionnel)
 - **Gestion dossiers** - Suivi des affaires, statuts, procedures judiciaires
 - **Evenements** - Calendrier des audiences, rendez-vous, echeances
+  - Vue calendrier et vue liste
+  - Filtres par type, dossier, client
+  - Attribution de dossiers aux evenements
+  - Synchronisation avec Google Calendar
 - **Demandes RDV** - Traitement des demandes clients (accepter/refuser)
 - **Mises a jour temps reel** - Synchronisation automatique entre admins connectes (SSE)
 - **Parametres** - Configuration systeme (super admin uniquement)
@@ -36,7 +40,12 @@ Portail client securise pour cabinet d'avocats avec gestion des dossiers, docume
 
 ### Integrations
 - **OneDrive** - Synchronisation des documents vers Microsoft OneDrive (structure automatique par dossier)
-- **Google Calendar** - Synchronisation bidirectionnelle des evenements avec Google Calendar
+- **Google Calendar** - Synchronisation bidirectionnelle des evenements
+  - Mode automatique ou manuel
+  - Import de tous les evenements Google Calendar
+  - Detection automatique des references dossier (ex: 2025-001-MIR)
+  - Attribution manuelle des dossiers aux evenements importes
+  - Synchronisation en temps reel lors de creation/modification
 
 ### Portail Client
 - **Tableau de bord** - Vue d'ensemble des dossiers et notifications
@@ -114,6 +123,8 @@ resources/
 | `DemandeRdv` | Demandes de rendez-vous clients |
 | `Notification` | Notifications systeme |
 | `Parametre` | Parametres de configuration |
+| `GoogleToken` | Tokens OAuth Google Calendar |
+| `SyncLog` | Historique des synchronisations |
 
 ## API Routes
 
@@ -126,6 +137,12 @@ resources/
 - `GET /demandes-rdv` - Liste des demandes RDV
 - `POST /demandes-rdv/:id/accepter` - Accepter une demande
 - `POST /demandes-rdv/:id/refuser` - Refuser une demande
+- `GET /google/status` - Statut connexion Google
+- `GET /google/authorize` - URL OAuth Google
+- `GET /google/calendars` - Liste des calendriers
+- `POST /google/select-calendar` - Selectionner un calendrier
+- `POST /google/sync` - Synchroniser maintenant
+- `POST /google/disconnect` - Deconnecter Google
 
 ### Client API (`/api/client/`)
 - `GET /dashboard` - Tableau de bord

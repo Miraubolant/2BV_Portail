@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import googleOAuthService from '#services/google/google_oauth_service'
 import googleCalendarService from '#services/google/google_calendar_service'
 import calendarSyncService from '#services/google/calendar_sync_service'
+import GoogleToken from '#models/google_token'
+import googleConfig from '#config/google'
 
 export default class GoogleOAuthController {
   /**
@@ -208,6 +210,33 @@ export default class GoogleOAuthController {
       console.error('Error fetching sync history:', error)
       return response.internalServerError({
         message: 'Failed to fetch sync history',
+      })
+    }
+  }
+
+  /**
+   * POST /api/admin/google/sync-mode
+   * Update sync mode (auto or manual)
+   */
+  async updateSyncMode({ request, response }: HttpContext) {
+    const { mode } = request.only(['mode'])
+
+    if (!mode || !['auto', 'manual'].includes(mode)) {
+      return response.badRequest({
+        message: 'Invalid sync mode. Must be "auto" or "manual".',
+      })
+    }
+
+    try {
+      await GoogleToken.updateSyncMode(googleConfig.serviceKey, mode)
+      return response.ok({
+        message: `Sync mode updated to "${mode}"`,
+        syncMode: mode,
+      })
+    } catch (error) {
+      console.error('Error updating sync mode:', error)
+      return response.internalServerError({
+        message: 'Failed to update sync mode',
       })
     }
   }

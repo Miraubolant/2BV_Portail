@@ -1,6 +1,7 @@
 import googleCalendarService from './google_calendar_service.js'
 import Evenement from '#models/evenement'
 import SyncLog from '#models/sync_log'
+import Dossier from '#models/dossier'
 import { DateTime } from 'luxon'
 
 interface SyncResult {
@@ -216,16 +217,38 @@ class CalendarSyncService {
   }
 
   /**
-   * Pull events from Google Calendar to Portail
-   * Only processes events that have portalEventId in extendedProperties
-   * to avoid duplicates from events created outside portal
+   * Extract dossier reference from event title
+   * Looks for patterns like: 2025-001-MIR, 2024-123-ABC
    */
-  async pullFromGoogle(triggeredById?: string): Promise<SyncResult> {
+  private extractDossierReference(title: string): string | null {
+    // Pattern: YYYY-NNN-XXX (year-number-code)
+    const pattern = /\b(\d{4}-\d{3}-[A-Z]{2,4})\b/i
+    const match = title.match(pattern)
+    return match ? match[1].toUpperCase() : null
+  }
+
+  /**
+   * Find dossier by reference
+   */
+  private async findDossierByReference(reference: string): Promise<Dossier | null> {
+    return await Dossier.query().where('reference', reference).first()
+  }
+
+  /**
+   * Pull events from Google Calendar to Portail
+   * Creates new events and tries to match them to dossiers by reference in title
+   * Events without dossier reference are imported as general events (dossierId = null)
+   */
+  async pullFromGoogle(
+    triggeredById?: string,
+    options?: { importAll?: boolean; timeRangeMonths?: number }
+  ): Promise<SyncResult> {
     const details: string[] = []
     let created = 0
     let updated = 0
     const deleted = 0
     let errors = 0
+    let skipped = 0
 
     const isReady = await googleCalendarService.isReady()
     if (!isReady) {
@@ -242,19 +265,20 @@ class CalendarSyncService {
     }
 
     try {
-      // Get events from Google Calendar (last 6 months to next 6 months)
-      const timeMin = DateTime.now().minus({ months: 6 }).toISO()!
-      const timeMax = DateTime.now().plus({ months: 6 }).toISO()!
+      // Get events from Google Calendar with extended range
+      const rangeMonths = options?.timeRangeMonths || 12
+      const timeMin = DateTime.now().minus({ months: 3 }).toISO()!
+      const timeMax = DateTime.now().plus({ months: rangeMonths }).toISO()!
 
       const googleEvents = await googleCalendarService.listEvents({
         timeMin,
         timeMax,
-        maxResults: 500,
+        maxResults: 2500, // Increased to get more events
       })
 
-      details.push(`Found ${googleEvents.length} events in Google Calendar`)
+      details.push(`Found ${googleEvents.length} events in Google Calendar (${timeMin.split('T')[0]} to ${timeMax.split('T')[0]})`)
 
-      // Get all portal events that have a Google event ID
+      // Get all portal events that have a Google event ID to avoid duplicates
       const portalEvents = await Evenement.query().whereNotNull('google_event_id')
 
       const portalEventMap = new Map<string, Evenement>()
@@ -264,29 +288,104 @@ class CalendarSyncService {
         }
       }
 
-      // Process Google events - only update existing portal events
+      // Process Google events
       for (const googleEvent of googleEvents) {
-        if (!googleEvent.id) continue
+        if (!googleEvent.id || !googleEvent.summary) continue
 
-        const portalEvent = portalEventMap.get(googleEvent.id)
-        if (portalEvent) {
-          // Check if Google event is newer than portal event
-          // For now, we just log that we found it
-          details.push(`Found matching event: ${googleEvent.summary}`)
+        const existingPortalEvent = portalEventMap.get(googleEvent.id)
+
+        if (existingPortalEvent) {
+          // Event already exists in portal, skip or update if needed
+          details.push(`Existing event: ${googleEvent.summary}`)
           updated++
+        } else {
+          // New event from Google - try to import it
+          try {
+            // Check if this event was created by portal (has portalEventId in extendedProperties)
+            const isFromPortal =
+              googleEvent.extendedProperties?.private?.portalEventId !== undefined
+
+            if (isFromPortal) {
+              // Skip - this was created by portal but somehow lost the link
+              details.push(`Skipped (portal origin): ${googleEvent.summary}`)
+              continue
+            }
+
+            // Try to extract dossier reference from title
+            const dossierRef = this.extractDossierReference(googleEvent.summary)
+            let dossierId: string | null = null
+            let dossierInfo = ''
+
+            if (dossierRef) {
+              const dossier = await this.findDossierByReference(dossierRef)
+              if (dossier) {
+                dossierId = dossier.id
+                dossierInfo = ` -> Dossier: ${dossierRef}`
+              } else {
+                dossierInfo = ` (ref ${dossierRef} non trouvee)`
+              }
+            }
+
+            // Import event (with or without dossier - can be assigned later)
+            // Parse dates
+            let dateDebut: DateTime
+            let dateFin: DateTime
+            let journeeEntiere = false
+
+            if (googleEvent.start?.dateTime) {
+              dateDebut = DateTime.fromISO(googleEvent.start.dateTime)
+            } else if (googleEvent.start?.date) {
+              dateDebut = DateTime.fromISO(googleEvent.start.date)
+              journeeEntiere = true
+            } else {
+              details.push(`Skipped (no start date): ${googleEvent.summary}`)
+              skipped++
+              continue
+            }
+
+            if (googleEvent.end?.dateTime) {
+              dateFin = DateTime.fromISO(googleEvent.end.dateTime)
+            } else if (googleEvent.end?.date) {
+              dateFin = DateTime.fromISO(googleEvent.end.date).minus({ days: 1 }) // Google uses exclusive end date
+            } else {
+              dateFin = dateDebut.plus({ hours: 1 })
+            }
+
+            // Create the event (dossierId can be null - will be assigned later by admin)
+            const newEvent = await Evenement.create({
+              dossierId,
+              titre: googleEvent.summary,
+              description: googleEvent.description || null,
+              type: 'autre', // Default type for imported events
+              dateDebut,
+              dateFin,
+              journeeEntiere,
+              lieu: googleEvent.location || null,
+              googleEventId: googleEvent.id,
+              syncGoogle: true,
+              googleLastSync: DateTime.now(),
+              createdById: triggeredById || null,
+            })
+
+            created++
+            details.push(`Importe: ${newEvent.titre}${dossierInfo}`)
+          } catch (error) {
+            errors++
+            details.push(
+              `Error importing ${googleEvent.summary}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            )
+          }
         }
-        // We don't create new events from Google to avoid duplicates
-        // Events should always be created in the portal first
       }
 
       return {
-        success: true,
-        synced: updated,
+        success: errors === 0,
+        synced: created + updated,
         created,
         updated,
         deleted,
         errors,
-        message: `Import termine: ${updated} evenements trouves`,
+        message: `Import termine: ${created} importes, ${updated} existants${skipped > 0 ? `, ${skipped} ignores` : ''}`,
         details,
       }
     } catch (error) {
@@ -331,7 +430,7 @@ class CalendarSyncService {
         elementsSupprimes: data.elementsSupprimes,
         elementsErreur: data.elementsErreur,
         message: data.message,
-        details: data.details,
+        details: { logs: data.details },
         dureeMs: data.dureeMs,
         triggeredById: data.triggeredById || null,
       })

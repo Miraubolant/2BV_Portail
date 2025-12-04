@@ -3,34 +3,37 @@ import Evenement from '#models/evenement'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
 import calendarSyncService from '#services/google/calendar_sync_service'
+import GoogleToken from '#models/google_token'
+import googleConfig from '#config/google'
 
 const createEvenementValidator = vine.compile(
   vine.object({
-    dossierId: vine.string().uuid(),
+    dossierId: vine.string().uuid().optional().nullable(),
     titre: vine.string().minLength(3).maxLength(255),
-    description: vine.string().optional(),
+    description: vine.string().optional().nullable(),
     type: vine.string(),
     dateDebut: vine.string(),
     dateFin: vine.string(),
     journeeEntiere: vine.boolean().optional(),
-    lieu: vine.string().optional(),
-    adresse: vine.string().optional(),
-    salle: vine.string().optional(),
+    lieu: vine.string().optional().nullable(),
+    adresse: vine.string().optional().nullable(),
+    salle: vine.string().optional().nullable(),
     syncGoogle: vine.boolean().optional(),
   })
 )
 
 const updateEvenementValidator = vine.compile(
   vine.object({
+    dossierId: vine.string().uuid().optional().nullable(),
     titre: vine.string().minLength(3).maxLength(255).optional(),
-    description: vine.string().optional(),
+    description: vine.string().optional().nullable(),
     type: vine.string().optional(),
     dateDebut: vine.string().optional(),
     dateFin: vine.string().optional(),
     journeeEntiere: vine.boolean().optional(),
-    lieu: vine.string().optional(),
-    adresse: vine.string().optional(),
-    salle: vine.string().optional(),
+    lieu: vine.string().optional().nullable(),
+    adresse: vine.string().optional().nullable(),
+    salle: vine.string().optional().nullable(),
     statut: vine.string().optional(),
     syncGoogle: vine.boolean().optional(),
   })
@@ -42,19 +45,31 @@ export default class EvenementsController {
    */
   async index({ request, response }: HttpContext) {
     const page = request.input('page', 1)
-    const limit = request.input('limit', 20)
+    const limit = request.input('limit', 100)
     const from = request.input('from', '')
     const to = request.input('to', '')
+    const year = request.input('year')
+    const month = request.input('month')
 
-    let query = (Evenement.query() as any)
-      .preload('dossier')
+    let query = Evenement.query()
+      .preload('dossier', (dossierQuery) => {
+        dossierQuery.preload('client')
+      })
       .orderBy('date_debut', 'asc')
 
-    if (from) {
-      query = query.where('date_debut', '>=', from)
-    }
-    if (to) {
-      query = query.where('date_debut', '<=', to)
+    // Support year/month filtering for calendar view
+    if (year && month) {
+      const startDate = DateTime.fromObject({ year: parseInt(year), month: parseInt(month), day: 1 })
+      const endDate = startDate.endOf('month')
+      query = query.where('date_debut', '>=', startDate.toSQL())
+      query = query.where('date_debut', '<=', endDate.toSQL())
+    } else {
+      if (from) {
+        query = query.where('date_debut', '>=', from)
+      }
+      if (to) {
+        query = query.where('date_debut', '<=', to)
+      }
     }
 
     const evenements = await query.paginate(page, limit)
@@ -90,11 +105,14 @@ export default class EvenementsController {
       createdById: admin.id,
     })
 
-    // Sync to Google Calendar if enabled (async, don't block response)
+    // Sync to Google Calendar if enabled and sync mode is auto (async, don't block response)
     if (evenement.syncGoogle) {
-      calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
-        console.error('Failed to sync event to Google:', err)
-      })
+      const syncMode = await GoogleToken.getSyncMode(googleConfig.serviceKey)
+      if (syncMode === 'auto') {
+        calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
+          console.error('Failed to sync event to Google:', err)
+        })
+      }
     }
 
     await (evenement as any).load('dossier')
@@ -108,20 +126,28 @@ export default class EvenementsController {
     const evenement = await Evenement.findOrFail(params.id)
     const data = await request.validateUsing(updateEvenementValidator)
 
-    // Extraire les dates
-    const { dateDebut, dateFin, ...restData } = data
+    // Extraire les dates et dossierId
+    const { dateDebut, dateFin, dossierId, ...restData } = data
 
     if (dateDebut) evenement.dateDebut = DateTime.fromISO(dateDebut)
     if (dateFin) evenement.dateFin = DateTime.fromISO(dateFin)
 
+    // Handle dossierId update (can be null to unassign, or a valid UUID to assign)
+    if (dossierId !== undefined) {
+      evenement.dossierId = dossierId || null
+    }
+
     evenement.merge(restData)
     await evenement.save()
 
-    // Sync to Google Calendar if enabled (async, don't block response)
+    // Sync to Google Calendar if enabled and sync mode is auto (async, don't block response)
     if (evenement.syncGoogle) {
-      calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
-        console.error('Failed to sync event update to Google:', err)
-      })
+      const syncMode = await GoogleToken.getSyncMode(googleConfig.serviceKey)
+      if (syncMode === 'auto') {
+        calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
+          console.error('Failed to sync event update to Google:', err)
+        })
+      }
     }
 
     return response.ok(evenement)

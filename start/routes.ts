@@ -177,6 +177,7 @@ router.group(() => {
   // Sync routes
   router.post('sync', [GoogleOAuthController, 'syncAll'])
   router.get('sync-history', [GoogleOAuthController, 'syncHistory'])
+  router.post('sync-mode', [GoogleOAuthController, 'updateSyncMode'])
 }).prefix('api/admin/google').use([middleware.adminAuth(), middleware.superAdmin()])
 
 // ══════════════════════════════════════════════════════════════

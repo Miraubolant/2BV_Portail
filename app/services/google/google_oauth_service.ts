@@ -182,6 +182,7 @@ class GoogleOAuthService {
     accountName?: string | null
     selectedCalendarId?: string | null
     selectedCalendarName?: string | null
+    syncMode?: string
     expiresAt?: string
   }> {
     const token = await GoogleToken.findByService(googleConfig.serviceKey)
@@ -196,6 +197,7 @@ class GoogleOAuthService {
       accountName: token.accountName,
       selectedCalendarId: token.selectedCalendarId,
       selectedCalendarName: token.selectedCalendarName,
+      syncMode: token.syncMode || 'auto',
       expiresAt: token.expiresAt.toISO() ?? undefined,
     }
   }
