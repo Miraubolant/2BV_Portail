@@ -168,7 +168,7 @@ export default class ClientDocumentsController {
     // Verifier que le document appartient a un dossier du client
     const document = await Document.query()
       .where('id', params.id)
-      .preload('dossier')
+      .preload('dossier' as never)
       .firstOrFail()
 
     if (document.dossier.clientId !== client.id) {

@@ -177,7 +177,7 @@ class DocumentSyncService {
   async syncDocument(documentId: string, fileContent: Buffer): Promise<{ success: boolean; error?: string }> {
     const document = await Document.query()
       .where('id', documentId)
-      .preload('dossier')
+      .preload('dossier' as never)
       .first()
 
     if (!document) {

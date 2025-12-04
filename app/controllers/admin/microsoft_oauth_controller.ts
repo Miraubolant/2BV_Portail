@@ -112,7 +112,11 @@ export default class MicrosoftOAuthController {
         })
       }
 
-      const driveInfo = await driveResponse.json()
+      const driveInfo = await driveResponse.json() as {
+        id: string
+        driveType: string
+        quota?: { used?: number; total?: number; remaining?: number }
+      }
 
       return response.ok({
         success: true,

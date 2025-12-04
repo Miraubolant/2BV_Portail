@@ -55,11 +55,11 @@ class MicrosoftOAuthService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await response.json() as { error?: string; error_description?: string }
       throw new Error(`Token exchange failed: ${error.error_description || error.error}`)
     }
 
-    return await response.json()
+    return await response.json() as TokenResponse
   }
 
   /**
@@ -83,11 +83,11 @@ class MicrosoftOAuthService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await response.json() as { error?: string; error_description?: string }
       throw new Error(`Token refresh failed: ${error.error_description || error.error}`)
     }
 
-    return await response.json()
+    return await response.json() as TokenResponse
   }
 
   /**
@@ -104,7 +104,7 @@ class MicrosoftOAuthService {
       throw new Error('Failed to fetch user profile')
     }
 
-    return await response.json()
+    return await response.json() as UserProfile
   }
 
   /**
@@ -193,7 +193,7 @@ class MicrosoftOAuthService {
       connected: true,
       accountEmail: token.accountEmail,
       accountName: token.accountName,
-      expiresAt: token.expiresAt.toISO(),
+      expiresAt: token.expiresAt.toISO() ?? undefined,
     }
   }
 

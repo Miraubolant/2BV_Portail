@@ -89,7 +89,7 @@ class OneDriveService {
       return null
     }
 
-    return await response.json()
+    return await response.json() as DriveItem
   }
 
   /**
@@ -110,7 +110,7 @@ class OneDriveService {
       return []
     }
 
-    const data = await response.json()
+    const data = await response.json() as { value?: DriveItem[] }
     return data.value || []
   }
 
@@ -156,7 +156,7 @@ class OneDriveService {
       return { success: false, error }
     }
 
-    const folder = await response.json()
+    const folder = await response.json() as DriveItem
     return {
       success: true,
       folderId: folder.id,
@@ -204,7 +204,7 @@ class OneDriveService {
       return { success: false, error }
     }
 
-    const folder = await response.json()
+    const folder = await response.json() as DriveItem
     return {
       success: true,
       folderId: folder.id,
@@ -239,7 +239,7 @@ class OneDriveService {
     if (response.status === 409) {
       const getResponse = await fetch(`${GRAPH_API_BASE}/me/drive/root:${normalizedPath}`, { headers })
       if (getResponse.ok) {
-        const folder = await getResponse.json()
+        const folder = await getResponse.json() as DriveItem
         return {
           success: true,
           folderId: folder.id,
@@ -262,7 +262,7 @@ class OneDriveService {
         const checkResponse = await fetch(`${GRAPH_API_BASE}/me/drive/root:${currentPath}`, { headers })
 
         if (checkResponse.ok) {
-          const folder = await checkResponse.json()
+          const folder = await checkResponse.json() as DriveItem
           lastFolderId = folder.id
         } else {
           // Create the folder
@@ -286,7 +286,7 @@ class OneDriveService {
             return { success: false, error }
           }
 
-          const folder = await createResponse.json()
+          const folder = await createResponse.json() as DriveItem
           lastFolderId = folder.id
         }
       }
@@ -294,7 +294,7 @@ class OneDriveService {
       // Get final folder info
       const finalResponse = await fetch(`${GRAPH_API_BASE}/me/drive/items/${lastFolderId}`, { headers })
       if (finalResponse.ok) {
-        const folder = await finalResponse.json()
+        const folder = await finalResponse.json() as DriveItem
         return {
           success: true,
           folderId: folder.id,
@@ -306,7 +306,7 @@ class OneDriveService {
       return { success: true, folderId: lastFolderId, folderPath: normalizedPath }
     }
 
-    const folder = await response.json()
+    const folder = await response.json() as DriveItem
     return {
       success: true,
       folderId: folder.id,
@@ -348,7 +348,7 @@ class OneDriveService {
       return { success: false, error }
     }
 
-    const file = await response.json()
+    const file = await response.json() as DriveItem
     return {
       success: true,
       fileId: file.id,
@@ -385,7 +385,7 @@ class OneDriveService {
       return null
     }
 
-    return await response.json()
+    return await response.json() as UploadSession
   }
 
   /**
@@ -395,7 +395,7 @@ class OneDriveService {
     parentFolderId: string,
     fileName: string,
     content: Buffer,
-    mimeType: string
+    _mimeType: string
   ): Promise<FileUploadResult> {
     const session = await this.createUploadSession(parentFolderId, fileName)
     if (!session) {
@@ -427,7 +427,7 @@ class OneDriveService {
 
       // If upload is complete (status 200 or 201)
       if (response.status === 200 || response.status === 201) {
-        const file = await response.json()
+        const file = await response.json() as DriveItem
         return {
           success: true,
           fileId: file.id,
@@ -476,7 +476,7 @@ class OneDriveService {
       return { success: false, error: 'File not found' }
     }
 
-    const fileInfo: DriveItem = await infoResponse.json()
+    const fileInfo = await infoResponse.json() as DriveItem
     const downloadUrl = fileInfo['@microsoft.graph.downloadUrl']
 
     if (!downloadUrl) {
@@ -511,7 +511,7 @@ class OneDriveService {
       return null
     }
 
-    return await response.json()
+    return await response.json() as DriveItem
   }
 
   /**
@@ -590,7 +590,13 @@ class OneDriveService {
       return null
     }
 
-    const data = await response.json()
+    interface ThumbnailSet {
+      small?: { url?: string }
+      medium?: { url?: string }
+      large?: { url?: string }
+    }
+
+    const data = await response.json() as { value?: ThumbnailSet[] }
     const thumbnails = data.value?.[0]
 
     if (!thumbnails) return null
