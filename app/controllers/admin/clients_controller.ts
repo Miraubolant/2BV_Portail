@@ -18,6 +18,7 @@ export default class ClientsController {
 
     let query = Client.query()
       .preload('createdBy')
+      .preload('responsable')
       .orderBy('created_at', 'desc')
 
     if (search) {
@@ -46,6 +47,7 @@ export default class ClientsController {
     const client = await Client.query()
       .where('id', params.id)
       .preload('createdBy')
+      .preload('responsable')
       .preload('dossiers')
       .firstOrFail()
 

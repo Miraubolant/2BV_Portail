@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ADMIN_CLIENTS_API, formatDate } from '@/lib/constants'
+import { ADMIN_CLIENTS_API, ADMIN_ADMINS_API, formatDate } from '@/lib/constants'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { DataTable, Column } from '@/components/ui/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -43,11 +43,26 @@ interface Client {
   actif: boolean
   peutUploader: boolean
   peutDemanderRdv: boolean
+  responsableId: string | null
+  responsable: {
+    id: string
+    username: string | null
+    nom: string
+    prenom: string
+  } | null
   createdAt: string
+}
+
+interface AdminOption {
+  id: string
+  username: string | null
+  nom: string
+  prenom: string
 }
 
 const ClientsListPage = () => {
   const [clients, setClients] = useState<Client[]>([])
+  const [admins, setAdmins] = useState<AdminOption[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -81,6 +96,8 @@ const ClientsListPage = () => {
     actif: true,
     // Notes
     notesInternes: '',
+    // Responsable
+    responsableId: '' as string | null,
   })
   const [pagination, setPagination] = useState({
     page: 1,
@@ -113,7 +130,22 @@ const ClientsListPage = () => {
       peutDemanderRdv: true,
       actif: true,
       notesInternes: '',
+      responsableId: '',
     })
+  }
+
+  const fetchAdmins = async () => {
+    try {
+      const response = await fetch(ADMIN_ADMINS_API, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setAdmins(result.data || result || [])
+      }
+    } catch (error) {
+      console.error('Error fetching admins:', error)
+    }
   }
 
   const fetchClients = useCallback(async () => {
@@ -149,6 +181,10 @@ const ClientsListPage = () => {
     fetchClients()
   }, [fetchClients])
 
+  useEffect(() => {
+    fetchAdmins()
+  }, [])
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setProcessing(true)
@@ -175,7 +211,7 @@ const ClientsListPage = () => {
     router.visit(`/admin/clients/${client.id}`)
   }
 
-  const handleUpdateField = async (clientId: string, field: string, value: boolean) => {
+  const handleUpdateField = async (clientId: string, field: string, value: boolean | string | null) => {
     try {
       const response = await fetch(`${ADMIN_CLIENTS_API}/${clientId}`, {
         method: 'PUT',
@@ -184,9 +220,14 @@ const ClientsListPage = () => {
         body: JSON.stringify({ [field]: value }),
       })
       if (response.ok) {
-        setClients((prev) =>
-          prev.map((c) => (c.id === clientId ? { ...c, [field]: value } : c))
-        )
+        // Refetch to get updated responsable relation
+        if (field === 'responsableId') {
+          fetchClients()
+        } else {
+          setClients((prev) =>
+            prev.map((c) => (c.id === clientId ? { ...c, [field]: value } : c))
+          )
+        }
       }
     } catch (error) {
       console.error('Error updating client:', error)
@@ -225,6 +266,35 @@ const ClientsListPage = () => {
           <Badge variant={row.type === 'particulier' ? 'default' : 'secondary'}>
             {row.type === 'particulier' ? 'Particulier' : 'Institutionnel'}
           </Badge>
+        ),
+      },
+      {
+        key: 'responsable',
+        header: 'Responsable',
+        sortable: true,
+        width: '180px',
+        getValue: (row) => row.responsable?.username || row.responsable?.nom || '',
+        render: (row) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={row.responsableId || 'none'}
+              onValueChange={(value) => handleUpdateField(row.id, 'responsableId', value === 'none' ? null : value)}
+            >
+              <SelectTrigger className="h-8 w-full">
+                <SelectValue placeholder="--">
+                  {row.responsable ? (row.responsable.username || `${row.responsable.prenom} ${row.responsable.nom}`) : '--'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">--</SelectItem>
+                {admins.map((admin) => (
+                  <SelectItem key={admin.id} value={admin.id}>
+                    {admin.username || `${admin.prenom} ${admin.nom}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         ),
       },
       {
@@ -294,7 +364,7 @@ const ClientsListPage = () => {
         ),
       },
     ],
-    []
+    [admins]
   )
 
   return (

@@ -30,6 +30,7 @@ export const createClientValidator = vine.compile(
     notesInternes: vine.string().optional(),
     tags: vine.array(vine.string()).optional(),
     sourceAcquisition: vine.string().optional(),
+    responsableId: vine.string().uuid().optional().nullable(),
   })
 )
 
@@ -62,5 +63,6 @@ export const updateClientValidator = vine.compile(
     notesInternes: vine.string().optional(),
     tags: vine.array(vine.string()).optional(),
     sourceAcquisition: vine.string().optional(),
+    responsableId: vine.string().uuid().optional().nullable(),
   })
 )

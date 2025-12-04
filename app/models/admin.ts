@@ -28,6 +28,9 @@ export default class Admin extends compose(BaseModel, AuthFinder) {
   declare prenom: string
 
   @column()
+  declare username: string | null
+
+  @column()
   declare role: 'super_admin' | 'admin'
 
   @column()

@@ -118,6 +118,9 @@ export default class Client extends compose(BaseModel, AuthFinder) {
   @column()
   declare createdById: string | null
 
+  @column()
+  declare responsableId: string | null
+
   @column.dateTime()
   declare lastLogin: DateTime | null
 
@@ -136,6 +139,9 @@ export default class Client extends compose(BaseModel, AuthFinder) {
 
   @belongsTo(() => Admin, { foreignKey: 'createdById' })
   declare createdBy: BelongsTo<typeof Admin>
+
+  @belongsTo(() => Admin, { foreignKey: 'responsableId' })
+  declare responsable: BelongsTo<typeof Admin>
 
   // Computed
   get fullName(): string {

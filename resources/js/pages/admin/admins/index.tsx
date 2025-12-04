@@ -47,6 +47,7 @@ interface Admin {
   id: string
   nom: string
   prenom: string
+  username: string | null
   email: string
   role: 'super_admin' | 'admin'
   actif: boolean
@@ -64,6 +65,7 @@ const AdminsPage = () => {
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
+    username: '',
     email: '',
     role: 'admin' as const,
   })
@@ -108,7 +110,7 @@ const AdminsPage = () => {
           setShowCreateModal(false)
           fetchAdmins()
         }
-        setFormData({ nom: '', prenom: '', email: '', role: 'admin' })
+        setFormData({ nom: '', prenom: '', username: '', email: '', role: 'admin' })
       }
     } catch (error) {
       console.error('Error creating admin:', error)
@@ -195,7 +197,7 @@ const AdminsPage = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold">
-                          {admin.prenom} {admin.nom}
+                          {admin.username || `${admin.prenom} ${admin.nom}`}
                         </h3>
                         <p className="text-sm text-muted-foreground">{admin.email}</p>
                       </div>
@@ -289,6 +291,19 @@ const AdminsPage = () => {
             </div>
           ) : (
             <form onSubmit={handleCreate} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Nom d'utilisateur (responsable) *</Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder="Ex: Me. Dupont"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ce nom sera utilise comme responsable pour les clients assignes.
+                </p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nom">Nom *</Label>

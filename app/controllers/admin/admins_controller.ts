@@ -9,6 +9,7 @@ const createAdminValidator = vine.compile(
     email: vine.string().email(),
     nom: vine.string().minLength(2).maxLength(100),
     prenom: vine.string().minLength(2).maxLength(100),
+    username: vine.string().minLength(2).maxLength(50),
     role: vine.enum(['admin']), // Seul role possible via API, super_admin uniquement via seed
   })
 )
@@ -18,6 +19,7 @@ const updateAdminValidator = vine.compile(
     email: vine.string().email().optional(),
     nom: vine.string().minLength(2).maxLength(100).optional(),
     prenom: vine.string().minLength(2).maxLength(100).optional(),
+    username: vine.string().minLength(2).maxLength(50).optional(),
     actif: vine.boolean().optional(),
   })
 )
@@ -37,6 +39,7 @@ export default class AdminsController {
       email: a.email,
       nom: a.nom,
       prenom: a.prenom,
+      username: a.username,
       role: a.role,
       actif: a.actif,
       totpEnabled: a.totpEnabled,
@@ -56,6 +59,7 @@ export default class AdminsController {
       email: admin.email,
       nom: admin.nom,
       prenom: admin.prenom,
+      username: admin.username,
       role: admin.role,
       actif: admin.actif,
       totpEnabled: admin.totpEnabled,
@@ -90,6 +94,7 @@ export default class AdminsController {
         email: admin.email,
         nom: admin.nom,
         prenom: admin.prenom,
+        username: admin.username,
         role: admin.role,
       },
       generatedPassword: password,
@@ -116,6 +121,7 @@ export default class AdminsController {
       email: admin.email,
       nom: admin.nom,
       prenom: admin.prenom,
+      username: admin.username,
       role: admin.role,
       actif: admin.actif,
     })
