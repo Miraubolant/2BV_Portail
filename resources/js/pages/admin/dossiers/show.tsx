@@ -1098,14 +1098,15 @@ const DossierShowPage = () => {
               />
               {uploadFile ? (
                 <div className="flex items-center justify-center gap-3">
-                  <FileText className="h-8 w-8 text-primary" />
-                  <div className="text-left">
-                    <p className="font-medium">{uploadFile.name}</p>
+                  <FileText className="h-8 w-8 text-primary flex-shrink-0" />
+                  <div className="text-left min-w-0 flex-1 max-w-[280px]">
+                    <p className="font-medium truncate" title={uploadFile.name}>{uploadFile.name}</p>
                     <p className="text-sm text-muted-foreground">{formatFileSize(uploadFile.size)}</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="flex-shrink-0"
                     onClick={(e) => {
                       e.stopPropagation()
                       setUploadFile(null)

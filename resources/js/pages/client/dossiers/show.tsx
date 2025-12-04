@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CLIENT_DOSSIERS_API, formatDate, API_BASE_URL } from '@/lib/constants'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, memo } from 'react'
 import {
   ArrowLeft,
   FileText,
@@ -131,23 +131,108 @@ const formatFileSize = (bytes: number | null) => {
   return `${size.toFixed(1)} ${units[unitIndex]}`
 }
 
-const canPreview = (mimeType: string | null): boolean => {
+const canPreviewDoc = (mimeType: string | null): boolean => {
   if (!mimeType) return false
   return mimeType === 'application/pdf' || mimeType.startsWith('image/')
 }
 
-const getDocumentIcon = (mimeType: string | null) => {
-  if (!mimeType) return <File className="h-8 w-8 text-muted-foreground" />
-  if (mimeType === 'application/pdf') return <FileText className="h-8 w-8 text-red-500" />
-  if (mimeType.startsWith('image/')) return <Image className="h-8 w-8 text-blue-500" />
-  if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return <FileSpreadsheet className="h-8 w-8 text-green-500" />
-  return <File className="h-8 w-8 text-muted-foreground" />
+const getFileType = (mimeType: string | null, extension: string | null): 'pdf' | 'image' | 'excel' | 'word' | 'other' => {
+  const ext = extension?.toLowerCase() || ''
+  if (mimeType?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image'
+  if (mimeType === 'application/pdf' || ext === 'pdf') return 'pdf'
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel'
+  if (['doc', 'docx'].includes(ext)) return 'word'
+  return 'other'
 }
+
+const getFileIconConfig = (fileType: 'pdf' | 'image' | 'excel' | 'word' | 'other') => {
+  switch (fileType) {
+    case 'image':
+      return { icon: Image, color: 'text-green-500', bg: 'bg-green-50' }
+    case 'pdf':
+      return { icon: FileText, color: 'text-red-500', bg: 'bg-red-50' }
+    case 'excel':
+      return { icon: FileSpreadsheet, color: 'text-emerald-500', bg: 'bg-emerald-50' }
+    case 'word':
+      return { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50' }
+    default:
+      return { icon: File, color: 'text-gray-500', bg: 'bg-gray-50' }
+  }
+}
+
+// Document Thumbnail Component
+const DocumentThumbnail = memo(({ doc, onClick }: { doc: DocumentType; onClick: () => void }) => {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const fileType = getFileType(doc.mimeType, doc.extension)
+  const iconConfig = getFileIconConfig(fileType)
+  const IconComponent = iconConfig.icon
+
+  useEffect(() => {
+    if (!doc.onedriveFileId) {
+      setLoading(false)
+      return
+    }
+
+    const loadThumbnail = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}client/documents/${doc.id}/thumbnail?size=medium`, {
+          credentials: 'include',
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setThumbnailUrl(data.url)
+        }
+      } catch {
+        // Thumbnail not available
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadThumbnail()
+  }, [doc.id, doc.onedriveFileId])
+
+  const canPreview = fileType === 'pdf' || fileType === 'image'
+
+  return (
+    <button
+      onClick={canPreview ? onClick : undefined}
+      disabled={!canPreview}
+      className={`relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-muted border-2 border-transparent transition-all ${
+        canPreview ? 'hover:border-primary hover:shadow-md cursor-pointer' : 'cursor-default'
+      }`}
+    >
+      {loading ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : thumbnailUrl ? (
+        <img
+          src={thumbnailUrl}
+          alt={doc.nom}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className={`absolute inset-0 flex items-center justify-center ${iconConfig.bg}`}>
+          <IconComponent className={`h-12 w-12 ${iconConfig.color}`} />
+        </div>
+      )}
+      {canPreview && (
+        <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+          <Eye className="h-8 w-8 text-white opacity-0 hover:opacity-100 transition-opacity" />
+        </div>
+      )}
+    </button>
+  )
+})
+
+DocumentThumbnail.displayName = 'DocumentThumbnail'
 
 const ClientDossierShowPage = () => {
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('infos')
+  const [activeTab, setActiveTab] = useState('documents')
   const [downloading, setDownloading] = useState<string | null>(null)
   const [previewDoc, setPreviewDoc] = useState<DocumentType | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -190,8 +275,8 @@ const ClientDossierShowPage = () => {
         credentials: 'include',
       })
       if (response.ok) {
-        const user = await response.json()
-        setCanUpload(user.peutUploader === true)
+        const data = await response.json()
+        setCanUpload(data.user?.peutUploader === true)
       }
     } catch (error) {
       console.error('Error checking upload permission:', error)
@@ -372,10 +457,10 @@ const ClientDossierShowPage = () => {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="infos">Informations</TabsTrigger>
             <TabsTrigger value="documents">
               Documents {documents.length > 0 && `(${documents.length})`}
             </TabsTrigger>
+            <TabsTrigger value="infos">Informations</TabsTrigger>
             <TabsTrigger value="chronologie">
               Chronologie {evenements.length > 0 && `(${evenements.length})`}
             </TabsTrigger>
@@ -474,55 +559,54 @@ const ClientDossierShowPage = () => {
             )}
 
             {documents.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {documents.map((doc) => (
-                  <Card key={doc.id} className="overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        {getDocumentIcon(doc.mimeType)}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate" title={doc.nom}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Documents ({documents.length})
+                  </CardTitle>
+                  <CardDescription>Cliquez sur un document pour l'apercevoir</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {documents.map((doc) => (
+                      <div key={doc.id} className="group">
+                        {/* Thumbnail */}
+                        <DocumentThumbnail doc={doc} onClick={() => handlePreview(doc)} />
+
+                        {/* Document Info */}
+                        <div className="mt-2 space-y-1">
+                          <p className="font-medium text-sm truncate" title={doc.nom}>
                             {doc.nom}
                           </p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>{typeDocumentLabels[doc.typeDocument || ''] || doc.typeDocument || 'Document'}</span>
-                            <span>-</span>
-                            <span>{formatFileSize(doc.tailleOctets)}</span>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(doc.tailleOctets)}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleDownload(doc)}
+                              disabled={downloading === doc.id}
+                            >
+                              {downloading === doc.id ? (
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formatDate(doc.createdAt)}
-                          </p>
+                          {/* Badge type */}
+                          <Badge variant="outline" className="text-[10px] px-1 py-0">
+                            {typeDocumentLabels[doc.typeDocument || ''] || 'Document'}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-2 mt-3">
-                        {canPreview(doc.mimeType) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePreview(doc)}
-                          >
-                            <Eye className="mr-1 h-3 w-3" />
-                            Apercu
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownload(doc)}
-                          disabled={downloading === doc.id}
-                        >
-                          {downloading === doc.id ? (
-                            <LoaderCircle className="mr-1 h-3 w-3 animate-spin" />
-                          ) : (
-                            <Download className="mr-1 h-3 w-3" />
-                          )}
-                          Telecharger
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
@@ -661,9 +745,9 @@ const ClientDossierShowPage = () => {
             >
               {uploadFile ? (
                 <div className="flex items-center justify-center gap-3">
-                  <FileText className="h-8 w-8 text-primary" />
-                  <div className="text-left">
-                    <p className="font-medium">{uploadFile.name}</p>
+                  <FileText className="h-8 w-8 text-primary flex-shrink-0" />
+                  <div className="text-left min-w-0 flex-1 max-w-[280px]">
+                    <p className="font-medium truncate" title={uploadFile.name}>{uploadFile.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {(uploadFile.size / 1024 / 1024).toFixed(2)} Mo
                     </p>
@@ -671,6 +755,7 @@ const ClientDossierShowPage = () => {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="flex-shrink-0"
                     onClick={() => setUploadFile(null)}
                   >
                     <X className="h-4 w-4" />

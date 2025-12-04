@@ -225,4 +225,40 @@ export default class ClientDocumentsController {
 
     return response.ok(documents)
   }
+
+  /**
+   * GET /api/client/documents/:id/thumbnail
+   * Obtenir l'URL de la vignette du document
+   */
+  async thumbnail({ params, request, auth, response }: HttpContext) {
+    const client = auth.use('client').user!
+
+    // Verifier que le document appartient a un dossier du client
+    const document = await Document.query()
+      .where('id', params.id)
+      .preload('dossier' as never)
+      .firstOrFail()
+
+    if (document.dossier.clientId !== client.id) {
+      return response.forbidden({ message: 'Acces non autorise' })
+    }
+
+    // Verifier les permissions
+    if (!document.visibleClient) {
+      return response.forbidden({ message: 'Document non accessible' })
+    }
+
+    if (document.sensible && !client.accesDocumentsSensibles) {
+      return response.forbidden({ message: 'Acces aux documents sensibles non autorise' })
+    }
+
+    const size = request.input('size', 'medium') as 'small' | 'medium' | 'large'
+    const result = await documentSyncService.getThumbnailUrl(params.id, size)
+
+    if (!result.success) {
+      return response.notFound({ message: result.error })
+    }
+
+    return response.ok({ url: result.url })
+  }
 }

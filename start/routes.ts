@@ -174,6 +174,7 @@ router.group(() => {
   router.post('dossiers/:dossierId/documents', [ClientDocumentsController, 'store'])
   router.post('dossiers/:dossierId/documents/upload', [ClientDocumentsController, 'upload'])
   router.get('documents/:id/download', [ClientDocumentsController, 'download'])
+  router.get('documents/:id/thumbnail', [ClientDocumentsController, 'thumbnail'])
 
   // Demandes RDV
   router.get('demandes-rdv', [ClientRdvController, 'index'])

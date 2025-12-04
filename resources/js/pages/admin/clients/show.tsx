@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
-import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate, formatDateTime } from '@/lib/constants'
+import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, ADMIN_DOSSIERS_API, formatDate, formatDateTime } from '@/lib/constants'
 import { ADMIN_CLIENTS } from '@/app/routes'
 import { useEffect, useState } from 'react'
 import {
@@ -30,6 +30,7 @@ import {
   Calendar,
   StickyNote,
   Globe,
+  Plus,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -117,6 +118,9 @@ const ClientShowPage = () => {
   const [admins, setAdmins] = useState<AdminOption[]>([])
   const [showResponsableModal, setShowResponsableModal] = useState(false)
   const [selectedResponsableId, setSelectedResponsableId] = useState<string>('')
+  const [showNewDossierModal, setShowNewDossierModal] = useState(false)
+  const [newDossierData, setNewDossierData] = useState({ intitule: '', typeAffaire: '', description: '' })
+  const [creatingDossier, setCreatingDossier] = useState(false)
 
   const clientId = window.location.pathname.split('/').pop()
 
@@ -255,6 +259,34 @@ const ClientShowPage = () => {
       }
     } catch (error) {
       console.error('Error changing responsable:', error)
+    }
+  }
+
+  const handleCreateDossier = async () => {
+    if (!client || !newDossierData.intitule.trim()) return
+
+    setCreatingDossier(true)
+    try {
+      const response = await fetch(ADMIN_DOSSIERS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          clientId: client.id,
+          intitule: newDossierData.intitule,
+          typeAffaire: newDossierData.typeAffaire || undefined,
+          description: newDossierData.description || undefined,
+        }),
+      })
+      if (response.ok) {
+        setShowNewDossierModal(false)
+        setNewDossierData({ intitule: '', typeAffaire: '', description: '' })
+        await fetchClient()
+      }
+    } catch (error) {
+      console.error('Error creating dossier:', error)
+    } finally {
+      setCreatingDossier(false)
     }
   }
 
@@ -914,8 +946,9 @@ const ClientShowPage = () => {
                     <FolderKanban className="h-5 w-5" />
                     Dossiers du client
                   </CardTitle>
-                  <Button size="sm" asChild>
-                    <Link href="/admin/dossiers">Nouveau dossier</Link>
+                  <Button size="sm" onClick={() => setShowNewDossierModal(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouveau dossier
                   </Button>
                 </div>
               </CardHeader>
@@ -995,6 +1028,81 @@ const ClientShowPage = () => {
             </Button>
             <Button onClick={handleChangeResponsable}>
               Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Nouveau Dossier */}
+      <Dialog open={showNewDossierModal} onOpenChange={setShowNewDossierModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Nouveau dossier</DialogTitle>
+            <DialogDescription>
+              Creer un nouveau dossier pour {client.prenom} {client.nom}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="intitule">Intitule du dossier *</Label>
+              <Input
+                id="intitule"
+                value={newDossierData.intitule}
+                onChange={(e) => setNewDossierData({ ...newDossierData, intitule: e.target.value })}
+                placeholder="Ex: Divorce contentieux, Litige commercial..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="typeAffaire">Type d'affaire</Label>
+              <Select
+                value={newDossierData.typeAffaire}
+                onValueChange={(v) => setNewDossierData({ ...newDossierData, typeAffaire: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectionner un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="civil">Civil</SelectItem>
+                  <SelectItem value="penal">Penal</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                  <SelectItem value="social">Social</SelectItem>
+                  <SelectItem value="administratif">Administratif</SelectItem>
+                  <SelectItem value="famille">Famille</SelectItem>
+                  <SelectItem value="immobilier">Immobilier</SelectItem>
+                  <SelectItem value="autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={newDossierData.description}
+                onChange={(e) => setNewDossierData({ ...newDossierData, description: e.target.value })}
+                placeholder="Description du dossier..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewDossierModal(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleCreateDossier}
+              disabled={creatingDossier || !newDossierData.intitule.trim()}
+            >
+              {creatingDossier ? (
+                <>
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  Creation...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Creer le dossier
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
