@@ -7,7 +7,7 @@ import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { AppWrapper } from '@/app/app-wrapper'
 
-const appName = import.meta.env.VITE_APP_NAME || 'Starter Kit'
+const appName = import.meta.env.VITE_APP_NAME || '2BV Portail'
 
 createInertiaApp({
   title: (title) => `${title} - ${appName}`,

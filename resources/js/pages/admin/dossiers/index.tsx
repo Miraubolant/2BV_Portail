@@ -91,6 +91,7 @@ const DossiersListPage = () => {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statutFilter, setStatutFilter] = useState('')
+  const [clientFilter, setClientFilter] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
@@ -116,6 +117,7 @@ const DossiersListPage = () => {
       })
       if (search) params.append('search', search)
       if (statutFilter) params.append('statut', statutFilter)
+      if (clientFilter) params.append('clientId', clientFilter)
 
       const response = await fetch(`${ADMIN_DOSSIERS_API}?${params}`, {
         credentials: 'include',
@@ -134,11 +136,7 @@ const DossiersListPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.limit, search, statutFilter])
-
-  useEffect(() => {
-    fetchDossiers()
-  }, [fetchDossiers])
+  }, [pagination.page, pagination.limit, search, statutFilter, clientFilter])
 
   const fetchClients = async () => {
     try {
@@ -154,8 +152,15 @@ const DossiersListPage = () => {
     }
   }
 
-  const handleOpenCreateModal = () => {
+  useEffect(() => {
+    fetchDossiers()
+  }, [fetchDossiers])
+
+  useEffect(() => {
     fetchClients()
+  }, [])
+
+  const handleOpenCreateModal = () => {
     setShowCreateModal(true)
   }
 
@@ -339,18 +344,31 @@ const DossiersListPage = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher par reference, intitule ou client..."
+                  placeholder="Rechercher par reference, intitule..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
               </div>
+              <Select value={clientFilter || 'all'} onValueChange={(v) => setClientFilter(v === 'all' ? '' : v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Client" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les clients</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.prenom} {client.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={statutFilter || 'all'} onValueChange={(v) => setStatutFilter(v === 'all' ? '' : v)}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
                   {STATUT_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
