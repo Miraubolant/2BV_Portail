@@ -8,6 +8,7 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import transmit from '@adonisjs/transmit/services/main'
 import { middleware } from './kernel.js'
 
 // Lazy load controllers
@@ -24,11 +25,18 @@ const AdminParametresController = () => import('#controllers/admin/parametres_co
 const ClientDashboardController = () => import('#controllers/client/dashboard_controller')
 const ClientDossiersController = () => import('#controllers/client/dossiers_controller')
 const ClientRdvController = () => import('#controllers/client/rdv_controller')
+const AdminDocumentsController = () => import('#controllers/admin/documents_controller')
+const ClientDocumentsController = () => import('#controllers/client/documents_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
 // ══════════════════════════════════════════════════════════════
 router.get('/api/health', [HealthController, 'index'])
+
+// ══════════════════════════════════════════════════════════════
+// TRANSMIT (SSE) - Real-time updates
+// ══════════════════════════════════════════════════════════════
+transmit.registerRoutes()
 
 // ══════════════════════════════════════════════════════════════
 // AUTH - ADMIN
@@ -38,6 +46,8 @@ router.group(() => {
   router.post('verify-totp', [AdminAuthController, 'verifyTotp'])
   router.post('logout', [AdminAuthController, 'logout']).use(middleware.adminAuth())
   router.get('me', [AdminAuthController, 'me']).use(middleware.adminAuth())
+  router.put('notifications', [AdminAuthController, 'updateNotifications']).use(middleware.adminAuth())
+  router.put('password', [AdminAuthController, 'changePassword']).use(middleware.adminAuth())
   router.post('setup-totp', [AdminAuthController, 'setupTotp']).use(middleware.adminAuth())
   router.post('confirm-totp', [AdminAuthController, 'confirmTotp']).use(middleware.adminAuth())
 }).prefix('api/admin/auth')
@@ -79,6 +89,12 @@ router.group(() => {
   router.delete('dossiers/:id', [AdminDossiersController, 'destroy'])
   router.get('dossiers/:id/evenements', [AdminEvenementsController, 'byDossier'])
 
+  // Documents
+  router.get('dossiers/:dossierId/documents', [AdminDocumentsController, 'index'])
+  router.post('dossiers/:dossierId/documents', [AdminDocumentsController, 'store'])
+  router.put('documents/:id', [AdminDocumentsController, 'update'])
+  router.delete('documents/:id', [AdminDocumentsController, 'destroy'])
+
   // Evenements
   router.get('evenements', [AdminEvenementsController, 'index'])
   router.post('evenements', [AdminEvenementsController, 'store'])
@@ -91,6 +107,9 @@ router.group(() => {
   router.get('demandes-rdv/:id', [AdminDemandesRdvController, 'show'])
   router.post('demandes-rdv/:id/accepter', [AdminDemandesRdvController, 'accepter'])
   router.post('demandes-rdv/:id/refuser', [AdminDemandesRdvController, 'refuser'])
+
+  // Liste des responsables (pour les dropdowns)
+  router.get('responsables', [AdminAdminsController, 'responsables'])
 
 }).prefix('api/admin').use(middleware.adminAuth())
 
@@ -105,6 +124,7 @@ router.group(() => {
   router.put('admins/:id', [AdminAdminsController, 'update'])
   router.delete('admins/:id', [AdminAdminsController, 'destroy'])
   router.post('admins/:id/toggle-status', [AdminAdminsController, 'toggleStatus'])
+  router.post('admins/:id/reset-password', [AdminAdminsController, 'resetPassword'])
 
   // Parametres
   router.get('parametres', [AdminParametresController, 'index'])
@@ -124,6 +144,10 @@ router.group(() => {
   // Mes dossiers
   router.get('dossiers', [ClientDossiersController, 'index'])
   router.get('dossiers/:id', [ClientDossiersController, 'show'])
+
+  // Documents
+  router.get('dossiers/:dossierId/documents', [ClientDocumentsController, 'index'])
+  router.post('dossiers/:dossierId/documents', [ClientDocumentsController, 'store'])
 
   // Demandes RDV
   router.get('demandes-rdv', [ClientRdvController, 'index'])

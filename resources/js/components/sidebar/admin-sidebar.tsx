@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +10,9 @@ import {
   UserCog,
   LogOut,
   Scale,
+  ChevronsUpDown,
+  Shield,
+  User,
 } from 'lucide-react'
 
 import {
@@ -35,6 +39,14 @@ import {
 } from '@/app/routes'
 import { ADMIN_LOGOUT_API } from '@/lib/constants'
 import { Link, usePage } from '@inertiajs/react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 const mainNavItems = [
   {
@@ -64,21 +76,53 @@ const mainNavItems = [
   },
 ]
 
-const adminNavItems = [
-  {
-    title: 'Parametres',
-    href: ADMIN_PARAMETRES,
-    icon: Settings,
-  },
-  {
-    title: 'Administrateurs',
-    href: ADMIN_ADMINS,
-    icon: UserCog,
-  },
-]
+interface UserInfo {
+  email: string
+  username: string | null
+  nom: string
+  prenom: string
+  role: 'super_admin' | 'admin'
+}
 
 export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { url } = usePage()
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/admin/auth/me', {
+          credentials: 'include',
+        })
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user) {
+            setUserInfo(data.user)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error)
+      }
+    }
+    fetchUserInfo()
+  }, [])
+
+  const isSuperAdmin = userInfo?.role === 'super_admin'
+
+  const adminNavItems = [
+    {
+      title: 'Parametres',
+      href: ADMIN_PARAMETRES,
+      icon: Settings,
+      superAdminOnly: false,
+    },
+    {
+      title: 'Administrateurs',
+      href: ADMIN_ADMINS,
+      icon: UserCog,
+      superAdminOnly: true,
+    },
+  ].filter(item => !item.superAdminOnly || isSuperAdmin)
 
   const handleLogout = async () => {
     try {
@@ -151,10 +195,62 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-              <LogOut />
-              <span>Deconnexion</span>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <div className={`flex aspect-square size-8 items-center justify-center rounded-lg ${isSuperAdmin ? 'bg-primary' : 'bg-secondary'}`}>
+                    {isSuperAdmin ? (
+                      <Shield className="size-4 text-primary-foreground" />
+                    ) : (
+                      <User className="size-4 text-secondary-foreground" />
+                    )}
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      {userInfo?.username || `${userInfo?.prenom} ${userInfo?.nom}`}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {userInfo?.email}
+                    </span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                side="bottom"
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <div className={`flex aspect-square size-8 items-center justify-center rounded-lg ${isSuperAdmin ? 'bg-primary' : 'bg-secondary'}`}>
+                      {isSuperAdmin ? (
+                        <Shield className="size-4 text-primary-foreground" />
+                      ) : (
+                        <User className="size-4 text-secondary-foreground" />
+                      )}
+                    </div>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">
+                        {userInfo?.username || `${userInfo?.prenom} ${userInfo?.nom}`}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {isSuperAdmin ? 'Super Administrateur' : 'Administrateur'}
+                      </span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Deconnexion
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

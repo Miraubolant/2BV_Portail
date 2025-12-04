@@ -10,8 +10,9 @@ Portail client securise pour cabinet d'avocats avec gestion des dossiers, docume
 | **Frontend** | React 19 + TypeScript |
 | **SSR** | Inertia.js |
 | **Base de donnees** | PostgreSQL |
-| **Auth** | Access Tokens (2 guards: admin/client) |
+| **Auth** | Session-based (2 guards: admin/client) |
 | **2FA** | TOTP (otplib + QR Code) |
+| **Temps reel** | Transmit SSE |
 | **UI** | shadcn/ui + Tailwind CSS v4 |
 | **Tableaux** | AG Grid + TanStack Table |
 | **Formulaires** | React Hook Form + Zod |
@@ -27,6 +28,7 @@ Portail client securise pour cabinet d'avocats avec gestion des dossiers, docume
 - **Gestion dossiers** - Suivi des affaires, statuts, procedures judiciaires
 - **Evenements** - Calendrier des audiences, rendez-vous, echeances
 - **Demandes RDV** - Traitement des demandes clients (accepter/refuser)
+- **Mises a jour temps reel** - Synchronisation automatique entre admins connectes (SSE)
 - **Parametres** - Configuration systeme (super admin uniquement)
 - **Administrateurs** - Gestion des comptes admin (super admin uniquement)
 
@@ -36,10 +38,11 @@ Portail client securise pour cabinet d'avocats avec gestion des dossiers, docume
 - **Demandes RDV** - Creation de demandes de rendez-vous
 
 ### Securite
-- Authentification a deux facteurs (2FA/TOTP)
+- Authentification session-based avec cookies securises
+- Authentification a deux facteurs (2FA/TOTP) obligatoire pour clients
 - Separation des guards admin/client
+- Verification du statut actif lors de la connexion
 - Roles admin vs super_admin
-- Tokens d'acces avec expiration
 
 ## Installation
 

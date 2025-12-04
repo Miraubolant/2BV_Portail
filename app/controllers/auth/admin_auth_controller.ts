@@ -1,7 +1,24 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Admin from '#models/admin'
 import TotpService from '#services/auth/totp_service'
+import hash from '@adonisjs/core/services/hash'
 import { DateTime } from 'luxon'
+import vine from '@vinejs/vine'
+
+const updateNotificationsValidator = vine.compile(
+  vine.object({
+    notifEmailDocument: vine.boolean().optional(),
+    emailNotification: vine.string().email().optional().nullable(),
+  })
+)
+
+const changePasswordValidator = vine.compile(
+  vine.object({
+    currentPassword: vine.string(),
+    newPassword: vine.string().minLength(8),
+    confirmPassword: vine.string(),
+  })
+)
 
 export default class AdminAuthController {
   private totpService = new TotpService()
@@ -177,9 +194,63 @@ export default class AdminAuthController {
         email: admin.email,
         nom: admin.nom,
         prenom: admin.prenom,
+        username: admin.username,
         role: admin.role,
         totpEnabled: admin.totpEnabled,
+        notifEmailDocument: admin.notifEmailDocument,
+        emailNotification: admin.emailNotification,
       }
     })
+  }
+
+  /**
+   * PUT /api/admin/auth/notifications
+   * Mettre a jour les preferences de notification
+   */
+  async updateNotifications({ request, auth, response }: HttpContext) {
+    const admin = auth.use('admin').user
+    if (!admin) {
+      return response.unauthorized({ message: 'Non authentifie' })
+    }
+
+    const data = await request.validateUsing(updateNotificationsValidator)
+    admin.merge(data)
+    await admin.save()
+
+    return response.ok({
+      message: 'Preferences mises a jour',
+      notifEmailDocument: admin.notifEmailDocument,
+      emailNotification: admin.emailNotification,
+    })
+  }
+
+  /**
+   * PUT /api/admin/auth/password
+   * Changer son mot de passe
+   */
+  async changePassword({ request, auth, response }: HttpContext) {
+    const admin = auth.use('admin').user
+    if (!admin) {
+      return response.unauthorized({ message: 'Non authentifie' })
+    }
+
+    const data = await request.validateUsing(changePasswordValidator)
+
+    // Verifier que les nouveaux mots de passe correspondent
+    if (data.newPassword !== data.confirmPassword) {
+      return response.badRequest({ message: 'Les mots de passe ne correspondent pas' })
+    }
+
+    // Verifier le mot de passe actuel
+    const isCurrentPasswordValid = await hash.verify(admin.password, data.currentPassword)
+    if (!isCurrentPasswordValid) {
+      return response.badRequest({ message: 'Mot de passe actuel incorrect' })
+    }
+
+    // Mettre a jour le mot de passe (le model hashera automatiquement)
+    admin.password = data.newPassword
+    await admin.save()
+
+    return response.ok({ message: 'Mot de passe modifie avec succes' })
   }
 }

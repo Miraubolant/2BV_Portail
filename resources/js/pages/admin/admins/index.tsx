@@ -16,6 +16,7 @@ import {
   LoaderCircle,
   ToggleLeft,
   ToggleRight,
+  KeyRound,
 } from 'lucide-react'
 import {
   Dialog,
@@ -61,6 +62,7 @@ const AdminsPage = () => {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
+  const [showPasswordModal, setShowPasswordModal] = useState<Admin | null>(null)
   const [processing, setProcessing] = useState(false)
   const [formData, setFormData] = useState({
     nom: '',
@@ -70,6 +72,12 @@ const AdminsPage = () => {
     role: 'admin' as const,
   })
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
+  const [passwordFormData, setPasswordFormData] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [resetPasswordResult, setResetPasswordResult] = useState<string | null>(null)
 
   const fetchAdmins = useCallback(async () => {
     setLoading(true)
@@ -154,6 +162,64 @@ const AdminsPage = () => {
       }
     } catch (error) {
       console.error('Error deleting admin:', error)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const openPasswordModal = (admin: Admin) => {
+    setShowPasswordModal(admin)
+    setPasswordFormData({ newPassword: '', confirmPassword: '' })
+    setPasswordError(null)
+    setResetPasswordResult(null)
+  }
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(null)
+    setPasswordFormData({ newPassword: '', confirmPassword: '' })
+    setPasswordError(null)
+    setResetPasswordResult(null)
+  }
+
+  const handleResetPassword = async (generateRandom: boolean = false) => {
+    if (!showPasswordModal) return
+
+    if (!generateRandom) {
+      if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+        setPasswordError('Les mots de passe ne correspondent pas')
+        return
+      }
+      if (passwordFormData.newPassword.length < 8) {
+        setPasswordError('Le mot de passe doit contenir au moins 8 caracteres')
+        return
+      }
+    }
+
+    setProcessing(true)
+    setPasswordError(null)
+    try {
+      const body = generateRandom ? {} : { password: passwordFormData.newPassword }
+      const response = await fetch(`${ADMIN_ADMINS_API}/${showPasswordModal.id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        if (result.generatedPassword) {
+          setResetPasswordResult(result.generatedPassword)
+        } else {
+          setResetPasswordResult('success')
+        }
+        setPasswordFormData({ newPassword: '', confirmPassword: '' })
+      } else {
+        const result = await response.json()
+        setPasswordError(result.message || 'Erreur lors de la reinitialisation')
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error)
+      setPasswordError('Erreur lors de la reinitialisation')
     } finally {
       setProcessing(false)
     }
@@ -245,13 +311,23 @@ const AdminsPage = () => {
                       )}
                     </Button>
                     {admin.role !== 'super_admin' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowDeleteDialog(admin.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openPasswordModal(admin)}
+                          title="Changer le mot de passe"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowDeleteDialog(admin.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -370,6 +446,89 @@ const AdminsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Password Reset Modal */}
+      <Dialog open={!!showPasswordModal} onOpenChange={closePasswordModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Changer le mot de passe</DialogTitle>
+            <DialogDescription>
+              {showPasswordModal && `Modifier le mot de passe de ${showPasswordModal.username || `${showPasswordModal.prenom} ${showPasswordModal.nom}`}`}
+            </DialogDescription>
+          </DialogHeader>
+          {resetPasswordResult === 'success' ? (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-green-50 p-4 text-center">
+                <p className="text-green-700 font-medium">
+                  Mot de passe modifie avec succes
+                </p>
+              </div>
+              <DialogFooter>
+                <Button onClick={closePasswordModal}>Fermer</Button>
+              </DialogFooter>
+            </div>
+          ) : resetPasswordResult ? (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-green-50 p-4 text-center">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Nouveau mot de passe genere :
+                </p>
+                <p className="font-mono text-lg font-bold text-green-700">
+                  {resetPasswordResult}
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground text-center">
+                Notez ce mot de passe, il ne sera plus affiche.
+              </p>
+              <DialogFooter>
+                <Button onClick={closePasswordModal}>Fermer</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {passwordError && (
+                <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+                  {passwordError}
+                </div>
+              )}
+              <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(false); }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="resetNewPassword">Nouveau mot de passe</Label>
+                  <Input
+                    id="resetNewPassword"
+                    type="password"
+                    value={passwordFormData.newPassword}
+                    onChange={(e) => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
+                    placeholder="Minimum 8 caracteres"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="resetConfirmPassword">Confirmer le mot de passe</Label>
+                  <Input
+                    id="resetConfirmPassword"
+                    type="password"
+                    value={passwordFormData.confirmPassword}
+                    onChange={(e) => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
+                  />
+                </div>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleResetPassword(true)}
+                    disabled={processing}
+                  >
+                    Generer aleatoire
+                  </Button>
+                  <Button type="submit" disabled={processing || !passwordFormData.newPassword}>
+                    {processing ? 'Modification...' : 'Modifier'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   )
 }

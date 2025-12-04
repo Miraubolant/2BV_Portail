@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Admin from '#models/admin'
-import hash from '@adonisjs/core/services/hash'
 import vine from '@vinejs/vine'
 import { randomBytes } from 'crypto'
 
@@ -21,10 +20,30 @@ const updateAdminValidator = vine.compile(
     prenom: vine.string().minLength(2).maxLength(100).optional(),
     username: vine.string().minLength(2).maxLength(50).optional(),
     actif: vine.boolean().optional(),
+    notifEmailDocument: vine.boolean().optional(),
+    emailNotification: vine.string().email().optional().nullable(),
   })
 )
 
 export default class AdminsController {
+  /**
+   * GET /api/admin/responsables
+   * Liste des responsables pour les dropdowns (accessible a tous les admins)
+   */
+  async responsables({ response }: HttpContext) {
+    const admins = await Admin.query()
+      .where('actif', true)
+      .where('role', 'admin') // Exclure les super_admin
+      .orderBy('username', 'asc')
+
+    return response.ok(admins.map(a => ({
+      id: a.id,
+      username: a.username,
+      nom: a.nom,
+      prenom: a.prenom,
+    })))
+  }
+
   /**
    * GET /api/admin/admins
    * Liste des admins (super_admin only)
@@ -43,6 +62,8 @@ export default class AdminsController {
       role: a.role,
       actif: a.actif,
       totpEnabled: a.totpEnabled,
+      notifEmailDocument: a.notifEmailDocument,
+      emailNotification: a.emailNotification,
       lastLogin: a.lastLogin,
       createdAt: a.createdAt,
     })))
@@ -63,6 +84,8 @@ export default class AdminsController {
       role: admin.role,
       actif: admin.actif,
       totpEnabled: admin.totpEnabled,
+      notifEmailDocument: admin.notifEmailDocument,
+      emailNotification: admin.emailNotification,
       lastLogin: admin.lastLogin,
       createdAt: admin.createdAt,
     })
@@ -76,13 +99,12 @@ export default class AdminsController {
     const data = await request.validateUsing(createAdminValidator)
     const superAdmin = auth.use('admin').user!
 
-    // Generer un mot de passe
+    // Generer un mot de passe (le model hashera automatiquement)
     const password = randomBytes(8).toString('hex')
-    const hashedPassword = await hash.make(password)
 
     const admin = await Admin.create({
       ...data,
-      password: hashedPassword,
+      password, // Le model Admin avec withAuthFinder hashera automatiquement
       createdById: superAdmin.id,
     })
 
@@ -97,6 +119,44 @@ export default class AdminsController {
         username: admin.username,
         role: admin.role,
       },
+      generatedPassword: password,
+    })
+  }
+
+  /**
+   * POST /api/admin/admins/:id/reset-password
+   * Reinitialiser le mot de passe d'un admin
+   * Accepte optionnellement un password dans le body, sinon genere aleatoirement
+   */
+  async resetPassword({ params, request, response }: HttpContext) {
+    const admin = await Admin.findOrFail(params.id)
+
+    if (admin.role === 'super_admin') {
+      return response.forbidden({ message: 'Impossible de reinitialiser le mot de passe d\'un super admin' })
+    }
+
+    const { password: providedPassword } = request.only(['password'])
+
+    // Utiliser le mot de passe fourni ou en generer un nouveau
+    if (providedPassword) {
+      if (providedPassword.length < 8) {
+        return response.badRequest({ message: 'Le mot de passe doit contenir au moins 8 caracteres' })
+      }
+      admin.password = providedPassword
+      await admin.save()
+
+      return response.ok({
+        message: 'Mot de passe modifie avec succes',
+      })
+    }
+
+    // Generer un nouveau mot de passe aleatoire
+    const password = randomBytes(8).toString('hex')
+    admin.password = password
+    await admin.save()
+
+    return response.ok({
+      message: 'Mot de passe reinitialise',
       generatedPassword: password,
     })
   }
@@ -124,6 +184,8 @@ export default class AdminsController {
       username: admin.username,
       role: admin.role,
       actif: admin.actif,
+      notifEmailDocument: admin.notifEmailDocument,
+      emailNotification: admin.emailNotification,
     })
   }
 

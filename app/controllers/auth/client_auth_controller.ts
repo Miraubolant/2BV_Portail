@@ -17,6 +17,11 @@ export default class ClientAuthController {
       // Verifier les credentials
       const client = await Client.verifyCredentials(email, password)
 
+      // Verifier que le compte est actif
+      if (!client.actif) {
+        return response.unauthorized({ message: 'Compte desactive. Contactez l\'administration.' })
+      }
+
       // Connecter le client
       await auth.use('client').login(client)
 

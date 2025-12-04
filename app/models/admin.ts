@@ -42,6 +42,13 @@ export default class Admin extends compose(BaseModel, AuthFinder) {
   @column()
   declare actif: boolean
 
+  // Notification preferences
+  @column()
+  declare notifEmailDocument: boolean
+
+  @column()
+  declare emailNotification: string | null
+
   @column()
   declare createdById: string | null
 
@@ -68,5 +75,9 @@ export default class Admin extends compose(BaseModel, AuthFinder) {
 
   get isSuperAdmin(): boolean {
     return this.role === 'super_admin'
+  }
+
+  get notificationEmail(): string {
+    return this.emailNotification || this.email
   }
 }

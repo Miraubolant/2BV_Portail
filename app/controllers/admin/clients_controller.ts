@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Client from '#models/client'
 import { createClientValidator, updateClientValidator } from '#validators/client_validator'
 import hash from '@adonisjs/core/services/hash'
+import transmit from '@adonisjs/transmit/services/main'
 import { randomBytes } from 'crypto'
 import { DateTime } from 'luxon'
 
@@ -15,6 +16,7 @@ export default class ClientsController {
     const limit = request.input('limit', 20)
     const search = request.input('search', '')
     const type = request.input('type', '')
+    const responsableId = request.input('responsableId', '')
 
     let query = Client.query()
       .preload('createdBy')
@@ -32,6 +34,14 @@ export default class ClientsController {
 
     if (type) {
       query = query.where('type', type)
+    }
+
+    if (responsableId) {
+      if (responsableId === 'none') {
+        query = query.whereNull('responsable_id')
+      } else {
+        query = query.where('responsable_id', responsableId)
+      }
     }
 
     const clients = await query.paginate(page, limit)
@@ -104,6 +114,33 @@ export default class ClientsController {
       client.dateNaissance = dateNaissance ? DateTime.fromISO(dateNaissance) : null
     }
     await client.save()
+
+    // Charger les relations pour la reponse complete
+    await client.load('responsable')
+
+    // Broadcast aux autres admins connectes
+    transmit.broadcast('admin/clients', {
+      type: 'client:updated',
+      client: {
+        id: client.id,
+        nom: client.nom,
+        prenom: client.prenom,
+        email: client.email,
+        telephone: client.telephone,
+        type: client.type,
+        actif: client.actif,
+        peutUploader: client.peutUploader,
+        peutDemanderRdv: client.peutDemanderRdv,
+        responsableId: client.responsableId,
+        responsable: client.responsable ? {
+          id: client.responsable.id,
+          username: client.responsable.username,
+          nom: client.responsable.nom,
+          prenom: client.responsable.prenom,
+        } : null,
+        createdAt: client.createdAt.toISO(),
+      },
+    })
 
     return response.ok(client)
   }

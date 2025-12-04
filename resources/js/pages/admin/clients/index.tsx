@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ADMIN_CLIENTS_API, ADMIN_ADMINS_API, formatDate } from '@/lib/constants'
+import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate } from '@/lib/constants'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { DataTable, Column } from '@/components/ui/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useClientUpdates } from '@/hooks/use-transmit'
 import {
   Plus,
   Search,
@@ -66,6 +67,7 @@ const ClientsListPage = () => {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [responsableFilter, setResponsableFilter] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [formData, setFormData] = useState({
@@ -136,12 +138,12 @@ const ClientsListPage = () => {
 
   const fetchAdmins = async () => {
     try {
-      const response = await fetch(ADMIN_ADMINS_API, {
+      const response = await fetch(ADMIN_RESPONSABLES_API, {
         credentials: 'include',
       })
       if (response.ok) {
         const result = await response.json()
-        setAdmins(result.data || result || [])
+        setAdmins(result || [])
       }
     } catch (error) {
       console.error('Error fetching admins:', error)
@@ -157,6 +159,7 @@ const ClientsListPage = () => {
       })
       if (search) params.append('search', search)
       if (typeFilter) params.append('type', typeFilter)
+      if (responsableFilter) params.append('responsableId', responsableFilter)
 
       const response = await fetch(`${ADMIN_CLIENTS_API}?${params}`, {
         credentials: 'include',
@@ -175,7 +178,7 @@ const ClientsListPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.limit, search, typeFilter])
+  }, [pagination.page, pagination.limit, search, typeFilter, responsableFilter])
 
   useEffect(() => {
     fetchClients()
@@ -184,6 +187,15 @@ const ClientsListPage = () => {
   useEffect(() => {
     fetchAdmins()
   }, [])
+
+  // Ecouter les mises a jour en temps reel
+  const handleClientUpdated = useCallback((updatedClient: Client) => {
+    setClients((prev) =>
+      prev.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+    )
+  }, [])
+
+  useClientUpdates(handleClientUpdated)
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -403,9 +415,23 @@ const ClientsListPage = () => {
                   <SelectValue placeholder="Type de client" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="all">Tous les types</SelectItem>
                   <SelectItem value="particulier">Particulier</SelectItem>
                   <SelectItem value="institutionnel">Institutionnel</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Responsable" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les responsables</SelectItem>
+                  <SelectItem value="none">Sans responsable</SelectItem>
+                  {admins.map((admin) => (
+                    <SelectItem key={admin.id} value={admin.id}>
+                      {admin.username || `${admin.prenom} ${admin.nom}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

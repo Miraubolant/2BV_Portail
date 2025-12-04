@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
-import { ADMIN_CLIENTS_API, formatDate, formatDateTime } from '@/lib/constants'
+import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate, formatDateTime } from '@/lib/constants'
 import { ADMIN_CLIENTS } from '@/app/routes'
 import { useEffect, useState } from 'react'
 import {
@@ -19,6 +19,7 @@ import {
   Phone,
   Building,
   User,
+  UserCog,
   FolderKanban,
   Key,
   LoaderCircle,
@@ -43,6 +44,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -58,6 +67,13 @@ interface Document {
     id: string
     reference: string
   }
+}
+
+interface AdminOption {
+  id: string
+  username: string | null
+  nom: string
+  prenom: string
 }
 
 interface Client {
@@ -88,6 +104,8 @@ interface Client {
   notesInternes: string | null
   lastLogin: string | null
   createdAt: string
+  responsableId: string | null
+  responsable: AdminOption | null
   dossiers?: Array<{
     id: string
     reference: string
@@ -108,12 +126,30 @@ const ClientShowPage = () => {
   const [formData, setFormData] = useState<Partial<Client>>({})
   const [selectedDossierId, setSelectedDossierId] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<string | null>(null)
+  const [admins, setAdmins] = useState<AdminOption[]>([])
+  const [showResponsableModal, setShowResponsableModal] = useState(false)
+  const [selectedResponsableId, setSelectedResponsableId] = useState<string>('')
 
   const clientId = window.location.pathname.split('/').pop()
 
   useEffect(() => {
     fetchClient()
+    fetchAdmins()
   }, [clientId])
+
+  const fetchAdmins = async () => {
+    try {
+      const response = await fetch(ADMIN_RESPONSABLES_API, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setAdmins(result || [])
+      }
+    } catch (error) {
+      console.error('Error fetching admins:', error)
+    }
+  }
 
   const fetchClient = async () => {
     try {
@@ -213,6 +249,29 @@ const ClientShowPage = () => {
     }
   }
 
+  const openResponsableModal = () => {
+    setSelectedResponsableId(client?.responsableId || 'none')
+    setShowResponsableModal(true)
+  }
+
+  const handleChangeResponsable = async () => {
+    try {
+      const newResponsableId = selectedResponsableId === 'none' ? null : selectedResponsableId
+      const response = await fetch(`${ADMIN_CLIENTS_API}/${clientId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ responsableId: newResponsableId }),
+      })
+      if (response.ok) {
+        await fetchClient()
+        setShowResponsableModal(false)
+      }
+    } catch (error) {
+      console.error('Error changing responsable:', error)
+    }
+  }
+
   if (loading) {
     return (
       <AdminLayout title="Client">
@@ -292,6 +351,10 @@ const ClientShowPage = () => {
                 </Button>
               )
             )}
+            <Button variant="outline" onClick={openResponsableModal}>
+              <UserCog className="mr-2 h-4 w-4" />
+              Responsable
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
@@ -984,6 +1047,55 @@ const ClientShowPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal Changer Responsable */}
+      <Dialog open={showResponsableModal} onOpenChange={setShowResponsableModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Changer le responsable</DialogTitle>
+            <DialogDescription>
+              Selectionnez le responsable pour ce client
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-2">
+              <Label>Responsable actuel</Label>
+              <p className="text-sm text-muted-foreground">
+                {client.responsable
+                  ? (client.responsable.username || `${client.responsable.prenom} ${client.responsable.nom}`)
+                  : 'Aucun responsable assigne'}
+              </p>
+            </div>
+            <div className="space-y-2 mt-4">
+              <Label>Nouveau responsable</Label>
+              <Select
+                value={selectedResponsableId}
+                onValueChange={setSelectedResponsableId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectionner un responsable" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucun responsable</SelectItem>
+                  {admins.map((admin) => (
+                    <SelectItem key={admin.id} value={admin.id}>
+                      {admin.username || `${admin.prenom} ${admin.nom}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResponsableModal(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleChangeResponsable}>
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   )
 }

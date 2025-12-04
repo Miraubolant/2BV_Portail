@@ -27,6 +27,7 @@ export const ADMIN_EVENEMENTS_API = API_BASE_URL + 'admin/evenements'
 export const ADMIN_DEMANDES_RDV_API = API_BASE_URL + 'admin/demandes-rdv'
 export const ADMIN_PARAMETRES_API = API_BASE_URL + 'admin/parametres'
 export const ADMIN_ADMINS_API = API_BASE_URL + 'admin/admins'
+export const ADMIN_RESPONSABLES_API = API_BASE_URL + 'admin/responsables'
 
 // Client APIs
 export const CLIENT_DASHBOARD_API = API_BASE_URL + 'client/dashboard'
