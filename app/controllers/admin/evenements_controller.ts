@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Evenement from '#models/evenement'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
+import calendarSyncService from '#services/google/calendar_sync_service'
 
 const createEvenementValidator = vine.compile(
   vine.object({
@@ -89,6 +90,13 @@ export default class EvenementsController {
       createdById: admin.id,
     })
 
+    // Sync to Google Calendar if enabled (async, don't block response)
+    if (evenement.syncGoogle) {
+      calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
+        console.error('Failed to sync event to Google:', err)
+      })
+    }
+
     await (evenement as any).load('dossier')
     return response.created(evenement)
   }
@@ -109,6 +117,13 @@ export default class EvenementsController {
     evenement.merge(restData)
     await evenement.save()
 
+    // Sync to Google Calendar if enabled (async, don't block response)
+    if (evenement.syncGoogle) {
+      calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
+        console.error('Failed to sync event update to Google:', err)
+      })
+    }
+
     return response.ok(evenement)
   }
 
@@ -117,6 +132,14 @@ export default class EvenementsController {
    */
   async destroy({ params, response }: HttpContext) {
     const evenement = await Evenement.findOrFail(params.id)
+
+    // Delete from Google Calendar if synced (async, don't block response)
+    if (evenement.googleEventId) {
+      calendarSyncService.deleteEventFromGoogle(evenement.googleEventId).catch((err) => {
+        console.error('Failed to delete event from Google:', err)
+      })
+    }
+
     await evenement.delete()
     return response.ok({ message: 'Evenement supprime' })
   }

@@ -19,6 +19,8 @@ Portail client securise pour cabinet d'avocats avec gestion des dossiers, docume
 | **Icones** | Lucide React |
 | **Emails** | Resend |
 | **CRON** | node-cron |
+| **Cloud Storage** | Microsoft OneDrive (Graph API) |
+| **Calendrier** | Google Calendar API |
 
 ## Fonctionnalites
 
@@ -31,6 +33,10 @@ Portail client securise pour cabinet d'avocats avec gestion des dossiers, docume
 - **Mises a jour temps reel** - Synchronisation automatique entre admins connectes (SSE)
 - **Parametres** - Configuration systeme (super admin uniquement)
 - **Administrateurs** - Gestion des comptes admin (super admin uniquement)
+
+### Integrations
+- **OneDrive** - Synchronisation des documents vers Microsoft OneDrive (structure automatique par dossier)
+- **Google Calendar** - Synchronisation bidirectionnelle des evenements avec Google Calendar
 
 ### Portail Client
 - **Tableau de bord** - Vue d'ensemble des dossiers et notifications
@@ -161,13 +167,17 @@ DB_DATABASE=portail_cabinet
 
 # Emails (Resend)
 RESEND_API_KEY=
+
+# Microsoft OneDrive
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_REDIRECT_URI=http://localhost:3333/api/admin/microsoft/callback
+
+# Google Calendar
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://localhost:3333/api/admin/google/callback
 ```
-
-## Integrations Futures
-
-- OneDrive (Microsoft Graph API)
-- Gmail (Google API)
-- Notifications email automatiques
 
 ## Licence
 

@@ -45,6 +45,17 @@ export const MICROSOFT_SYNC_DOSSIER_API = (dossierId: string) => MICROSOFT_API +
 export const MICROSOFT_INITIALIZE_API = MICROSOFT_API + 'initialize'
 export const MICROSOFT_SYNC_HISTORY_API = MICROSOFT_API + 'sync-history'
 
+// Google Calendar APIs
+const GOOGLE_API = API_BASE_URL + 'admin/google/'
+export const GOOGLE_STATUS_API = GOOGLE_API + 'status'
+export const GOOGLE_AUTHORIZE_API = GOOGLE_API + 'authorize'
+export const GOOGLE_DISCONNECT_API = GOOGLE_API + 'disconnect'
+export const GOOGLE_TEST_API = GOOGLE_API + 'test'
+export const GOOGLE_CALENDARS_API = GOOGLE_API + 'calendars'
+export const GOOGLE_SELECT_CALENDAR_API = GOOGLE_API + 'select-calendar'
+export const GOOGLE_SYNC_API = GOOGLE_API + 'sync'
+export const GOOGLE_SYNC_HISTORY_API = GOOGLE_API + 'sync-history'
+
 // Currency formatter
 export const EUR = new Intl.NumberFormat('fr-FR', {
   style: 'currency',

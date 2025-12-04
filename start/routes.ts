@@ -28,6 +28,7 @@ const ClientRdvController = () => import('#controllers/client/rdv_controller')
 const AdminDocumentsController = () => import('#controllers/admin/documents_controller')
 const ClientDocumentsController = () => import('#controllers/client/documents_controller')
 const MicrosoftOAuthController = () => import('#controllers/admin/microsoft_oauth_controller')
+const GoogleOAuthController = () => import('#controllers/admin/google_oauth_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -157,6 +158,26 @@ router.group(() => {
   router.post('initialize', [MicrosoftOAuthController, 'initialize'])
   router.get('sync-history', [MicrosoftOAuthController, 'syncHistory'])
 }).prefix('api/admin/microsoft').use([middleware.adminAuth(), middleware.superAdmin()])
+
+// ══════════════════════════════════════════════════════════════
+// GOOGLE OAUTH (Calendar)
+// ══════════════════════════════════════════════════════════════
+// Callback route (public - called by Google)
+router.get('/api/admin/google/callback', [GoogleOAuthController, 'callback'])
+
+// Protected Google routes (Super Admin only)
+router.group(() => {
+  router.get('status', [GoogleOAuthController, 'status'])
+  router.get('authorize', [GoogleOAuthController, 'authorize'])
+  router.post('disconnect', [GoogleOAuthController, 'disconnect'])
+  router.get('test', [GoogleOAuthController, 'test'])
+  // Calendar selection
+  router.get('calendars', [GoogleOAuthController, 'listCalendars'])
+  router.post('select-calendar', [GoogleOAuthController, 'selectCalendar'])
+  // Sync routes
+  router.post('sync', [GoogleOAuthController, 'syncAll'])
+  router.get('sync-history', [GoogleOAuthController, 'syncHistory'])
+}).prefix('api/admin/google').use([middleware.adminAuth(), middleware.superAdmin()])
 
 // ══════════════════════════════════════════════════════════════
 // CLIENT ROUTES

@@ -11,7 +11,6 @@ import { useEffect, useState } from 'react'
 import {
   Building,
   Mail,
-  Cloud,
   LoaderCircle,
   Save,
   Bell,
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { OneDriveSettings } from '@/components/admin/onedrive-settings'
+import { GoogleCalendarSettings } from '@/components/admin/google-calendar-settings'
 
 interface Parametres {
   [key: string]: string | null
@@ -467,22 +467,7 @@ const ParametresPage = () => {
             <TabsContent value="integrations" className="space-y-6">
               <OneDriveSettings />
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Cloud className="h-5 w-5" />
-                    Google Calendar
-                  </CardTitle>
-                  <CardDescription>
-                    Synchronisation du calendrier avec Google
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Configuration disponible prochainement
-                  </p>
-                </CardContent>
-              </Card>
+              <GoogleCalendarSettings />
             </TabsContent>
           )}
         </Tabs>
