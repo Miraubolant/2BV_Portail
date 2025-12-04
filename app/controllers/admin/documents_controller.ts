@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Document from '#models/document'
 import Dossier from '#models/dossier'
 import EmailService from '#services/email_service'
+import documentSyncService from '#services/microsoft/document_sync_service'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
 
@@ -44,7 +45,7 @@ export default class DocumentsController {
 
   /**
    * POST /api/admin/dossiers/:dossierId/documents
-   * Ajouter un document a un dossier
+   * Ajouter un document a un dossier (metadata only - legacy)
    */
   async store({ params, request, auth, response }: HttpContext) {
     const data = await request.validateUsing(createDocumentValidator)
@@ -94,12 +95,138 @@ export default class DocumentsController {
   }
 
   /**
+   * POST /api/admin/dossiers/:dossierId/documents/upload
+   * Upload un fichier et l'ajouter au dossier (avec OneDrive)
+   */
+  async upload({ params, request, auth, response }: HttpContext) {
+    const admin = auth.use('admin').user!
+
+    // Get the uploaded file
+    const file = request.file('file', {
+      size: '50mb',
+      extnames: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv', 'zip', 'rar'],
+    })
+
+    if (!file) {
+      return response.badRequest({ message: 'Aucun fichier fourni' })
+    }
+
+    if (!file.isValid) {
+      return response.badRequest({ message: file.errors[0]?.message || 'Fichier invalide' })
+    }
+
+    // Get metadata from request body
+    const nom = request.input('nom', file.clientName.replace(/\.[^/.]+$/, ''))
+    const typeDocument = request.input('typeDocument', 'autre')
+    const sensible = request.input('sensible') === 'true'
+    const visibleClient = request.input('visibleClient') !== 'false'
+    const dateDocumentStr = request.input('dateDocument')
+    const description = request.input('description')
+
+    // Verify dossier exists and load relations
+    const dossier = await Dossier.query()
+      .where('id', params.dossierId)
+      .preload('client', (query) => query.preload('responsable'))
+      .firstOrFail()
+
+    // Upload to OneDrive
+    const result = await documentSyncService.uploadDocument(
+      params.dossierId,
+      file,
+      {
+        nom,
+        typeDocument,
+        sensible,
+        visibleClient,
+        dateDocument: dateDocumentStr ? DateTime.fromISO(dateDocumentStr) : null,
+        description,
+      },
+      {
+        id: admin.id,
+        type: 'admin',
+      }
+    )
+
+    if (!result.success) {
+      return response.internalServerError({
+        message: 'Erreur lors de l\'upload du document',
+        error: result.error,
+      })
+    }
+
+    // Send notification to client
+    const client = dossier.client
+    if (client && client.notifEmailDocument && visibleClient) {
+      try {
+        await EmailService.notifyClientNewDocument(
+          client.email,
+          client.id,
+          client.fullName,
+          {
+            documentName: nom,
+            dossierName: dossier.intitule,
+            dossierReference: dossier.reference,
+            uploaderName: admin.username || admin.fullName,
+            recipientName: client.fullName,
+            portalUrl: '/espace-client/dossiers/' + dossier.id,
+          }
+        )
+      } catch (error) {
+        console.error('Error sending notification email to client:', error)
+      }
+    }
+
+    return response.created(result.document)
+  }
+
+  /**
+   * GET /api/admin/documents/:id/download
+   * Telecharger un document depuis OneDrive
+   */
+  async download({ params, response }: HttpContext) {
+    const result = await documentSyncService.downloadDocument(params.id)
+
+    if (!result.success) {
+      return response.notFound({ message: result.error })
+    }
+
+    response.header('Content-Type', result.mimeType!)
+    response.header('Content-Disposition', `attachment; filename="${result.filename}"`)
+    response.header('Content-Length', result.content!.length.toString())
+
+    return response.send(result.content)
+  }
+
+  /**
+   * GET /api/admin/documents/:id/url
+   * Obtenir l'URL de telechargement direct OneDrive
+   */
+  async getDownloadUrl({ params, response }: HttpContext) {
+    const result = await documentSyncService.getDownloadUrl(params.id)
+
+    if (!result.success) {
+      return response.notFound({ message: result.error })
+    }
+
+    return response.ok({ url: result.url })
+  }
+
+  /**
    * PUT /api/admin/documents/:id
-   * Modifier un document
+   * Modifier un document (et renommer sur OneDrive si necessaire)
    */
   async update({ params, request, response }: HttpContext) {
     const document = await Document.findOrFail(params.id)
     const data = await request.validateUsing(updateDocumentValidator)
+
+    // If name is changing and document is on OneDrive, rename it there too
+    if (data.nom && data.nom !== document.nom && document.onedriveFileId) {
+      const newFileName = data.nom + (document.extension ? `.${document.extension}` : '')
+      const renamed = await documentSyncService.renameOnOneDrive(document.onedriveFileId, newFileName)
+      if (!renamed) {
+        console.warn('Failed to rename document on OneDrive, but continuing with local update')
+      }
+    }
 
     document.merge(data)
     await document.save()
@@ -109,12 +236,30 @@ export default class DocumentsController {
 
   /**
    * DELETE /api/admin/documents/:id
-   * Supprimer un document
+   * Supprimer un document (aussi sur OneDrive)
    */
   async destroy({ params, response }: HttpContext) {
-    const document = await Document.findOrFail(params.id)
-    await document.delete()
+    const result = await documentSyncService.deleteDocument(params.id)
+
+    if (!result.success) {
+      return response.notFound({ message: result.error })
+    }
 
     return response.ok({ message: 'Document supprime' })
+  }
+
+  /**
+   * GET /api/admin/documents/:id/thumbnail
+   * Obtenir l'URL de la vignette du document
+   */
+  async thumbnail({ params, request, response }: HttpContext) {
+    const size = request.input('size', 'medium') as 'small' | 'medium' | 'large'
+    const result = await documentSyncService.getThumbnailUrl(params.id, size)
+
+    if (!result.success) {
+      return response.notFound({ message: result.error })
+    }
+
+    return response.ok({ url: result.url })
   }
 }

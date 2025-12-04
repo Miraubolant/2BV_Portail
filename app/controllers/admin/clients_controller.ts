@@ -57,7 +57,9 @@ export default class ClientsController {
       .where('id', params.id)
       .preload('createdBy')
       .preload('responsable')
-      .preload('dossiers')
+      .preload('dossiers', (dossiersQuery) => {
+        dossiersQuery.preload('documents')
+      })
       .firstOrFail()
 
     return response.ok(client)

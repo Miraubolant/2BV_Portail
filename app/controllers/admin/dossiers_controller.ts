@@ -3,6 +3,7 @@ import Dossier from '#models/dossier'
 import Client from '#models/client'
 import { createDossierValidator, updateDossierValidator } from '#validators/dossier_validator'
 import { DateTime } from 'luxon'
+import dossierFolderService from '#services/microsoft/dossier_folder_service'
 
 export default class DossiersController {
   /**
@@ -100,6 +101,11 @@ export default class DossiersController {
 
     // Recharger avec les relations
     await dossier.load('client')
+
+    // Creer automatiquement le dossier OneDrive (en arriere-plan, sans bloquer)
+    dossierFolderService.createDossierFolder(dossier.id).catch((err) => {
+      console.error('Error creating OneDrive folder for dossier:', err)
+    })
 
     return response.created(dossier)
   }

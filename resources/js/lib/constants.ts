@@ -34,6 +34,17 @@ export const CLIENT_DASHBOARD_API = API_BASE_URL + 'client/dashboard'
 export const CLIENT_DOSSIERS_API = API_BASE_URL + 'client/dossiers'
 export const CLIENT_DEMANDES_RDV_API = API_BASE_URL + 'client/demandes-rdv'
 
+// Microsoft/OneDrive APIs
+const MICROSOFT_API = API_BASE_URL + 'admin/microsoft/'
+export const MICROSOFT_STATUS_API = MICROSOFT_API + 'status'
+export const MICROSOFT_AUTHORIZE_API = MICROSOFT_API + 'authorize'
+export const MICROSOFT_DISCONNECT_API = MICROSOFT_API + 'disconnect'
+export const MICROSOFT_TEST_API = MICROSOFT_API + 'test'
+export const MICROSOFT_SYNC_API = MICROSOFT_API + 'sync'
+export const MICROSOFT_SYNC_DOSSIER_API = (dossierId: string) => MICROSOFT_API + 'sync/' + dossierId
+export const MICROSOFT_INITIALIZE_API = MICROSOFT_API + 'initialize'
+export const MICROSOFT_SYNC_HISTORY_API = MICROSOFT_API + 'sync-history'
+
 // Currency formatter
 export const EUR = new Intl.NumberFormat('fr-FR', {
   style: 'currency',

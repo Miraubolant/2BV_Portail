@@ -27,6 +27,7 @@ const ClientDossiersController = () => import('#controllers/client/dossiers_cont
 const ClientRdvController = () => import('#controllers/client/rdv_controller')
 const AdminDocumentsController = () => import('#controllers/admin/documents_controller')
 const ClientDocumentsController = () => import('#controllers/client/documents_controller')
+const MicrosoftOAuthController = () => import('#controllers/admin/microsoft_oauth_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -92,6 +93,10 @@ router.group(() => {
   // Documents
   router.get('dossiers/:dossierId/documents', [AdminDocumentsController, 'index'])
   router.post('dossiers/:dossierId/documents', [AdminDocumentsController, 'store'])
+  router.post('dossiers/:dossierId/documents/upload', [AdminDocumentsController, 'upload'])
+  router.get('documents/:id/download', [AdminDocumentsController, 'download'])
+  router.get('documents/:id/url', [AdminDocumentsController, 'getDownloadUrl'])
+  router.get('documents/:id/thumbnail', [AdminDocumentsController, 'thumbnail'])
   router.put('documents/:id', [AdminDocumentsController, 'update'])
   router.delete('documents/:id', [AdminDocumentsController, 'destroy'])
 
@@ -128,11 +133,30 @@ router.group(() => {
 
   // Parametres
   router.get('parametres', [AdminParametresController, 'index'])
+  router.get('parametres/value/:cle', [AdminParametresController, 'getValue'])
   router.get('parametres/:categorie', [AdminParametresController, 'byCategorie'])
   router.put('parametres', [AdminParametresController, 'update'])
-  router.get('parametres/value/:cle', [AdminParametresController, 'getValue'])
 
 }).prefix('api/admin').use([middleware.adminAuth(), middleware.superAdmin()])
+
+// ══════════════════════════════════════════════════════════════
+// MICROSOFT OAUTH (OneDrive)
+// ══════════════════════════════════════════════════════════════
+// Callback route (public - called by Microsoft)
+router.get('/api/admin/microsoft/callback', [MicrosoftOAuthController, 'callback'])
+
+// Protected Microsoft routes (Super Admin only)
+router.group(() => {
+  router.get('status', [MicrosoftOAuthController, 'status'])
+  router.get('authorize', [MicrosoftOAuthController, 'authorize'])
+  router.post('disconnect', [MicrosoftOAuthController, 'disconnect'])
+  router.get('test', [MicrosoftOAuthController, 'test'])
+  // Sync routes
+  router.post('sync', [MicrosoftOAuthController, 'syncAll'])
+  router.post('sync/:dossierId', [MicrosoftOAuthController, 'syncDossier'])
+  router.post('initialize', [MicrosoftOAuthController, 'initialize'])
+  router.get('sync-history', [MicrosoftOAuthController, 'syncHistory'])
+}).prefix('api/admin/microsoft').use([middleware.adminAuth(), middleware.superAdmin()])
 
 // ══════════════════════════════════════════════════════════════
 // CLIENT ROUTES
@@ -148,6 +172,8 @@ router.group(() => {
   // Documents
   router.get('dossiers/:dossierId/documents', [ClientDocumentsController, 'index'])
   router.post('dossiers/:dossierId/documents', [ClientDocumentsController, 'store'])
+  router.post('dossiers/:dossierId/documents/upload', [ClientDocumentsController, 'upload'])
+  router.get('documents/:id/download', [ClientDocumentsController, 'download'])
 
   // Demandes RDV
   router.get('demandes-rdv', [ClientRdvController, 'index'])

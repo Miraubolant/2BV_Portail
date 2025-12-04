@@ -18,6 +18,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+import { OneDriveSettings } from '@/components/admin/onedrive-settings'
 
 interface Parametres {
   [key: string]: string | null
@@ -464,22 +465,7 @@ const ParametresPage = () => {
 
           {isSuperAdmin && (
             <TabsContent value="integrations" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Cloud className="h-5 w-5" />
-                    OneDrive / Microsoft
-                  </CardTitle>
-                  <CardDescription>
-                    Synchronisation des documents avec OneDrive
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Configuration disponible prochainement
-                  </p>
-                </CardContent>
-              </Card>
+              <OneDriveSettings />
 
               <Card>
                 <CardHeader>

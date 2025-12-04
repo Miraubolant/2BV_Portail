@@ -27,7 +27,6 @@ import {
   Shield,
   Copy,
   Check,
-  FileText,
   Calendar,
   StickyNote,
   Globe,
@@ -58,16 +57,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-interface Document {
-  id: string
-  nom: string
-  createdAt: string
-  dossier?: {
-    id: string
-    reference: string
-  }
-}
 
 interface AdminOption {
   id: string
@@ -124,7 +113,6 @@ const ClientShowPage = () => {
   const [newPassword, setNewPassword] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState<Partial<Client>>({})
-  const [selectedDossierId, setSelectedDossierId] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<string | null>(null)
   const [admins, setAdmins] = useState<AdminOption[]>([])
   const [showResponsableModal, setShowResponsableModal] = useState(false)
@@ -160,9 +148,7 @@ const ClientShowPage = () => {
         const result = await response.json()
         setClient(result)
         setFormData(result)
-        // Si le client n'a pas de dossiers, afficher l'onglet dossiers, sinon documents
-        const hasDossiers = result.dossiers && result.dossiers.length > 0
-        setActiveTab(hasDossiers ? 'documents' : 'dossiers')
+        setActiveTab('dossiers')
       }
     } catch (error) {
       console.error('Error fetching client:', error)
@@ -380,95 +366,12 @@ const ClientShowPage = () => {
           </div>
         </div>
 
-        <Tabs value={activeTab || 'documents'} onValueChange={(value) => { setActiveTab(value); if (value !== 'infos') setEditMode(false) }}>
+        <Tabs value={activeTab || 'dossiers'} onValueChange={(value) => { setActiveTab(value); if (value !== 'infos') setEditMode(false) }}>
           <TabsList>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="dossiers">Dossiers</TabsTrigger>
             <TabsTrigger value="infos">Informations</TabsTrigger>
             <TabsTrigger value="permissions">Permissions & Securite</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Documents du client
-                  </CardTitle>
-                  {client.dossiers && client.dossiers.length > 0 && (
-                    <Select
-                      value={selectedDossierId}
-                      onValueChange={setSelectedDossierId}
-                    >
-                      <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Filtrer par dossier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les dossiers</SelectItem>
-                        {client.dossiers.map((dossier) => (
-                          <SelectItem key={dossier.id} value={dossier.id}>
-                            {dossier.reference}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const allDocuments = client.dossiers?.flatMap(d =>
-                    d.documents?.map(doc => ({ ...doc, dossier: { id: d.id, reference: d.reference } })) || []
-                  ) || []
-
-                  const filteredDocuments = selectedDossierId === 'all'
-                    ? allDocuments
-                    : allDocuments.filter(doc => doc.dossier?.id === selectedDossierId)
-
-                  if (filteredDocuments.length > 0) {
-                    return (
-                      <div className="space-y-2">
-                        {filteredDocuments.map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center justify-between rounded-lg border p-3"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-muted-foreground" />
-                              <div>
-                                <p className="font-medium">{doc.nom}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {doc.dossier && (
-                                    <Link
-                                      href={`/admin/dossiers/${doc.dossier.id}`}
-                                      className="hover:underline"
-                                    >
-                                      {doc.dossier.reference}
-                                    </Link>
-                                  )}
-                                  {doc.dossier && ' - '}
-                                  {formatDate(doc.createdAt)}
-                                </p>
-                              </div>
-                            </div>
-                            <Button variant="outline" size="sm">
-                              Telecharger
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  }
-                  return (
-                    <p className="text-center text-muted-foreground py-8">
-                      {selectedDossierId === 'all' ? 'Aucun document' : 'Aucun document dans ce dossier'}
-                    </p>
-                  )
-                })()}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="infos" className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-3">

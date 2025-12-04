@@ -14,6 +14,10 @@ import {
   Search,
   Eye,
   Edit,
+  Upload,
+  LoaderCircle,
+  X,
+  FileUp,
 } from 'lucide-react'
 import {
   Select,
@@ -107,6 +111,16 @@ const DossiersListPage = () => {
     total: 0,
     lastPage: 1,
   })
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [uploadDossier, setUploadDossier] = useState<Dossier | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadData, setUploadData] = useState({
+    nom: '',
+    typeDocument: 'autre',
+    visibleClient: true,
+  })
+  const [dragActive, setDragActive] = useState(false)
 
   const fetchDossiers = useCallback(async () => {
     setLoading(true)
@@ -202,6 +216,75 @@ const DossiersListPage = () => {
       }
     } catch (error) {
       console.error('Error updating dossier:', error)
+    }
+  }
+
+  const openUploadModal = (dossier: Dossier) => {
+    setUploadDossier(dossier)
+    setUploadFile(null)
+    setUploadData({ nom: '', typeDocument: 'autre', visibleClient: true })
+    setShowUploadModal(true)
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0]
+      setUploadFile(file)
+      if (!uploadData.nom) {
+        setUploadData((prev) => ({ ...prev, nom: file.name.replace(/\.[^/.]+$/, '') }))
+      }
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setUploadFile(file)
+      if (!uploadData.nom) {
+        setUploadData((prev) => ({ ...prev, nom: file.name.replace(/\.[^/.]+$/, '') }))
+      }
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!uploadFile || !uploadDossier) return
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+      formData.append('nom', uploadData.nom || uploadFile.name.replace(/\.[^/.]+$/, ''))
+      formData.append('typeDocument', uploadData.typeDocument)
+      formData.append('visibleClient', uploadData.visibleClient.toString())
+
+      const response = await fetch(`${ADMIN_DOSSIERS_API}/${uploadDossier.id}/documents/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+
+      if (response.ok) {
+        setShowUploadModal(false)
+        setUploadFile(null)
+        setUploadData({ nom: '', typeDocument: 'autre', visibleClient: true })
+      }
+    } catch (error) {
+      console.error('Error uploading document:', error)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -301,15 +384,18 @@ const DossiersListPage = () => {
         key: 'actions',
         header: 'Actions',
         sortable: false,
-        width: '100px',
+        width: '140px',
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" asChild>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" asChild title="Voir le dossier">
               <Link href={`/admin/dossiers/${row.id}`}>
                 <Eye className="h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => router.visit(`/admin/dossiers/${row.id}`)}>
+            <Button variant="ghost" size="icon" onClick={() => openUploadModal(row)} title="Ajouter un document">
+              <Upload className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => router.visit(`/admin/dossiers/${row.id}`)} title="Modifier">
               <Edit className="h-4 w-4" />
             </Button>
           </div>
@@ -465,6 +551,134 @@ const DossiersListPage = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Modal */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Ajouter un document</DialogTitle>
+            <DialogDescription>
+              {uploadDossier && (
+                <>Dossier: <strong>{uploadDossier.reference}</strong> - {uploadDossier.intitule}</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Drop zone */}
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              {uploadFile ? (
+                <div className="flex items-center justify-center gap-3">
+                  <FileUp className="h-8 w-8 text-primary" />
+                  <div className="text-left">
+                    <p className="font-medium">{uploadFile.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(uploadFile.size / 1024 / 1024).toFixed(2)} Mo
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setUploadFile(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Glissez-deposez un fichier ici ou
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('file-upload-index')?.click()}
+                  >
+                    Parcourir
+                  </Button>
+                  <input
+                    id="file-upload-index"
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt,.csv,.zip,.rar"
+                  />
+                </>
+              )}
+            </div>
+
+            {uploadFile && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="upload-nom">Nom du document</Label>
+                  <Input
+                    id="upload-nom"
+                    value={uploadData.nom}
+                    onChange={(e) => setUploadData({ ...uploadData, nom: e.target.value })}
+                    placeholder="Nom du document"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="upload-type">Type de document</Label>
+                  <Select
+                    value={uploadData.typeDocument}
+                    onValueChange={(value) => setUploadData({ ...uploadData, typeDocument: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="piece_identite">Piece d'identite</SelectItem>
+                      <SelectItem value="justificatif">Justificatif</SelectItem>
+                      <SelectItem value="contrat">Contrat</SelectItem>
+                      <SelectItem value="facture">Facture</SelectItem>
+                      <SelectItem value="courrier">Courrier</SelectItem>
+                      <SelectItem value="decision">Decision de justice</SelectItem>
+                      <SelectItem value="autre">Autre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="upload-visible">Visible par le client</Label>
+                  <input
+                    id="upload-visible"
+                    type="checkbox"
+                    checked={uploadData.visibleClient}
+                    onChange={(e) => setUploadData({ ...uploadData, visibleClient: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUploadModal(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleUpload} disabled={!uploadFile || uploading}>
+              {uploading ? (
+                <>
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  Upload...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Uploader
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>
