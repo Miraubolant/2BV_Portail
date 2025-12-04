@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Client from '#models/client'
 import { createClientValidator, updateClientValidator } from '#validators/client_validator'
-import hash from '@adonisjs/core/services/hash'
 import transmit from '@adonisjs/transmit/services/main'
 import { randomBytes } from 'crypto'
 import { DateTime } from 'luxon'
@@ -78,14 +77,13 @@ export default class ClientsController {
       password = randomBytes(8).toString('hex')
     }
 
-    const hashedPassword = await hash.make(password)
-
     // Extraire et convertir la date
     const { dateNaissance, ...restData } = data
 
+    // Ne pas hasher manuellement - withAuthFinder le fait automatiquement
     const client = await Client.create({
       ...restData,
-      password: hashedPassword,
+      password,
       createdById: admin.id,
       dateNaissance: dateNaissance ? DateTime.fromISO(dateNaissance) : null,
     })
@@ -162,9 +160,10 @@ export default class ClientsController {
    */
   async resetPassword({ params, response }: HttpContext) {
     const client = await Client.findOrFail(params.id)
-    
+
     const newPassword = randomBytes(8).toString('hex')
-    client.password = await hash.make(newPassword)
+    // Ne pas hasher manuellement - withAuthFinder le fait automatiquement
+    client.password = newPassword
     await client.save()
 
     // TODO: Envoyer email avec nouveau mot de passe

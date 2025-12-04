@@ -1,10 +1,12 @@
 import * as React from 'react'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   FolderKanban,
   Clock,
   LogOut,
-  User,
+  Scale,
+  ChevronsUpDown,
 } from 'lucide-react'
 
 import {
@@ -25,7 +27,7 @@ import {
   CLIENT_DOSSIERS,
   CLIENT_DEMANDES_RDV,
 } from '@/app/routes'
-import { CLIENT_LOGOUT_API } from '@/lib/constants'
+import { CLIENT_LOGOUT_API, CLIENT_ME_API } from '@/lib/constants'
 import { Link, usePage } from '@inertiajs/react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -55,9 +57,36 @@ const navItems = [
   },
 ]
 
+interface ClientInfo {
+  id: string
+  email: string
+  nom: string
+  prenom: string
+  type: string
+}
+
 export function ClientSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { url } = usePage()
-  const client = (usePage().props as any).auth?.user
+  const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null)
+
+  useEffect(() => {
+    const fetchClientInfo = async () => {
+      try {
+        const response = await fetch(CLIENT_ME_API, {
+          credentials: 'include',
+        })
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user) {
+            setClientInfo(data.user)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching client info:', error)
+      }
+    }
+    fetchClientInfo()
+  }, [])
 
   const handleLogout = async () => {
     try {
@@ -78,12 +107,12 @@ export function ClientSidebar({ ...props }: React.ComponentProps<typeof Sidebar>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={CLIENT_DASHBOARD}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-                  <User className="size-4" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Scale className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Espace Client</span>
-                  <span className="truncate text-xs text-muted-foreground">Cabinet d'Avocats</span>
+                  <span className="truncate font-semibold">Cabinet d'Avocats</span>
+                  <span className="truncate text-xs text-muted-foreground">Espace Client</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -119,18 +148,19 @@ export function ClientSidebar({ ...props }: React.ComponentProps<typeof Sidebar>
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-blue-600 text-white">
-                      {client?.prenom?.[0]}{client?.nom?.[0]}
+                    <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                      {clientInfo?.prenom?.[0]}{clientInfo?.nom?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {client?.prenom} {client?.nom}
+                      {clientInfo?.prenom} {clientInfo?.nom}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {client?.email}
+                      {clientInfo?.email}
                     </span>
                   </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -142,20 +172,20 @@ export function ClientSidebar({ ...props }: React.ComponentProps<typeof Sidebar>
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg bg-blue-600 text-white">
-                        {client?.prenom?.[0]}{client?.nom?.[0]}
+                      <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                        {clientInfo?.prenom?.[0]}{clientInfo?.nom?.[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {client?.prenom} {client?.nom}
+                        {clientInfo?.prenom} {clientInfo?.nom}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">Client</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />
                   Deconnexion
                 </DropdownMenuItem>

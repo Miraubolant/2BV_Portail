@@ -79,20 +79,20 @@ const ClientTotpPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-900 to-blue-800">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <LoaderCircle className="h-8 w-8 animate-spin text-white" />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-900 to-blue-800 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
       <Head title="Securite 2FA" />
 
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600">
-            <Shield className="h-6 w-6 text-white" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
+            <Shield className="h-6 w-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">
             {setupMode ? 'Activation 2FA obligatoire' : 'Verification 2FA'}
@@ -153,7 +153,7 @@ const ClientTotpPage = () => {
 
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full"
               disabled={processing || data.code.length !== 6}
             >
               {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}

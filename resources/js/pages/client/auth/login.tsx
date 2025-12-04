@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { CLIENT_LOGIN_API } from '@/lib/constants'
 import { CLIENT_DASHBOARD, AUTH_CLIENT_TOTP } from '@/app/routes'
 import { Head, router, useForm } from '@inertiajs/react'
-import { EyeIcon, EyeOffIcon, LoaderCircle, User } from 'lucide-react'
+import { EyeIcon, EyeOffIcon, LoaderCircle, Scale } from 'lucide-react'
 import { useState } from 'react'
 
 type LoginForm = {
@@ -50,7 +50,7 @@ const ClientLoginPage = () => {
       }
 
       // TOTP is mandatory for clients
-      if (result.requireTotp || result.needsTotpSetup) {
+      if (result.requireTotp || result.requireTotpSetup) {
         router.visit(AUTH_CLIENT_TOTP)
       } else {
         router.visit(CLIENT_DASHBOARD)
@@ -61,13 +61,13 @@ const ClientLoginPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-900 to-blue-800 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
       <Head title="Connexion Espace Client" />
 
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600">
-            <User className="h-6 w-6 text-white" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
+            <Scale className="h-6 w-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">Espace Client</CardTitle>
           <CardDescription>
@@ -119,7 +119,7 @@ const ClientLoginPage = () => {
               <InputError message={errors.password} />
             </div>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={processing}>
+            <Button type="submit" className="w-full" disabled={processing}>
               {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
               Se connecter
             </Button>
