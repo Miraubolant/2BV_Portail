@@ -1,0 +1,18 @@
+{
+  "extends": "@adonisjs/tsconfig/tsconfig.client.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "ESNext",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitOverride": false,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "DOM.Iterable", "esnext"],
+    "paths": {
+      "@/*": ["./js/*"]
+    }
+  },
+  "include": ["./**/*.ts", "./**/*.tsx"]
+}
