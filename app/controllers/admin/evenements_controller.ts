@@ -50,10 +50,13 @@ export default class EvenementsController {
     const to = request.input('to', '')
     const year = request.input('year')
     const month = request.input('month')
+    const responsableId = request.input('responsableId', '')
 
     let query = Evenement.query()
       .preload('dossier', (dossierQuery) => {
-        dossierQuery.preload('client')
+        dossierQuery.preload('client', (clientQuery) => {
+          clientQuery.preload('responsable')
+        })
       })
       .orderBy('date_debut', 'asc')
 
@@ -69,6 +72,29 @@ export default class EvenementsController {
       }
       if (to) {
         query = query.where('date_debut', '<=', to)
+      }
+    }
+
+    // Filter by client's responsable (through dossier)
+    if (responsableId) {
+      if (responsableId === 'none') {
+        // Events without dossier OR with dossier whose client has no responsable
+        query = query.where((builder) => {
+          builder
+            .whereNull('dossier_id')
+            .orWhereHas('dossier', (dossierQuery) => {
+              dossierQuery.whereHas('client', (clientQuery) => {
+                clientQuery.whereNull('responsable_id')
+              })
+            })
+        })
+      } else {
+        // Events with dossier whose client has the specified responsable
+        query = query.whereHas('dossier', (dossierQuery) => {
+          dossierQuery.whereHas('client', (clientQuery) => {
+            clientQuery.where('responsable_id', responsableId)
+          })
+        })
       }
     }
 

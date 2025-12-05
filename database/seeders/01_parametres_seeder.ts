@@ -53,6 +53,9 @@ export default class ParametresSeeder extends BaseSeeder {
       { cle: 'dossier_reference_format', valeur: 'YYYY-NNN-NOM', type: 'string', categorie: 'dossiers', description: 'Format reference' },
       { cle: 'dossier_types_affaire', valeur: '["divorce","succession","penal","civil","commercial","immobilier","travail","autre"]', type: 'json', categorie: 'dossiers', description: 'Types affaire' },
       { cle: 'dossier_statuts', valeur: '["nouveau","en_cours","en_attente","audience_prevue","en_delibere","cloture_gagne","cloture_perdu","cloture_accord","archive"]', type: 'json', categorie: 'dossiers', description: 'Statuts' },
+
+      // Evenements
+      { cle: 'evenement_types', valeur: '["audience","rdv_client","rdv_adverse","expertise","mediation","echeance","autre"]', type: 'json', categorie: 'evenements', description: 'Types evenement' },
     ]
 
     for (const param of parametres) {

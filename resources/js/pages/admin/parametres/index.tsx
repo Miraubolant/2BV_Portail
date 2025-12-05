@@ -15,6 +15,11 @@ import {
   Save,
   Bell,
   Lock,
+  Tags,
+  Plus,
+  X,
+  FolderKanban,
+  Calendar,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { OneDriveSettings } from '@/components/admin/onedrive-settings'
@@ -27,6 +32,11 @@ interface Parametres {
 interface NotificationSettings {
   notifEmailDocument: boolean
   emailNotification: string | null
+}
+
+interface TypesSettings {
+  dossierTypes: string[]
+  evenementTypes: string[]
 }
 
 const ParametresPage = () => {
@@ -47,6 +57,13 @@ const ParametresPage = () => {
   })
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [typesSettings, setTypesSettings] = useState<TypesSettings>({
+    dossierTypes: [],
+    evenementTypes: [],
+  })
+  const [savingTypes, setSavingTypes] = useState(false)
+  const [newDossierType, setNewDossierType] = useState('')
+  const [newEvenementType, setNewEvenementType] = useState('')
 
   const isSuperAdmin = userRole === 'super_admin'
 
@@ -70,17 +87,36 @@ const ParametresPage = () => {
         const result = await response.json()
         // Backend returns grouped by category: { cabinet: [...], email: [...] }
         const params: Parametres = {}
+        let dossierTypes: string[] = []
+        let evenementTypes: string[] = []
+
         if (typeof result === 'object' && result !== null) {
           // Flatten all categories into a single object
           Object.values(result).forEach((category: any) => {
             if (Array.isArray(category)) {
               category.forEach((p: any) => {
                 params[p.cle] = p.valeur
+                // Parse JSON types
+                if (p.cle === 'dossier_types_affaire' && p.valeur) {
+                  try {
+                    dossierTypes = JSON.parse(p.valeur)
+                  } catch (e) {
+                    console.error('Error parsing dossier_types_affaire:', e)
+                  }
+                }
+                if (p.cle === 'evenement_types' && p.valeur) {
+                  try {
+                    evenementTypes = JSON.parse(p.valeur)
+                  } catch (e) {
+                    console.error('Error parsing evenement_types:', e)
+                  }
+                }
               })
             }
           })
         }
         setParametres(params)
+        setTypesSettings({ dossierTypes, evenementTypes })
       }
     } catch (error) {
       console.error('Error fetching parametres:', error)
@@ -188,6 +224,66 @@ const ParametresPage = () => {
     }
   }
 
+  const handleAddDossierType = () => {
+    const trimmed = newDossierType.trim().toLowerCase()
+    if (trimmed && !typesSettings.dossierTypes.includes(trimmed)) {
+      setTypesSettings((prev) => ({
+        ...prev,
+        dossierTypes: [...prev.dossierTypes, trimmed],
+      }))
+      setNewDossierType('')
+    }
+  }
+
+  const handleRemoveDossierType = (type: string) => {
+    setTypesSettings((prev) => ({
+      ...prev,
+      dossierTypes: prev.dossierTypes.filter((t) => t !== type),
+    }))
+  }
+
+  const handleAddEvenementType = () => {
+    const trimmed = newEvenementType.trim().toLowerCase()
+    if (trimmed && !typesSettings.evenementTypes.includes(trimmed)) {
+      setTypesSettings((prev) => ({
+        ...prev,
+        evenementTypes: [...prev.evenementTypes, trimmed],
+      }))
+      setNewEvenementType('')
+    }
+  }
+
+  const handleRemoveEvenementType = (type: string) => {
+    setTypesSettings((prev) => ({
+      ...prev,
+      evenementTypes: prev.evenementTypes.filter((t) => t !== type),
+    }))
+  }
+
+  const handleSaveTypes = async () => {
+    setSavingTypes(true)
+    try {
+      const parametresArray = [
+        { cle: 'dossier_types_affaire', valeur: JSON.stringify(typesSettings.dossierTypes) },
+        { cle: 'evenement_types', valeur: JSON.stringify(typesSettings.evenementTypes) },
+      ]
+      await fetch(ADMIN_PARAMETRES_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ parametres: parametresArray }),
+      })
+    } catch (error) {
+      console.error('Error saving types:', error)
+    } finally {
+      setSavingTypes(false)
+    }
+  }
+
+  const formatTypeName = (type: string) => {
+    return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
   if (loading) {
     return (
       <AdminLayout title="Parametres">
@@ -226,7 +322,8 @@ const ParametresPage = () => {
             {isSuperAdmin && (
               <>
                 <TabsTrigger value="email">Email</TabsTrigger>
-                <TabsTrigger value="cabinet">Cabinet</TabsTrigger>
+                <TabsTrigger value="cabinet">Information site</TabsTrigger>
+                <TabsTrigger value="types">Types</TabsTrigger>
                 <TabsTrigger value="integrations">Integrations</TabsTrigger>
               </>
             )}
@@ -460,6 +557,117 @@ const ParametresPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+          )}
+
+          {isSuperAdmin && (
+            <TabsContent value="types" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderKanban className="h-5 w-5" />
+                    Types de dossiers
+                  </CardTitle>
+                  <CardDescription>
+                    Definissez les types d'affaires disponibles lors de la creation d'un dossier
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newDossierType}
+                      onChange={(e) => setNewDossierType(e.target.value)}
+                      placeholder="Nouveau type de dossier"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddDossierType()
+                        }
+                      }}
+                    />
+                    <Button onClick={handleAddDossierType} size="icon" variant="outline">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {typesSettings.dossierTypes.map((type) => (
+                      <div
+                        key={type}
+                        className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm"
+                      >
+                        <span>{formatTypeName(type)}</span>
+                        <button
+                          onClick={() => handleRemoveDossierType(type)}
+                          className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {typesSettings.dossierTypes.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Aucun type defini. Ajoutez votre premier type ci-dessus.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Types d'evenements
+                  </CardTitle>
+                  <CardDescription>
+                    Definissez les types d'evenements disponibles dans le calendrier
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newEvenementType}
+                      onChange={(e) => setNewEvenementType(e.target.value)}
+                      placeholder="Nouveau type d'evenement"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddEvenementType()
+                        }
+                      }}
+                    />
+                    <Button onClick={handleAddEvenementType} size="icon" variant="outline">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {typesSettings.evenementTypes.map((type) => (
+                      <div
+                        key={type}
+                        className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm"
+                      >
+                        <span>{formatTypeName(type)}</span>
+                        <button
+                          onClick={() => handleRemoveEvenementType(type)}
+                          className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {typesSettings.evenementTypes.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Aucun type defini. Ajoutez votre premier type ci-dessus.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button onClick={handleSaveTypes} disabled={savingTypes}>
+                <Save className="mr-2 h-4 w-4" />
+                {savingTypes ? 'Sauvegarde...' : 'Sauvegarder les types'}
+              </Button>
             </TabsContent>
           )}
 

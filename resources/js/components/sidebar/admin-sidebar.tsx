@@ -109,21 +109,6 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
 
   const isSuperAdmin = userInfo?.role === 'super_admin'
 
-  const adminNavItems = [
-    {
-      title: 'Parametres',
-      href: ADMIN_PARAMETRES,
-      icon: Settings,
-      superAdminOnly: false,
-    },
-    {
-      title: 'Administrateurs',
-      href: ADMIN_ADMINS,
-      icon: UserCog,
-      superAdminOnly: true,
-    },
-  ].filter(item => !item.superAdminOnly || isSuperAdmin)
-
   const handleLogout = async () => {
     try {
       await fetch(ADMIN_LOGOUT_API, {
@@ -174,23 +159,6 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={url.startsWith(item.href)}>
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -244,6 +212,21 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
                     </div>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={ADMIN_PARAMETRES} className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Parametres
+                  </Link>
+                </DropdownMenuItem>
+                {isSuperAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href={ADMIN_ADMINS} className="cursor-pointer">
+                      <UserCog className="mr-2 h-4 w-4" />
+                      Administrateurs
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />

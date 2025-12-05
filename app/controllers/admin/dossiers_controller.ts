@@ -31,9 +31,10 @@ export default class DossiersController {
     const search = request.input('search', '')
     const statut = request.input('statut', '')
     const clientId = request.input('clientId', '')
+    const responsableId = request.input('responsableId', '')
 
     let query = Dossier.query()
-      .preload('client')
+      .preload('client', (clientQuery) => clientQuery.preload('responsable'))
       .preload('assignedAdmin')
       .orderBy('created_at', 'desc')
 
@@ -51,6 +52,19 @@ export default class DossiersController {
 
     if (clientId) {
       query = query.where('client_id', clientId)
+    }
+
+    // Filter by client's responsable
+    if (responsableId) {
+      if (responsableId === 'none') {
+        query = query.whereHas('client', (clientQuery) => {
+          clientQuery.whereNull('responsable_id')
+        })
+      } else {
+        query = query.whereHas('client', (clientQuery) => {
+          clientQuery.where('responsable_id', responsableId)
+        })
+      }
     }
 
     const dossiers = await query.paginate(page, limit)

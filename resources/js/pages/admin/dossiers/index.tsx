@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ADMIN_DOSSIERS_API, ADMIN_CLIENTS_API, formatDate } from '@/lib/constants'
+import { ADMIN_DOSSIERS_API, ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate } from '@/lib/constants'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { DataTable, Column } from '@/components/ui/data-table'
 import {
@@ -56,6 +56,13 @@ interface ClientOption {
   prenom: string
 }
 
+interface ResponsableOption {
+  id: string
+  nom: string
+  prenom: string
+  username: string | null
+}
+
 const STATUT_OPTIONS = [
   { value: 'nouveau', label: 'Nouveau' },
   { value: 'en_cours', label: 'En cours' },
@@ -96,9 +103,11 @@ const DossiersListPage = () => {
   const [search, setSearch] = useState('')
   const [statutFilter, setStatutFilter] = useState('')
   const [clientFilter, setClientFilter] = useState('')
+  const [responsableFilter, setResponsableFilter] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
+  const [responsables, setResponsables] = useState<ResponsableOption[]>([])
   const [formData, setFormData] = useState({
     clientId: '',
     intitule: '',
@@ -132,6 +141,7 @@ const DossiersListPage = () => {
       if (search) params.append('search', search)
       if (statutFilter) params.append('statut', statutFilter)
       if (clientFilter) params.append('clientId', clientFilter)
+      if (responsableFilter) params.append('responsableId', responsableFilter)
 
       const response = await fetch(`${ADMIN_DOSSIERS_API}?${params}`, {
         credentials: 'include',
@@ -150,7 +160,7 @@ const DossiersListPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.limit, search, statutFilter, clientFilter])
+  }, [pagination.page, pagination.limit, search, statutFilter, clientFilter, responsableFilter])
 
   const fetchClients = async () => {
     try {
@@ -166,12 +176,27 @@ const DossiersListPage = () => {
     }
   }
 
+  const fetchResponsables = async () => {
+    try {
+      const response = await fetch(ADMIN_RESPONSABLES_API, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setResponsables(result || [])
+      }
+    } catch (error) {
+      console.error('Error fetching responsables:', error)
+    }
+  }
+
   useEffect(() => {
     fetchDossiers()
   }, [fetchDossiers])
 
   useEffect(() => {
     fetchClients()
+    fetchResponsables()
   }, [])
 
   const handleOpenCreateModal = () => {
@@ -458,6 +483,20 @@ const DossiersListPage = () => {
                   {STATUT_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Responsable" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les responsables</SelectItem>
+                  <SelectItem value="none">Sans responsable</SelectItem>
+                  {responsables.map((resp) => (
+                    <SelectItem key={resp.id} value={resp.id}>
+                      {resp.username || `${resp.prenom} ${resp.nom}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
