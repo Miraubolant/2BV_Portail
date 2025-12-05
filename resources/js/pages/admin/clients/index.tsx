@@ -220,7 +220,7 @@ const ClientsListPage = () => {
   }
 
   const handleEdit = (client: Client) => {
-    router.visit(`/admin/clients/${client.id}`)
+    router.visit(`/admin/clients/${client.id}?tab=infos`)
   }
 
   const handleUpdateField = async (clientId: string, field: string, value: boolean | string | null) => {

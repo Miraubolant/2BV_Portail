@@ -67,8 +67,11 @@ interface Evenement {
   id: string
   titre: string
   description: string | null
-  dateEvenement: string
-  typeEvenement: string
+  dateDebut: string
+  dateFin: string
+  type: string
+  lieu: string | null
+  journeeEntiere: boolean
 }
 
 interface Dossier {
@@ -111,10 +114,11 @@ const typeDocumentLabels: Record<string, string> = {
 
 const typeEvenementLabels: Record<string, string> = {
   audience: 'Audience',
-  reunion: 'Reunion',
+  rdv_client: 'RDV Client',
+  rdv_adverse: 'RDV Adverse',
+  expertise: 'Expertise',
+  mediation: 'Mediation',
   echeance: 'Echeance',
-  depot: 'Depot',
-  notification: 'Notification',
   autre: 'Autre',
 }
 
@@ -436,7 +440,7 @@ const ClientDossierShowPage = () => {
   const config = statutLabels[dossier.statut] || { label: dossier.statut, variant: 'outline' as const }
   const documents = dossier.documents || []
   const evenements = (dossier.evenements || []).sort((a, b) =>
-    new Date(b.dateEvenement).getTime() - new Date(a.dateEvenement).getTime()
+    new Date(b.dateDebut).getTime() - new Date(a.dateDebut).getTime()
   )
 
   return (
@@ -649,7 +653,7 @@ const ClientDossierShowPage = () => {
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold">{evt.titre}</h3>
                             <Badge variant="outline">
-                              {typeEvenementLabels[evt.typeEvenement] || evt.typeEvenement}
+                              {typeEvenementLabels[evt.type] || evt.type}
                             </Badge>
                           </div>
                           {evt.description && (
@@ -657,8 +661,13 @@ const ClientDossierShowPage = () => {
                           )}
                           <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {formatDate(evt.dateEvenement)}
+                            {evt.dateDebut ? formatDate(evt.dateDebut) : '-'}
                           </p>
+                          {evt.lieu && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              Lieu: {evt.lieu}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </CardContent>

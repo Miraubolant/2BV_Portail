@@ -114,7 +114,10 @@ const ClientShowPage = () => {
   const [newPassword, setNewPassword] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState<Partial<Client>>({})
-  const [activeTab, setActiveTab] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tab') || null
+  })
   const [admins, setAdmins] = useState<AdminOption[]>([])
   const [showResponsableModal, setShowResponsableModal] = useState(false)
   const [selectedResponsableId, setSelectedResponsableId] = useState<string>('')
@@ -152,7 +155,8 @@ const ClientShowPage = () => {
         const result = await response.json()
         setClient(result)
         setFormData(result)
-        setActiveTab('dossiers')
+        // Only set default tab if no tab was specified in URL
+        setActiveTab((prev) => prev || 'dossiers')
       }
     } catch (error) {
       console.error('Error fetching client:', error)

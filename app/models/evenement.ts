@@ -57,10 +57,10 @@ export default class Evenement extends BaseModel {
   @column()
   declare rappelEnvoye: boolean
 
-  @column()
+  @column({ columnName: 'rappel_j7' })
   declare rappelJ7: boolean
 
-  @column()
+  @column({ columnName: 'rappel_j1' })
   declare rappelJ1: boolean
 
   @column()

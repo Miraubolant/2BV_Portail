@@ -45,25 +45,52 @@ export default class DemandesRdvController {
   async accepter({ params, request, auth, response }: HttpContext) {
     const demande = await DemandeRdv.findOrFail(params.id)
     const admin = auth.use('admin').user!
-    
-    const { dateDebut, dateFin, lieu } = request.only(['dateDebut', 'dateFin', 'lieu'])
+
+    const { dateDebut, dateFin, lieu, reponse } = request.only(['dateDebut', 'dateFin', 'lieu', 'reponse'])
+
+    if (!dateDebut || !dateFin) {
+      return response.badRequest({ message: 'Les dates de debut et fin sont requises' })
+    }
+
+    // Parse dates - try ISO first, then JS Date
+    let parsedDateDebut = DateTime.fromISO(dateDebut)
+    let parsedDateFin = DateTime.fromISO(dateFin)
+
+    // Fallback to JS Date parsing if ISO fails
+    if (!parsedDateDebut.isValid) {
+      parsedDateDebut = DateTime.fromJSDate(new Date(dateDebut))
+    }
+    if (!parsedDateFin.isValid) {
+      parsedDateFin = DateTime.fromJSDate(new Date(dateFin))
+    }
+
+    // Validate dates
+    if (!parsedDateDebut.isValid || !parsedDateFin.isValid) {
+      return response.badRequest({ message: 'Format de date invalide' })
+    }
 
     // Creer un evenement
     const evenement = await Evenement.create({
-      dossierId: demande.dossierId!,
+      dossierId: demande.dossierId || null,
       titre: 'RDV: ' + demande.motif.substring(0, 50),
       description: demande.motif,
-      type: 'rdv',
-      dateDebut: DateTime.fromISO(dateDebut),
-      dateFin: DateTime.fromISO(dateFin),
+      type: 'rdv_client',
+      dateDebut: parsedDateDebut,
+      dateFin: parsedDateFin,
+      journeeEntiere: false,
       lieu: lieu || 'Cabinet',
       statut: 'confirme',
+      syncGoogle: false,
+      rappelEnvoye: false,
+      rappelJ7: true,
+      rappelJ1: true,
       createdById: admin.id,
     })
 
     // Mettre a jour la demande
     demande.statut = 'accepte'
     demande.evenementId = evenement.id
+    demande.reponseAdmin = reponse || null
     demande.traiteParId = admin.id
     demande.traiteAt = DateTime.now()
     await demande.save()

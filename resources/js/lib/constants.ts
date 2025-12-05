@@ -64,15 +64,29 @@ export const EUR = new Intl.NumberFormat('fr-FR', {
 })
 
 // Date formatter
-export const formatDate = (date: string | Date) => {
-  return new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'long',
-  }).format(new Date(date))
+export const formatDate = (date: string | Date | null | undefined): string => {
+  if (!date) return '-'
+  try {
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return '-'
+    return new Intl.DateTimeFormat('fr-FR', {
+      dateStyle: 'long',
+    }).format(d)
+  } catch {
+    return '-'
+  }
 }
 
-export const formatDateTime = (date: string | Date) => {
-  return new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(date))
+export const formatDateTime = (date: string | Date | null | undefined): string => {
+  if (!date) return '-'
+  try {
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return '-'
+    return new Intl.DateTimeFormat('fr-FR', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(d)
+  } catch {
+    return '-'
+  }
 }

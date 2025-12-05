@@ -96,19 +96,27 @@ const ParametresPage = () => {
             if (Array.isArray(category)) {
               category.forEach((p: any) => {
                 params[p.cle] = p.valeur
-                // Parse JSON types
+                // Handle types - backend already parses JSON via typedValue
                 if (p.cle === 'dossier_types_affaire' && p.valeur) {
-                  try {
-                    dossierTypes = JSON.parse(p.valeur)
-                  } catch (e) {
-                    console.error('Error parsing dossier_types_affaire:', e)
+                  if (Array.isArray(p.valeur)) {
+                    dossierTypes = p.valeur
+                  } else if (typeof p.valeur === 'string') {
+                    try {
+                      dossierTypes = JSON.parse(p.valeur)
+                    } catch (e) {
+                      console.error('Error parsing dossier_types_affaire:', e)
+                    }
                   }
                 }
                 if (p.cle === 'evenement_types' && p.valeur) {
-                  try {
-                    evenementTypes = JSON.parse(p.valeur)
-                  } catch (e) {
-                    console.error('Error parsing evenement_types:', e)
+                  if (Array.isArray(p.valeur)) {
+                    evenementTypes = p.valeur
+                  } else if (typeof p.valeur === 'string') {
+                    try {
+                      evenementTypes = JSON.parse(p.valeur)
+                    } catch (e) {
+                      console.error('Error parsing evenement_types:', e)
+                    }
                   }
                 }
               })

@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/layout/admin-layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { ADMIN_DEMANDES_RDV_API, formatDateTime } from '@/lib/constants'
 import { useEffect, useState, useCallback } from 'react'
 import {
@@ -12,6 +13,7 @@ import {
   LoaderCircle,
   CalendarClock,
   User,
+  MapPin,
 } from 'lucide-react'
 import {
   Dialog,
@@ -30,7 +32,7 @@ interface DemandeRdv {
   dateSouhaitee: string | null
   creneau: string | null
   urgence: string | null
-  statut: 'en_attente' | 'acceptee' | 'refusee'
+  statut: 'en_attente' | 'accepte' | 'refuse'
   reponseAdmin: string | null
   createdAt: string
   client: {
@@ -46,18 +48,32 @@ interface DemandeRdv {
   }
 }
 
-const statutConfig = {
-  en_attente: { label: 'En attente', variant: 'outline' as const, icon: Clock },
-  acceptee: { label: 'Acceptee', variant: 'default' as const, icon: Check },
-  refusee: { label: 'Refusee', variant: 'destructive' as const, icon: X },
+const statutConfig: Record<string, { label: string; variant: 'outline' | 'default' | 'destructive'; icon: typeof Clock }> = {
+  en_attente: { label: 'En attente', variant: 'outline', icon: Clock },
+  accepte: { label: 'Accepte', variant: 'default', icon: Check },
+  refuse: { label: 'Refuse', variant: 'destructive', icon: X },
+}
+
+const creneauToTime: Record<string, { debut: string; fin: string }> = {
+  matin: { debut: '09:00', fin: '10:00' },
+  apres_midi: { debut: '14:00', fin: '15:00' },
+  fin_journee: { debut: '17:00', fin: '18:00' },
 }
 
 const DemandesRdvPage = () => {
   const [demandes, setDemandes] = useState<DemandeRdv[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDemande, setSelectedDemande] = useState<DemandeRdv | null>(null)
+  const [actionType, setActionType] = useState<'accepter' | 'refuser' | null>(null)
   const [reponse, setReponse] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [eventData, setEventData] = useState({
+    dateDebut: '',
+    heureDebut: '09:00',
+    dateFin: '',
+    heureFin: '10:00',
+    lieu: 'Cabinet',
+  })
 
   const fetchDemandes = useCallback(async () => {
     setLoading(true)
@@ -80,23 +96,64 @@ const DemandesRdvPage = () => {
     fetchDemandes()
   }, [fetchDemandes])
 
+  const openAcceptDialog = (demande: DemandeRdv) => {
+    setSelectedDemande(demande)
+    setActionType('accepter')
+    setReponse('')
+
+    // Pre-fill date from client's requested date
+    const dateStr = demande.dateSouhaitee || new Date().toISOString().split('T')[0]
+    const times = demande.creneau ? creneauToTime[demande.creneau] : { debut: '09:00', fin: '10:00' }
+
+    setEventData({
+      dateDebut: dateStr,
+      heureDebut: times.debut,
+      dateFin: dateStr,
+      heureFin: times.fin,
+      lieu: 'Cabinet',
+    })
+  }
+
+  const openRefuseDialog = (demande: DemandeRdv) => {
+    setSelectedDemande(demande)
+    setActionType('refuser')
+    setReponse('')
+  }
+
+  const closeDialog = () => {
+    setSelectedDemande(null)
+    setActionType(null)
+    setReponse('')
+  }
+
   const handleAccept = async () => {
-    if (!selectedDemande) return
+    if (!selectedDemande || !eventData.dateDebut) return
     setProcessing(true)
     try {
+      const dateDebut = `${eventData.dateDebut}T${eventData.heureDebut}:00`
+      const dateFin = `${eventData.dateFin || eventData.dateDebut}T${eventData.heureFin}:00`
+
       const response = await fetch(`${ADMIN_DEMANDES_RDV_API}/${selectedDemande.id}/accepter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ reponse }),
+        body: JSON.stringify({
+          dateDebut,
+          dateFin,
+          lieu: eventData.lieu,
+          reponse,
+        }),
       })
       if (response.ok) {
-        setSelectedDemande(null)
-        setReponse('')
+        closeDialog()
         fetchDemandes()
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Erreur lors de l\'acceptation')
       }
     } catch (error) {
       console.error('Error accepting demande:', error)
+      alert('Erreur lors de l\'acceptation')
     } finally {
       setProcessing(false)
     }
@@ -110,15 +167,18 @@ const DemandesRdvPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ reponse }),
+        body: JSON.stringify({ motif: reponse }),
       })
       if (response.ok) {
-        setSelectedDemande(null)
-        setReponse('')
+        closeDialog()
         fetchDemandes()
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Erreur lors du refus')
       }
     } catch (error) {
       console.error('Error refusing demande:', error)
+      alert('Erreur lors du refus')
     } finally {
       setProcessing(false)
     }
@@ -185,7 +245,7 @@ const DemandesRdvPage = () => {
                               {demande.creneau && ` (${demande.creneau})`}
                             </p>
                           )}
-                          {demande.urgence && demande.urgence !== 'normale' && (
+                          {demande.urgence && demande.urgence !== 'normal' && (
                             <Badge variant="destructive" className="mt-1">Urgent</Badge>
                           )}
                         </div>
@@ -205,7 +265,7 @@ const DemandesRdvPage = () => {
                         <div className="flex gap-2 pt-2">
                           <Button
                             size="sm"
-                            onClick={() => setSelectedDemande(demande)}
+                            onClick={() => openAcceptDialog(demande)}
                           >
                             <Check className="mr-2 h-4 w-4" />
                             Accepter
@@ -213,7 +273,7 @@ const DemandesRdvPage = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setSelectedDemande(demande)}
+                            onClick={() => openRefuseDialog(demande)}
                           >
                             <X className="mr-2 h-4 w-4" />
                             Refuser
@@ -239,7 +299,7 @@ const DemandesRdvPage = () => {
                 {traitees.length > 0 ? (
                   <div className="space-y-4">
                     {traitees.slice(0, 10).map((demande) => {
-                      const config = statutConfig[demande.statut]
+                      const config = statutConfig[demande.statut] || { label: demande.statut, variant: 'outline' as const }
                       return (
                         <div
                           key={demande.id}
@@ -275,44 +335,129 @@ const DemandesRdvPage = () => {
         )}
       </div>
 
-      {/* Response Dialog */}
-      <Dialog open={!!selectedDemande} onOpenChange={() => setSelectedDemande(null)}>
-        <DialogContent>
+      {/* Accept Dialog */}
+      <Dialog open={actionType === 'accepter'} onOpenChange={() => closeDialog()}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Repondre a la demande</DialogTitle>
+            <DialogTitle>Accepter la demande de RDV</DialogTitle>
             <DialogDescription>
               Demande de {selectedDemande?.client.prenom} {selectedDemande?.client.nom}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <p className="font-medium">{selectedDemande?.motif}</p>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="font-medium text-sm">{selectedDemande?.motif}</p>
               {selectedDemande?.dateSouhaitee && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Date: {selectedDemande.dateSouhaitee}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Souhaite: {selectedDemande.dateSouhaitee}
                   {selectedDemande.creneau && ` (${selectedDemande.creneau})`}
                 </p>
               )}
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dateDebut">Date du RDV *</Label>
+                <Input
+                  id="dateDebut"
+                  type="date"
+                  value={eventData.dateDebut}
+                  onChange={(e) => setEventData({ ...eventData, dateDebut: e.target.value, dateFin: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lieu">Lieu</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="lieu"
+                    value={eventData.lieu}
+                    onChange={(e) => setEventData({ ...eventData, lieu: e.target.value })}
+                    className="pl-9"
+                    placeholder="Cabinet"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="heureDebut">Heure debut *</Label>
+                <Input
+                  id="heureDebut"
+                  type="time"
+                  value={eventData.heureDebut}
+                  onChange={(e) => setEventData({ ...eventData, heureDebut: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="heureFin">Heure fin *</Label>
+                <Input
+                  id="heureFin"
+                  type="time"
+                  value={eventData.heureFin}
+                  onChange={(e) => setEventData({ ...eventData, heureFin: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="reponse">Message de reponse (optionnel)</Label>
+              <Label htmlFor="reponseAccept">Message de confirmation (optionnel)</Label>
               <Textarea
-                id="reponse"
+                id="reponseAccept"
                 value={reponse}
                 onChange={(e) => setReponse(e.target.value)}
-                placeholder="Votre reponse au client..."
+                placeholder="Message envoye au client..."
+                rows={2}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedDemande(null)}>
+            <Button variant="outline" onClick={closeDialog}>
+              Annuler
+            </Button>
+            <Button onClick={handleAccept} disabled={processing || !eventData.dateDebut}>
+              {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+              Accepter et creer le RDV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refuse Dialog */}
+      <Dialog open={actionType === 'refuser'} onOpenChange={() => closeDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refuser la demande de RDV</DialogTitle>
+            <DialogDescription>
+              Demande de {selectedDemande?.client.prenom} {selectedDemande?.client.nom}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="font-medium text-sm">{selectedDemande?.motif}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reponseRefuse">Motif du refus (optionnel)</Label>
+              <Textarea
+                id="reponseRefuse"
+                value={reponse}
+                onChange={(e) => setReponse(e.target.value)}
+                placeholder="Expliquez au client pourquoi la demande est refusee..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={handleRefuse} disabled={processing}>
-              Refuser
-            </Button>
-            <Button onClick={handleAccept} disabled={processing}>
-              Accepter
+              {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+              Refuser la demande
             </Button>
           </DialogFooter>
         </DialogContent>
