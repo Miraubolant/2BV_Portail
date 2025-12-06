@@ -4,6 +4,7 @@ import Client from '#models/client'
 import { createDossierValidator, updateDossierValidator } from '#validators/dossier_validator'
 import { DateTime } from 'luxon'
 import dossierFolderService from '#services/microsoft/dossier_folder_service'
+import ActivityLogger from '#services/activity_logger'
 
 export default class DossiersController {
   /**
@@ -92,7 +93,8 @@ export default class DossiersController {
    * POST /api/admin/dossiers
    * Creer un dossier
    */
-  async store({ request, auth, response }: HttpContext) {
+  async store(ctx: HttpContext) {
+    const { request, auth, response } = ctx
     const data = await request.validateUsing(createDossierValidator)
     const admin = auth.use('admin').user!
 
@@ -116,6 +118,14 @@ export default class DossiersController {
     // Recharger avec les relations
     await dossier.load('client')
 
+    // Logger la creation du dossier
+    await ActivityLogger.logDossierCreated(dossier.id, admin.id, {
+      reference: dossier.reference,
+      intitule: dossier.intitule,
+      clientId: dossier.clientId,
+      clientNom: client.nom,
+    }, ctx)
+
     // Creer automatiquement le dossier OneDrive (en arriere-plan, sans bloquer)
     dossierFolderService.createDossierFolder(dossier.id).catch((err) => {
       console.error('Error creating OneDrive folder for dossier:', err)
@@ -128,9 +138,14 @@ export default class DossiersController {
    * PUT /api/admin/dossiers/:id
    * Modifier un dossier
    */
-  async update({ params, request, response }: HttpContext) {
+  async update(ctx: HttpContext) {
+    const { params, request, auth, response } = ctx
     const dossier = await Dossier.findOrFail(params.id)
     const data = await request.validateUsing(updateDossierValidator)
+    const admin = auth.use('admin').user!
+
+    // Sauvegarder l'ancien statut pour detecter les changements
+    const oldStatut = dossier.statut
 
     // Extraire les dates pour conversion
     const { dateCloture, datePrescription, ...restData } = data
@@ -143,9 +158,25 @@ export default class DossiersController {
       dossier.datePrescription = datePrescription ? DateTime.fromISO(datePrescription) : null
     }
 
+    // Detecter les champs modifies
+    const changedFields: string[] = []
+    for (const [key, value] of Object.entries(restData)) {
+      if (dossier.$attributes[key] !== value) {
+        changedFields.push(key)
+      }
+    }
+
     dossier.merge(restData)
     await dossier.save()
     await dossier.load('client')
+
+    // Logger le changement de statut si applicable
+    if (data.statut && oldStatut !== data.statut) {
+      await ActivityLogger.logDossierStatutChanged(dossier.id, admin.id, oldStatut, data.statut, ctx)
+    } else if (changedFields.length > 0) {
+      // Logger la modification generale
+      await ActivityLogger.logDossierUpdated(dossier.id, admin.id, { changes: changedFields }, ctx)
+    }
 
     return response.ok(dossier)
   }

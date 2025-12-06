@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ADMIN_DOSSIERS_API, ADMIN_FAVORIS_API, formatDate, API_BASE_URL } from '@/lib/constants'
 import { emitFavorisUpdated } from '@/hooks/use-favoris'
+import { DossierTimeline } from '@/components/admin/dossier-timeline'
 import { ADMIN_DOSSIERS } from '@/app/routes'
 import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import {
@@ -769,6 +770,7 @@ const DossierShowPage = () => {
           <TabsList>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="infos">Informations</TabsTrigger>
+            <TabsTrigger value="timeline">Historique</TabsTrigger>
           </TabsList>
 
           {/* Documents Tab */}
@@ -1168,6 +1170,11 @@ const DossierShowPage = () => {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          {/* Timeline Tab */}
+          <TabsContent value="timeline">
+            <DossierTimeline dossierId={dossierId} />
           </TabsContent>
         </Tabs>
       </div>

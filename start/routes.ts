@@ -32,6 +32,7 @@ const GoogleOAuthController = () => import('#controllers/admin/google_oauth_cont
 const AdminFavorisController = () => import('#controllers/admin/favoris_controller')
 const AdminSearchController = () => import('#controllers/admin/search_controller')
 const AdminNotificationsController = () => import('#controllers/admin/notifications_controller')
+const AdminTimelineController = () => import('#controllers/admin/timeline_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -93,6 +94,7 @@ router.group(() => {
   router.put('dossiers/:id', [AdminDossiersController, 'update'])
   router.delete('dossiers/:id', [AdminDossiersController, 'destroy'])
   router.get('dossiers/:id/evenements', [AdminEvenementsController, 'byDossier'])
+  router.get('dossiers/:id/timeline', [AdminTimelineController, 'index'])
 
   // Documents
   router.get('dossiers/:dossierId/documents', [AdminDocumentsController, 'index'])

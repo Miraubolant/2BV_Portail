@@ -31,6 +31,7 @@ export const ADMIN_RESPONSABLES_API = API_BASE_URL + 'admin/responsables'
 export const ADMIN_FAVORIS_API = API_BASE_URL + 'admin/favoris'
 export const ADMIN_SEARCH_API = API_BASE_URL + 'admin/search'
 export const ADMIN_NOTIFICATIONS_API = API_BASE_URL + 'admin/notifications'
+export const ADMIN_TIMELINE_API = (dossierId: string) => API_BASE_URL + 'admin/dossiers/' + dossierId + '/timeline'
 
 // Client APIs
 export const CLIENT_DASHBOARD_API = API_BASE_URL + 'client/dashboard'

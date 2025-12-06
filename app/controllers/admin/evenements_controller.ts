@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 import calendarSyncService from '#services/google/calendar_sync_service'
 import GoogleToken from '#models/google_token'
 import googleConfig from '#config/google'
+import ActivityLogger from '#services/activity_logger'
 
 const createEvenementValidator = vine.compile(
   vine.object({
@@ -117,7 +118,8 @@ export default class EvenementsController {
   /**
    * POST /api/admin/evenements
    */
-  async store({ request, auth, response }: HttpContext) {
+  async store(ctx: HttpContext) {
+    const { request, auth, response } = ctx
     const data = await request.validateUsing(createEvenementValidator)
     const admin = auth.use('admin').user!
 
@@ -130,6 +132,14 @@ export default class EvenementsController {
       dateFin: DateTime.fromISO(dateFin),
       createdById: admin.id,
     })
+
+    // Logger la creation de l'evenement
+    await ActivityLogger.logEvenementCreated(evenement.id, admin.id, {
+      titre: evenement.titre,
+      type: evenement.type,
+      dossierId: evenement.dossierId,
+      dateDebut: evenement.dateDebut.toISO(),
+    }, ctx)
 
     // Sync to Google Calendar if enabled and sync mode is auto (async, don't block response)
     if (evenement.syncGoogle) {
@@ -148,9 +158,11 @@ export default class EvenementsController {
   /**
    * PUT /api/admin/evenements/:id
    */
-  async update({ params, request, response }: HttpContext) {
+  async update(ctx: HttpContext) {
+    const { params, request, auth, response } = ctx
     const evenement = await Evenement.findOrFail(params.id)
     const data = await request.validateUsing(updateEvenementValidator)
+    const admin = auth.use('admin').user!
 
     // Extraire les dates et dossierId
     const { dateDebut, dateFin, dossierId, ...restData } = data
@@ -165,6 +177,12 @@ export default class EvenementsController {
 
     evenement.merge(restData)
     await evenement.save()
+
+    // Logger la modification de l'evenement
+    await ActivityLogger.logEvenementUpdated(evenement.id, admin.id, {
+      titre: evenement.titre,
+      dossierId: evenement.dossierId,
+    }, ctx)
 
     // Sync to Google Calendar if enabled and sync mode is auto (async, don't block response)
     if (evenement.syncGoogle) {
@@ -182,8 +200,16 @@ export default class EvenementsController {
   /**
    * DELETE /api/admin/evenements/:id
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy(ctx: HttpContext) {
+    const { params, auth, response } = ctx
     const evenement = await Evenement.findOrFail(params.id)
+    const admin = auth.use('admin').user!
+
+    // Logger la suppression avant de supprimer
+    await ActivityLogger.logEvenementDeleted(evenement.id, admin.id, {
+      titre: evenement.titre,
+      dossierId: evenement.dossierId,
+    }, ctx)
 
     // Delete from Google Calendar if synced (async, don't block response)
     if (evenement.googleEventId) {

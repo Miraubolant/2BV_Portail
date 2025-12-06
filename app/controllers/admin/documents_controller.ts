@@ -3,6 +3,7 @@ import Document from '#models/document'
 import Dossier from '#models/dossier'
 import EmailService from '#services/email_service'
 import documentSyncService from '#services/microsoft/document_sync_service'
+import ActivityLogger from '#services/activity_logger'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
 
@@ -98,7 +99,8 @@ export default class DocumentsController {
    * POST /api/admin/dossiers/:dossierId/documents/upload
    * Upload un fichier et l'ajouter au dossier (avec OneDrive)
    */
-  async upload({ params, request, auth, response }: HttpContext) {
+  async upload(ctx: HttpContext) {
+    const { params, request, auth, response } = ctx
     const admin = auth.use('admin').user!
 
     // Get the uploaded file
@@ -152,6 +154,22 @@ export default class DocumentsController {
         message: 'Erreur lors de l\'upload du document',
         error: result.error,
       })
+    }
+
+    // Log activity for timeline
+    if (result.document) {
+      await ActivityLogger.logDocumentUploaded(
+        result.document.id,
+        params.dossierId,
+        admin.id,
+        'admin',
+        {
+          documentName: nom,
+          documentType: typeDocument,
+          mimeType: file.headers['content-type'] || null,
+        },
+        ctx
+      )
     }
 
     // Send notification to client
@@ -238,12 +256,33 @@ export default class DocumentsController {
    * DELETE /api/admin/documents/:id
    * Supprimer un document (aussi sur OneDrive)
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy(ctx: HttpContext) {
+    const { params, auth, response } = ctx
+    const admin = auth.use('admin').user!
+
+    // Get document info before deleting
+    const document = await Document.find(params.id)
+    if (!document) {
+      return response.notFound({ message: 'Document non trouve' })
+    }
+
+    const documentName = document.nom
+    const dossierId = document.dossierId
+
     const result = await documentSyncService.deleteDocument(params.id)
 
     if (!result.success) {
       return response.notFound({ message: result.error })
     }
+
+    // Log activity for timeline
+    await ActivityLogger.logDocumentDeleted(
+      params.id,
+      dossierId,
+      admin.id,
+      { documentName },
+      ctx
+    )
 
     return response.ok({ message: 'Document supprime' })
   }
