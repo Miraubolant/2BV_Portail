@@ -33,6 +33,7 @@ const AdminFavorisController = () => import('#controllers/admin/favoris_controll
 const AdminSearchController = () => import('#controllers/admin/search_controller')
 const AdminNotificationsController = () => import('#controllers/admin/notifications_controller')
 const AdminTimelineController = () => import('#controllers/admin/timeline_controller')
+const AdminNotesController = () => import('#controllers/admin/notes_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -95,6 +96,13 @@ router.group(() => {
   router.delete('dossiers/:id', [AdminDossiersController, 'destroy'])
   router.get('dossiers/:id/evenements', [AdminEvenementsController, 'byDossier'])
   router.get('dossiers/:id/timeline', [AdminTimelineController, 'index'])
+
+  // Notes
+  router.get('dossiers/:dossierId/notes', [AdminNotesController, 'index'])
+  router.post('dossiers/:dossierId/notes', [AdminNotesController, 'store'])
+  router.put('notes/:id', [AdminNotesController, 'update'])
+  router.delete('notes/:id', [AdminNotesController, 'destroy'])
+  router.post('notes/:id/pin', [AdminNotesController, 'togglePin'])
 
   // Documents
   router.get('dossiers/:dossierId/documents', [AdminDocumentsController, 'index'])
