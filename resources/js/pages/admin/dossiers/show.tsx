@@ -43,6 +43,7 @@ import { ADMIN_DOSSIERS_API, ADMIN_FAVORIS_API, formatDate, API_BASE_URL } from 
 import { emitFavorisUpdated } from '@/hooks/use-favoris'
 import { DossierTimeline } from '@/components/admin/dossier-timeline'
 import { DossierNotes } from '@/components/admin/dossier-notes'
+import { DossierTasks } from '@/components/admin/dossier-tasks'
 import { ADMIN_DOSSIERS } from '@/app/routes'
 import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import {
@@ -773,6 +774,7 @@ const DossierShowPage = () => {
             <TabsTrigger value="infos">Informations</TabsTrigger>
             <TabsTrigger value="timeline">Historique</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
+            <TabsTrigger value="tasks">Taches</TabsTrigger>
           </TabsList>
 
           {/* Documents Tab */}
@@ -1181,6 +1183,10 @@ const DossierShowPage = () => {
 
           <TabsContent value="notes">
             <DossierNotes dossierId={dossierId} />
+          </TabsContent>
+
+          <TabsContent value="tasks">
+            <DossierTasks dossierId={dossierId} />
           </TabsContent>
         </Tabs>
       </div>

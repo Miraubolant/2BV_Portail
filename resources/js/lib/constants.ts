@@ -34,6 +34,9 @@ export const ADMIN_NOTIFICATIONS_API = API_BASE_URL + 'admin/notifications'
 export const ADMIN_TIMELINE_API = (dossierId: string) => API_BASE_URL + 'admin/dossiers/' + dossierId + '/timeline'
 export const ADMIN_NOTES_API = (dossierId: string) => API_BASE_URL + 'admin/dossiers/' + dossierId + '/notes'
 export const ADMIN_NOTE_API = (noteId: string) => API_BASE_URL + 'admin/notes/' + noteId
+export const ADMIN_TASKS_API = (dossierId: string) => API_BASE_URL + 'admin/dossiers/' + dossierId + '/tasks'
+export const ADMIN_TASK_API = (taskId: string) => API_BASE_URL + 'admin/tasks/' + taskId
+export const ADMIN_MY_TASKS_API = API_BASE_URL + 'admin/tasks/my'
 
 // Client APIs
 export const CLIENT_DASHBOARD_API = API_BASE_URL + 'client/dashboard'

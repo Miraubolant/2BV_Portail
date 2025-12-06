@@ -34,6 +34,7 @@ const AdminSearchController = () => import('#controllers/admin/search_controller
 const AdminNotificationsController = () => import('#controllers/admin/notifications_controller')
 const AdminTimelineController = () => import('#controllers/admin/timeline_controller')
 const AdminNotesController = () => import('#controllers/admin/notes_controller')
+const AdminTasksController = () => import('#controllers/admin/tasks_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -103,6 +104,15 @@ router.group(() => {
   router.put('notes/:id', [AdminNotesController, 'update'])
   router.delete('notes/:id', [AdminNotesController, 'destroy'])
   router.post('notes/:id/pin', [AdminNotesController, 'togglePin'])
+
+  // Tasks
+  router.get('tasks/my', [AdminTasksController, 'myTasks'])
+  router.get('dossiers/:dossierId/tasks', [AdminTasksController, 'index'])
+  router.post('dossiers/:dossierId/tasks', [AdminTasksController, 'store'])
+  router.put('tasks/:id', [AdminTasksController, 'update'])
+  router.delete('tasks/:id', [AdminTasksController, 'destroy'])
+  router.post('tasks/:id/complete', [AdminTasksController, 'complete'])
+  router.post('tasks/:id/reopen', [AdminTasksController, 'reopen'])
 
   // Documents
   router.get('dossiers/:dossierId/documents', [AdminDocumentsController, 'index'])
