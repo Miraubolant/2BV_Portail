@@ -3,6 +3,7 @@ import Task from '#models/task'
 import Dossier from '#models/dossier'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
+import ActivityLogger from '#services/activity_logger'
 
 const createTaskValidator = vine.compile(
   vine.object({
@@ -74,7 +75,8 @@ export default class TasksController {
    * POST /api/admin/dossiers/:dossierId/tasks
    * Creer une tache
    */
-  async store({ params, request, auth, response }: HttpContext) {
+  async store(ctx: HttpContext) {
+    const { params, request, auth, response } = ctx
     const dossierId = params.dossierId
     const admin = auth.use('admin').user!
 
@@ -97,6 +99,19 @@ export default class TasksController {
       rappelDate: rappelDate ? DateTime.fromISO(rappelDate) : null,
     })
 
+    // Logger la creation de la tache
+    await ActivityLogger.logTaskCreated(
+      task.id,
+      dossierId,
+      admin.id,
+      {
+        titre: task.titre,
+        priorite: task.priorite,
+        assignedTo: task.assignedToId || undefined,
+      },
+      ctx
+    )
+
     await task.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')
     })
@@ -111,13 +126,20 @@ export default class TasksController {
    * PUT /api/admin/tasks/:id
    * Modifier une tache
    */
-  async update({ params, request, response }: HttpContext) {
+  async update(ctx: HttpContext) {
+    const { params, request, auth, response } = ctx
+    const admin = auth.use('admin').user!
+
     const task = await Task.find(params.id)
     if (!task) {
       return response.notFound({ message: 'Tache non trouvee' })
     }
 
     const data = await request.validateUsing(updateTaskValidator)
+
+    // Tracker les changements
+    const changes: string[] = []
+    const oldStatut = task.statut
 
     // Extraire les dates pour conversion
     const { dateEcheance, rappelDate, statut, ...restData } = data
@@ -126,8 +148,12 @@ export default class TasksController {
     if (statut) {
       if (statut === 'terminee' && task.statut !== 'terminee') {
         task.completedAt = DateTime.now()
+        changes.push('statut')
       } else if (statut !== 'terminee' && task.statut === 'terminee') {
         task.completedAt = null
+        changes.push('statut')
+      } else if (statut !== task.statut) {
+        changes.push('statut')
       }
       task.statut = statut
     }
@@ -135,6 +161,7 @@ export default class TasksController {
     // Convertir les dates
     if (dateEcheance !== undefined) {
       task.dateEcheance = dateEcheance ? DateTime.fromISO(dateEcheance) : null
+      changes.push('dateEcheance')
     }
     if (rappelDate !== undefined) {
       task.rappelDate = rappelDate ? DateTime.fromISO(rappelDate) : null
@@ -142,10 +169,26 @@ export default class TasksController {
       if (rappelDate) {
         task.rappelEnvoye = false
       }
+      changes.push('rappelDate')
     }
+
+    // Tracker autres changements
+    if (restData.titre && restData.titre !== task.titre) changes.push('titre')
+    if (restData.description !== undefined && restData.description !== task.description) changes.push('description')
+    if (restData.priorite && restData.priorite !== task.priorite) changes.push('priorite')
+    if (restData.assignedToId !== undefined && restData.assignedToId !== task.assignedToId) changes.push('assignedTo')
 
     task.merge(restData)
     await task.save()
+
+    // Logger la modification
+    if (statut === 'terminee' && oldStatut !== 'terminee') {
+      await ActivityLogger.logTaskCompleted(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
+    } else if (oldStatut === 'terminee' && statut && statut !== 'terminee') {
+      await ActivityLogger.logTaskReopened(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
+    } else if (changes.length > 0) {
+      await ActivityLogger.logTaskUpdated(task.id, task.dossierId, admin.id, { titre: task.titre, changes }, ctx)
+    }
 
     await task.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')
@@ -161,13 +204,22 @@ export default class TasksController {
    * DELETE /api/admin/tasks/:id
    * Supprimer une tache
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy(ctx: HttpContext) {
+    const { params, auth, response } = ctx
+    const admin = auth.use('admin').user!
+
     const task = await Task.find(params.id)
     if (!task) {
       return response.notFound({ message: 'Tache non trouvee' })
     }
 
+    const dossierId = task.dossierId
+    const titre = task.titre
+
     await task.delete()
+
+    // Logger la suppression
+    await ActivityLogger.logTaskDeleted(params.id, dossierId, admin.id, { titre }, ctx)
 
     return response.ok({ message: 'Tache supprimee' })
   }
@@ -176,7 +228,10 @@ export default class TasksController {
    * POST /api/admin/tasks/:id/complete
    * Marquer une tache comme terminee
    */
-  async complete({ params, response }: HttpContext) {
+  async complete(ctx: HttpContext) {
+    const { params, auth, response } = ctx
+    const admin = auth.use('admin').user!
+
     const task = await Task.find(params.id)
     if (!task) {
       return response.notFound({ message: 'Tache non trouvee' })
@@ -185,6 +240,9 @@ export default class TasksController {
     task.statut = 'terminee'
     task.completedAt = DateTime.now()
     await task.save()
+
+    // Logger la completion
+    await ActivityLogger.logTaskCompleted(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
 
     await task.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')
@@ -200,7 +258,10 @@ export default class TasksController {
    * POST /api/admin/tasks/:id/reopen
    * Rouvrir une tache terminee
    */
-  async reopen({ params, response }: HttpContext) {
+  async reopen(ctx: HttpContext) {
+    const { params, auth, response } = ctx
+    const admin = auth.use('admin').user!
+
     const task = await Task.find(params.id)
     if (!task) {
       return response.notFound({ message: 'Tache non trouvee' })
@@ -209,6 +270,9 @@ export default class TasksController {
     task.statut = 'a_faire'
     task.completedAt = null
     await task.save()
+
+    // Logger la reouverture
+    await ActivityLogger.logTaskReopened(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
 
     await task.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')
@@ -231,7 +295,7 @@ export default class TasksController {
 
     let query = Task.query()
       .where('assigned_to_id', admin.id)
-      .preload('dossier', (q) => q.select('id', 'reference', 'intitule'))
+      .preload('dossier' as any, (q: any) => q.select('id', 'reference', 'intitule'))
       .preload('createdBy', (q) => q.select('id', 'nom', 'prenom'))
       .orderByRaw(`
         CASE

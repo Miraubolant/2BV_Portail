@@ -15,8 +15,13 @@ import {
   User,
   Star,
   X,
+  UserPlus,
+  FolderPlus,
+  CalendarPlus,
 } from 'lucide-react'
 import { useFavorisUpdates, emitFavorisUpdated } from '@/hooks/use-favoris'
+import { useUnifiedModal } from '@/contexts/unified-modal-context'
+import { Button } from '@/components/ui/button'
 
 import {
   Sidebar,
@@ -31,7 +36,9 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarMenuAction,
+  useSidebar,
 } from '@/components/ui/sidebar'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   ADMIN_DASHBOARD,
   ADMIN_CLIENTS,
@@ -97,10 +104,94 @@ interface Favori {
   clientName?: string | null
 }
 
+// Quick Actions component that handles collapsed state
+function QuickActions({ openModal }: { openModal: (options?: { tab?: 'client' | 'dossier' | 'evenement' }) => void }) {
+  const { state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
+
+  if (isCollapsed) {
+    return (
+      <SidebarGroup className="py-0">
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton onClick={() => openModal({ tab: 'client' })}>
+                    <UserPlus className="h-4 w-4" />
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent side="right">Nouveau Client</TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton onClick={() => openModal({ tab: 'dossier' })}>
+                    <FolderPlus className="h-4 w-4" />
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent side="right">Nouveau Dossier</TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton onClick={() => openModal({ tab: 'evenement' })}>
+                    <CalendarPlus className="h-4 w-4" />
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent side="right">Nouvel Evenement</TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    )
+  }
+
+  return (
+    <SidebarGroup className="py-0">
+      <SidebarGroupContent>
+        <div className="grid grid-cols-3 gap-1.5 px-2 pb-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-auto flex-col gap-1 py-2 px-1"
+            onClick={() => openModal({ tab: 'client' })}
+          >
+            <UserPlus className="h-4 w-4" />
+            <span className="text-[10px]">Client</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-auto flex-col gap-1 py-2 px-1"
+            onClick={() => openModal({ tab: 'dossier' })}
+          >
+            <FolderPlus className="h-4 w-4" />
+            <span className="text-[10px]">Dossier</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-auto flex-col gap-1 py-2 px-1"
+            onClick={() => openModal({ tab: 'evenement' })}
+          >
+            <CalendarPlus className="h-4 w-4" />
+            <span className="text-[10px]">Event</span>
+          </Button>
+        </div>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
 export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { url } = usePage()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [favoris, setFavoris] = useState<Favori[]>([])
+  const { openModal } = useUnifiedModal()
 
   const fetchFavoris = useCallback(async () => {
     try {
@@ -191,7 +282,6 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Gestion</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
@@ -247,6 +337,8 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
 
       </SidebarContent>
       <SidebarFooter>
+        <QuickActions openModal={openModal} />
+
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

@@ -44,7 +44,7 @@ class GoogleCalendarService {
   /**
    * Get authenticated headers for API calls
    */
-  private async getHeaders(): Promise<HeadersInit | null> {
+  private async getHeaders(): Promise<Record<string, string> | null> {
     const accessToken = await googleOAuthService.getValidAccessToken()
     if (!accessToken) {
       return null
@@ -313,7 +313,7 @@ class GoogleCalendarService {
         private: {
           portalEventId: evenement.id,
           type: evenement.type,
-          dossierId: evenement.dossierId,
+          dossierId: evenement.dossierId || undefined,
         },
       },
       start: {},
@@ -352,10 +352,14 @@ class GoogleCalendarService {
    * Convert Google Calendar Event to Evenement data
    * Used for importing events from Google Calendar
    */
-  googleEventToEvenementData(event: GoogleCalendarEvent): Partial<Evenement> & {
+  googleEventToEvenementData(event: GoogleCalendarEvent): {
     titre: string
+    description: string | null
+    lieu: string | null
     dateDebut: string
     dateFin: string
+    journeeEntiere: boolean
+    googleEventId?: string
   } {
     const isAllDay = !!event.start.date
 

@@ -1,11 +1,11 @@
 import { Head } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ADMIN_DASHBOARD_API, formatDateTime } from '@/lib/constants'
 import { ADMIN_CLIENTS, ADMIN_DOSSIERS, ADMIN_DEMANDES_RDV, ADMIN_EVENEMENTS } from '@/app/routes'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, ReactNode } from 'react'
 import { Link } from '@inertiajs/react'
 import {
   Users,
@@ -15,6 +15,7 @@ import {
   Calendar,
   ArrowRight,
   LoaderCircle,
+  LayoutDashboard,
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -85,22 +86,25 @@ const AdminDashboardPage = () => {
 
   if (loading) {
     return (
-      <AdminLayout title="Tableau de bord">
+      <>
         <Head title="Tableau de bord" />
         <div className="flex items-center justify-center py-12">
           <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   return (
-    <AdminLayout title="Tableau de bord">
+    <>
       <Head title="Tableau de bord" />
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Tableau de bord</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <LayoutDashboard className="h-8 w-8" />
+            Tableau de bord
+          </h1>
           <p className="text-muted-foreground">Vue d'ensemble de l'activite du cabinet</p>
         </div>
 
@@ -260,8 +264,11 @@ const AdminDashboardPage = () => {
           </Card>
         </div>
       </div>
-    </AdminLayout>
+    </>
   )
 }
+
+// Layout persistant - la sidebar ne sera pas re-rendue entre les navigations
+AdminDashboardPage.layout = (page: ReactNode) => getAdminLayout(page)
 
 export default AdminDashboardPage

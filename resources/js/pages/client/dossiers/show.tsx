@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react'
-import { ClientLayout } from '@/components/layout/client-layout'
+import { getClientLayout } from '@/components/layout/client-layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CLIENT_DOSSIERS_API, formatDate, API_BASE_URL } from '@/lib/constants'
-import { useEffect, useState, useCallback, memo } from 'react'
+import { ReactNode, useEffect, useState, useCallback, memo } from 'react'
 import {
   ArrowLeft,
   FileText,
@@ -414,18 +414,18 @@ const ClientDossierShowPage = () => {
 
   if (loading) {
     return (
-      <ClientLayout title="Dossier">
+      <>
         <Head title="Dossier" />
         <div className="flex items-center justify-center py-12">
           <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </ClientLayout>
+      </>
     )
   }
 
   if (!dossier) {
     return (
-      <ClientLayout title="Dossier non trouve">
+      <>
         <Head title="Dossier non trouve" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Dossier non trouve</p>
@@ -433,7 +433,7 @@ const ClientDossierShowPage = () => {
             <Link href="/espace-client/dossiers">Retour a mes dossiers</Link>
           </Button>
         </div>
-      </ClientLayout>
+      </>
     )
   }
 
@@ -444,7 +444,7 @@ const ClientDossierShowPage = () => {
   )
 
   return (
-    <ClientLayout title={dossier.reference}>
+    <>
       <Head title={dossier.reference} />
 
       <div className="space-y-6">
@@ -861,8 +861,10 @@ const ClientDossierShowPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </ClientLayout>
+    </>
   )
 }
+
+ClientDossierShowPage.layout = (page: ReactNode) => getClientLayout(page)
 
 export default ClientDossierShowPage

@@ -1,11 +1,11 @@
 import { Head } from '@inertiajs/react'
-import { ClientLayout } from '@/components/layout/client-layout'
+import { getClientLayout } from '@/components/layout/client-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CLIENT_DASHBOARD_API, formatDateTime } from '@/lib/constants'
 import { CLIENT_DOSSIERS, CLIENT_DEMANDES_RDV } from '@/app/routes'
-import { useEffect, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Link } from '@inertiajs/react'
 import {
   FolderKanban,
@@ -82,17 +82,17 @@ const ClientDashboardPage = () => {
 
   if (loading) {
     return (
-      <ClientLayout title="Tableau de bord">
+      <>
         <Head title="Mon espace" />
         <div className="flex items-center justify-center py-12">
           <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </ClientLayout>
+      </>
     )
   }
 
   return (
-    <ClientLayout title="Tableau de bord">
+    <>
       <Head title="Mon espace" />
 
       <div className="space-y-6">
@@ -249,8 +249,10 @@ const ClientDashboardPage = () => {
           </Card>
         </div>
       </div>
-    </ClientLayout>
+    </>
   )
 }
+
+ClientDashboardPage.layout = (page: ReactNode) => getClientLayout(page)
 
 export default ClientDashboardPage

@@ -1,10 +1,10 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
-import Client from './client.js'
-import Admin from './admin.js'
-import Document from './document.js'
-import Evenement from './evenement.js'
+import Client from '#models/client'
+import Admin from '#models/admin'
+import Document from '#models/document'
+import Evenement from '#models/evenement'
 
 export default class Dossier extends BaseModel {
   @column({ isPrimary: true })

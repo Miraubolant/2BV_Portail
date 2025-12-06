@@ -54,8 +54,8 @@ export default class EvenementsController {
     const responsableId = request.input('responsableId', '')
 
     let query = Evenement.query()
-      .preload('dossier', (dossierQuery) => {
-        dossierQuery.preload('client', (clientQuery) => {
+      .preload('dossier' as any, (dossierQuery: any) => {
+        dossierQuery.preload('client', (clientQuery: any) => {
           clientQuery.preload('responsable')
         })
       })
@@ -65,8 +65,8 @@ export default class EvenementsController {
     if (year && month) {
       const startDate = DateTime.fromObject({ year: parseInt(year), month: parseInt(month), day: 1 })
       const endDate = startDate.endOf('month')
-      query = query.where('date_debut', '>=', startDate.toSQL())
-      query = query.where('date_debut', '<=', endDate.toSQL())
+      query = query.where('date_debut', '>=', startDate.toISO()!)
+      query = query.where('date_debut', '<=', endDate.toISO()!)
     } else {
       if (from) {
         query = query.where('date_debut', '>=', from)
@@ -83,16 +83,16 @@ export default class EvenementsController {
         query = query.where((builder) => {
           builder
             .whereNull('dossier_id')
-            .orWhereHas('dossier', (dossierQuery) => {
-              dossierQuery.whereHas('client', (clientQuery) => {
+            .orWhereHas('dossier' as any, (dossierQuery: any) => {
+              dossierQuery.whereHas('client', (clientQuery: any) => {
                 clientQuery.whereNull('responsable_id')
               })
             })
         })
       } else {
         // Events with dossier whose client has the specified responsable
-        query = query.whereHas('dossier', (dossierQuery) => {
-          dossierQuery.whereHas('client', (clientQuery) => {
+        query = query.whereHas('dossier' as any, (dossierQuery: any) => {
+          dossierQuery.whereHas('client', (clientQuery: any) => {
             clientQuery.where('responsable_id', responsableId)
           })
         })

@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -9,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ADMIN_DOSSIERS_API, ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate } from '@/lib/constants'
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
+import { useUnifiedModal } from '@/contexts/unified-modal-context'
 import { DataTable, Column } from '@/components/ui/data-table'
 import {
   Plus,
@@ -19,6 +21,7 @@ import {
   LoaderCircle,
   X,
   FileUp,
+  FolderKanban,
 } from 'lucide-react'
 import {
   Select,
@@ -100,6 +103,7 @@ const statutLabels: Record<string, { label: string; variant: 'default' | 'second
 
 const DossiersListPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
+  const { openModal } = useUnifiedModal()
   const filterInitialized = useRef(false)
 
   const [dossiers, setDossiers] = useState<Dossier[]>([])
@@ -448,18 +452,21 @@ const DossiersListPage = () => {
   )
 
   return (
-    <AdminLayout title="Dossiers">
+    <>
       <Head title="Dossiers" />
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dossiers</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <FolderKanban className="h-8 w-8" />
+              Dossiers
+            </h1>
             <p className="text-muted-foreground">
               Gestion des dossiers du cabinet
             </p>
           </div>
-          <Button onClick={handleOpenCreateModal}>
+          <Button onClick={() => openModal({ tab: 'dossier' })}>
             <Plus className="mr-2 h-4 w-4" />
             Nouveau dossier
           </Button>
@@ -737,8 +744,9 @@ const DossiersListPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }
 
+DossiersListPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default DossiersListPage

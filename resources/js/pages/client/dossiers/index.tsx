@@ -1,10 +1,10 @@
 import { Head, Link } from '@inertiajs/react'
-import { ClientLayout } from '@/components/layout/client-layout'
+import { getClientLayout } from '@/components/layout/client-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CLIENT_DOSSIERS_API, formatDate } from '@/lib/constants'
-import { useEffect, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import {
   FolderKanban,
   Calendar,
@@ -70,7 +70,7 @@ const ClientDossiersPage = () => {
   }
 
   return (
-    <ClientLayout title="Mes dossiers">
+    <>
       <Head title="Mes dossiers" />
 
       <div className="space-y-6">
@@ -160,8 +160,10 @@ const ClientDossiersPage = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </ClientLayout>
+    </>
   )
 }
+
+ClientDossiersPage.layout = (page: ReactNode) => getClientLayout(page)
 
 export default ClientDossiersPage

@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -638,18 +639,18 @@ const DossierShowPage = () => {
 
   if (loading) {
     return (
-      <AdminLayout title="Dossier">
+      <>
         <Head title="Dossier" />
         <div className="flex items-center justify-center py-12">
           <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   if (!dossier) {
     return (
-      <AdminLayout title="Dossier non trouve">
+      <>
         <Head title="Dossier non trouve" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Ce dossier n'existe pas</p>
@@ -657,17 +658,14 @@ const DossierShowPage = () => {
             <Link href={ADMIN_DOSSIERS}>Retour a la liste</Link>
           </Button>
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   const statutConfig = statutLabels[dossier.statut] || { label: dossier.statut, variant: 'outline' }
 
   return (
-    <AdminLayout
-      title={dossier.reference}
-      breadcrumbs={[{ label: 'Dossiers', href: ADMIN_DOSSIERS }, { label: dossier.reference }]}
-    >
+    <>
       <Head title={dossier.reference} />
 
       <div className="space-y-6">
@@ -1474,8 +1472,9 @@ const DossierShowPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AdminLayout>
+    </>
   )
 }
 
+DossierShowPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default DossierShowPage

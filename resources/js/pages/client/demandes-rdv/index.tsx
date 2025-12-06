@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react'
-import { ClientLayout } from '@/components/layout/client-layout'
+import { getClientLayout } from '@/components/layout/client-layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CLIENT_DEMANDES_RDV_API, CLIENT_DOSSIERS_API, formatDateTime } from '@/lib/constants'
-import { useEffect, useState, useCallback } from 'react'
+import { ReactNode, useEffect, useState, useCallback } from 'react'
 import {
   Clock,
   Check,
@@ -174,7 +174,7 @@ const DemandesRdvClientPage = () => {
   const traitees = demandes.filter((d) => d.statut !== 'en_attente')
 
   return (
-    <ClientLayout title="Demandes de RDV">
+    <>
       <Head title="Mes demandes de RDV" />
 
       <div className="space-y-6">
@@ -433,8 +433,10 @@ const DemandesRdvClientPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </ClientLayout>
+    </>
   )
 }
+
+DemandesRdvClientPage.layout = (page: ReactNode) => getClientLayout(page)
 
 export default DemandesRdvClientPage

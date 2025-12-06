@@ -118,7 +118,7 @@ export function DossierTasks({ dossierId }: DossierTasksProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [showCompleted, setShowCompleted] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(true)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -506,14 +506,14 @@ export function DossierTasks({ dossierId }: DossierTasksProps) {
               <div>
                 <Label>Assigner a</Label>
                 <Select
-                  value={formData.assignedToId}
-                  onValueChange={(value) => setFormData({ ...formData, assignedToId: value })}
+                  value={formData.assignedToId || 'none'}
+                  onValueChange={(value) => setFormData({ ...formData, assignedToId: value === 'none' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choisir..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Non assigne</SelectItem>
+                    <SelectItem value="none">Non assigne</SelectItem>
                     {admins.map((admin) => (
                       <SelectItem key={admin.id} value={admin.id}>
                         {admin.prenom} {admin.nom}
@@ -597,14 +597,14 @@ export function DossierTasks({ dossierId }: DossierTasksProps) {
               <div>
                 <Label>Assigner a</Label>
                 <Select
-                  value={formData.assignedToId}
-                  onValueChange={(value) => setFormData({ ...formData, assignedToId: value })}
+                  value={formData.assignedToId || 'none'}
+                  onValueChange={(value) => setFormData({ ...formData, assignedToId: value === 'none' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choisir..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Non assigne</SelectItem>
+                    <SelectItem value="none">Non assigne</SelectItem>
                     {admins.map((admin) => (
                       <SelectItem key={admin.id} value={admin.id}>
                         {admin.prenom} {admin.nom}

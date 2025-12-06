@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import Dossier from './dossier.js'
-import Admin from './admin.js'
+import Dossier from '#models/dossier'
+import Admin from '#models/admin'
 
 export default class Evenement extends BaseModel {
   static table = 'evenements'

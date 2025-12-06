@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -310,23 +311,26 @@ const ParametresPage = () => {
 
   if (loading) {
     return (
-      <AdminLayout title="Parametres">
+      <>
         <Head title="Parametres" />
         <div className="flex items-center justify-center py-12">
           <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   return (
-    <AdminLayout title="Parametres">
+    <>
       <Head title="Parametres" />
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Parametres</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Settings className="h-8 w-8" />
+              Parametres
+            </h1>
             <p className="text-muted-foreground">
               {isSuperAdmin ? 'Configuration du cabinet et preferences personnelles' : 'Mes preferences'}
             </p>
@@ -725,8 +729,9 @@ const ParametresPage = () => {
           )}
         </Tabs>
       </div>
-    </AdminLayout>
+    </>
   )
 }
 
+ParametresPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default ParametresPage

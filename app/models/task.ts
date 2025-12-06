@@ -5,6 +5,8 @@ import Dossier from '#models/dossier'
 import Admin from '#models/admin'
 
 export default class Task extends BaseModel {
+  static table = 'tasks'
+
   @column({ isPrimary: true })
   declare id: string
 

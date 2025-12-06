@@ -1,4 +1,5 @@
 import { defineConfig } from '@adonisjs/shield'
+import app from '@adonisjs/core/services/app'
 
 const shieldConfig = defineConfig({
   /**
@@ -6,8 +7,26 @@ const shieldConfig = defineConfig({
    * to learn more
    */
   csp: {
-    enabled: false,
-    directives: {},
+    enabled: app.inProduction,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // unsafe-eval needed for some React deps
+      styleSrc: ["'self'", "'unsafe-inline'"], // inline styles for Tailwind
+      imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+      fontSrc: ["'self'", 'data:'],
+      connectSrc: [
+        "'self'",
+        'https://graph.microsoft.com',
+        'https://www.googleapis.com',
+        'https://oauth2.googleapis.com',
+        'https://login.microsoftonline.com',
+      ],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
     reportOnly: false,
   },
 
@@ -18,8 +37,21 @@ const shieldConfig = defineConfig({
   csrf: {
     enabled: true,
     exceptRoutes: (ctx) => {
-      // Exclure toutes les routes API auth du CSRF
-      return ctx.request.url().startsWith('/api/')
+      const url = ctx.request.url()
+      // Only exclude specific public API routes
+      const exemptRoutes = [
+        '/api/admin/auth/login',
+        '/api/admin/auth/logout',
+        '/api/client/auth/login',
+        '/api/client/auth/logout',
+        '/api/client/auth/verify-totp',
+        '/api/admin/auth/verify-totp',
+      ]
+      // Allow OAuth callbacks
+      if (url.includes('/callback')) {
+        return true
+      }
+      return exemptRoutes.some(route => url.startsWith(route))
     },
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],

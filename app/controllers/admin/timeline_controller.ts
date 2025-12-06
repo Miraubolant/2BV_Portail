@@ -70,6 +70,10 @@ export default class TimelineController {
           .orWhere((q) => {
             q.where('resource_type', 'note').whereRaw("metadata->>'dossierId' = ?", [dossierId])
           })
+          // Activites sur les taches du dossier (via metadata)
+          .orWhere((q) => {
+            q.where('resource_type', 'task').whereRaw("metadata->>'dossierId' = ?", [dossierId])
+          })
       })
       .orderBy('created_at', 'desc')
       .limit(limit)
@@ -229,6 +233,48 @@ export default class TimelineController {
           color: 'yellow',
           title: 'Note modifiee',
           description: 'Note mise a jour',
+        }
+
+      case 'task.created':
+        return {
+          icon: 'check-square',
+          color: 'green',
+          title: 'Tache creee',
+          description: metadata.titre || 'Nouvelle tache',
+        }
+
+      case 'task.updated':
+        return {
+          icon: 'check-square',
+          color: 'blue',
+          title: 'Tache modifiee',
+          description: metadata.titre
+            ? `"${metadata.titre}" - ${metadata.changes?.join(', ') || 'mise a jour'}`
+            : 'Tache mise a jour',
+        }
+
+      case 'task.completed':
+        return {
+          icon: 'check-circle',
+          color: 'green',
+          title: 'Tache terminee',
+          description: metadata.titre || 'Tache',
+        }
+
+      case 'task.reopened':
+        return {
+          icon: 'rotate-ccw',
+          color: 'blue',
+          title: 'Tache rouverte',
+          description: metadata.titre || 'Tache',
+        }
+
+      case 'task.deleted':
+        return {
+          icon: 'trash-2',
+          color: 'red',
+          title: 'Tache supprimee',
+          description: metadata.titre || 'Tache',
         }
 
       default:

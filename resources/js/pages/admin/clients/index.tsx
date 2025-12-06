@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,11 +12,13 @@ import { DataTable, Column } from '@/components/ui/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useClientUpdates } from '@/hooks/use-transmit'
+import { useUnifiedModal } from '@/contexts/unified-modal-context'
 import {
   Plus,
   Search,
   Eye,
   Edit,
+  Users,
 } from 'lucide-react'
 import {
   Dialog,
@@ -64,6 +67,7 @@ interface AdminOption {
 
 const ClientsListPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
+  const { openModal } = useUnifiedModal()
   const filterInitialized = useRef(false)
 
   const [clients, setClients] = useState<Client[]>([])
@@ -397,18 +401,21 @@ const ClientsListPage = () => {
   )
 
   return (
-    <AdminLayout title="Clients">
+    <>
       <Head title="Clients" />
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Clients</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Users className="h-8 w-8" />
+              Clients
+            </h1>
             <p className="text-muted-foreground">
               Gestion des clients du cabinet
             </p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => openModal({ tab: 'client' })}>
             <Plus className="mr-2 h-4 w-4" />
             Nouveau client
           </Button>
@@ -745,8 +752,9 @@ const ClientsListPage = () => {
           </form>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }
 
+ClientsListPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default ClientsListPage

@@ -236,4 +236,109 @@ export default class ActivityLogger {
       ctx,
     })
   }
+
+  /**
+   * Log la creation d'une tache
+   */
+  static async logTaskCreated(
+    taskId: string,
+    dossierId: string,
+    adminId: string,
+    metadata: { titre: string; priorite?: string; assignedTo?: string },
+    ctx?: HttpContext
+  ) {
+    return this.log({
+      userId: adminId,
+      userType: 'admin',
+      action: 'task.created',
+      resourceType: 'task',
+      resourceId: taskId,
+      metadata: { ...metadata, dossierId },
+      ctx,
+    })
+  }
+
+  /**
+   * Log la modification d'une tache
+   */
+  static async logTaskUpdated(
+    taskId: string,
+    dossierId: string,
+    adminId: string,
+    metadata: { titre: string; changes?: string[] },
+    ctx?: HttpContext
+  ) {
+    return this.log({
+      userId: adminId,
+      userType: 'admin',
+      action: 'task.updated',
+      resourceType: 'task',
+      resourceId: taskId,
+      metadata: { ...metadata, dossierId },
+      ctx,
+    })
+  }
+
+  /**
+   * Log le completion d'une tache
+   */
+  static async logTaskCompleted(
+    taskId: string,
+    dossierId: string,
+    adminId: string,
+    metadata: { titre: string },
+    ctx?: HttpContext
+  ) {
+    return this.log({
+      userId: adminId,
+      userType: 'admin',
+      action: 'task.completed',
+      resourceType: 'task',
+      resourceId: taskId,
+      metadata: { ...metadata, dossierId },
+      ctx,
+    })
+  }
+
+  /**
+   * Log la reouverture d'une tache
+   */
+  static async logTaskReopened(
+    taskId: string,
+    dossierId: string,
+    adminId: string,
+    metadata: { titre: string },
+    ctx?: HttpContext
+  ) {
+    return this.log({
+      userId: adminId,
+      userType: 'admin',
+      action: 'task.reopened',
+      resourceType: 'task',
+      resourceId: taskId,
+      metadata: { ...metadata, dossierId },
+      ctx,
+    })
+  }
+
+  /**
+   * Log la suppression d'une tache
+   */
+  static async logTaskDeleted(
+    taskId: string,
+    dossierId: string,
+    adminId: string,
+    metadata: { titre: string },
+    ctx?: HttpContext
+  ) {
+    return this.log({
+      userId: adminId,
+      userType: 'admin',
+      action: 'task.deleted',
+      resourceType: 'task',
+      resourceId: taskId,
+      metadata: { ...metadata, dossierId },
+      ctx,
+    })
+  }
 }

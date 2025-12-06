@@ -26,6 +26,9 @@ import {
   ChevronDown,
   User,
   Clock,
+  CheckSquare,
+  CheckCircle,
+  RotateCcw,
 } from 'lucide-react'
 
 interface TimelineEntry {
@@ -61,6 +64,9 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'sticky-note': StickyNote,
   'edit-3': Edit3,
   'activity': Activity,
+  'check-square': CheckSquare,
+  'check-circle': CheckCircle,
+  'rotate-ccw': RotateCcw,
 }
 
 const colorMap: Record<string, string> = {
@@ -73,11 +79,12 @@ const colorMap: Record<string, string> = {
 }
 
 const filterOptions = [
-  { value: '', label: 'Toutes les activites' },
+  { value: 'all', label: 'Toutes les activites' },
   { value: 'dossier', label: 'Dossier' },
   { value: 'document', label: 'Documents' },
   { value: 'evenement', label: 'Evenements' },
   { value: 'note', label: 'Notes' },
+  { value: 'task', label: 'Taches' },
 ]
 
 export function DossierTimeline({ dossierId }: DossierTimelineProps) {
@@ -85,7 +92,7 @@ export function DossierTimeline({ dossierId }: DossierTimelineProps) {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const [filter, setFilter] = useState('')
+  const [filter, setFilter] = useState('all')
   const [offset, setOffset] = useState(0)
   const limit = 20
 
@@ -102,7 +109,7 @@ export function DossierTimeline({ dossierId }: DossierTimelineProps) {
         limit: limit.toString(),
         offset: currentOffset.toString(),
       })
-      if (filter) {
+      if (filter && filter !== 'all') {
         params.append('action', filter)
       }
 

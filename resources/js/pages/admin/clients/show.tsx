@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -315,18 +316,18 @@ const ClientShowPage = () => {
 
   if (loading) {
     return (
-      <AdminLayout title="Client">
+      <>
         <Head title="Client" />
         <div className="flex items-center justify-center py-12">
           <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   if (!client) {
     return (
-      <AdminLayout title="Client non trouve">
+      <>
         <Head title="Client non trouve" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Ce client n'existe pas</p>
@@ -334,18 +335,12 @@ const ClientShowPage = () => {
             <Link href={ADMIN_CLIENTS}>Retour a la liste</Link>
           </Button>
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   return (
-    <AdminLayout
-      title={`${client.prenom} ${client.nom}`}
-      breadcrumbs={[
-        { label: 'Clients', href: ADMIN_CLIENTS },
-        { label: `${client.prenom} ${client.nom}` },
-      ]}
-    >
+    <>
       <Head title={`${client.prenom} ${client.nom}`} />
 
       <div className="space-y-6">
@@ -1125,8 +1120,9 @@ const ClientShowPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }
 
+ClientShowPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default ClientShowPage

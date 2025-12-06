@@ -50,8 +50,9 @@ transmit.registerRoutes()
 // AUTH - ADMIN
 // ══════════════════════════════════════════════════════════════
 router.group(() => {
-  router.post('login', [AdminAuthController, 'login'])
-  router.post('verify-totp', [AdminAuthController, 'verifyTotp'])
+  // Login avec rate limiting pour eviter les attaques brute force
+  router.post('login', [AdminAuthController, 'login']).use(middleware.rateLimiter())
+  router.post('verify-totp', [AdminAuthController, 'verifyTotp']).use(middleware.rateLimiter())
   router.post('logout', [AdminAuthController, 'logout']).use(middleware.adminAuth())
   router.get('me', [AdminAuthController, 'me']).use(middleware.adminAuth())
   router.put('notifications', [AdminAuthController, 'updateNotifications']).use(middleware.adminAuth())
@@ -64,11 +65,12 @@ router.group(() => {
 // AUTH - CLIENT
 // ══════════════════════════════════════════════════════════════
 router.group(() => {
-  router.post('login', [ClientAuthController, 'login'])
+  // Login avec rate limiting pour eviter les attaques brute force
+  router.post('login', [ClientAuthController, 'login']).use(middleware.rateLimiter())
   router.get('totp-status', [ClientAuthController, 'totpStatus']).use(middleware.clientAuth())
   router.post('setup-totp', [ClientAuthController, 'setupTotp']).use(middleware.clientAuth())
   router.post('confirm-totp', [ClientAuthController, 'confirmTotp']).use(middleware.clientAuth())
-  router.post('verify-totp', [ClientAuthController, 'verifyTotp']).use(middleware.clientAuth())
+  router.post('verify-totp', [ClientAuthController, 'verifyTotp']).use([middleware.clientAuth(), middleware.rateLimiter()])
   router.post('logout', [ClientAuthController, 'logout']).use(middleware.clientAuth())
   router.get('me', [ClientAuthController, 'me']).use([middleware.clientAuth(), middleware.totpVerified()])
 }).prefix('api/client/auth')

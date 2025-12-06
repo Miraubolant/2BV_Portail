@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -874,14 +875,17 @@ const EvenementsPage = () => {
   }
 
   return (
-    <AdminLayout title="Evenements">
+    <>
       <Head title="Evenements" />
 
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Evenements</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <CalendarDays className="h-8 w-8" />
+              Evenements
+            </h1>
             <p className="text-muted-foreground">Calendrier des evenements du cabinet</p>
           </div>
           <Button onClick={() => { resetForm(); setShowCreateModal(true) }}>
@@ -1262,8 +1266,9 @@ const EvenementsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AdminLayout>
+    </>
   )
 }
 
+EvenementsPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default EvenementsPage

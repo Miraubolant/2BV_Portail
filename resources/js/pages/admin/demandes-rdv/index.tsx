@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -247,12 +248,15 @@ const DemandesRdvPage = () => {
   const traitees = demandes.filter((d) => d.statut !== 'en_attente')
 
   return (
-    <AdminLayout title="Demandes de RDV">
+    <>
       <Head title="Demandes de RDV" />
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Demandes de RDV</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <CalendarClock className="h-8 w-8" />
+            Demandes de RDV
+          </h1>
           <p className="text-muted-foreground">
             Gestion des demandes de rendez-vous clients
           </p>
@@ -585,8 +589,9 @@ const DemandesRdvPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }
 
+DemandesRdvPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default DemandesRdvPage

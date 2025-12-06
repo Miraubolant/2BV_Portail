@@ -53,4 +53,5 @@ export const middleware = router.named({
   clientAuth: () => import('#middleware/client_auth_middleware'),
   superAdmin: () => import('#middleware/super_admin_middleware'),
   totpVerified: () => import('#middleware/totp_verified_middleware'),
+  rateLimiter: () => import('#middleware/rate_limiter_middleware'),
 })

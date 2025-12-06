@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react'
-import { AdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout } from '@/components/layout/admin-layout'
+import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +18,7 @@ import {
   ToggleLeft,
   ToggleRight,
   KeyRound,
+  UserCog,
 } from 'lucide-react'
 import {
   Dialog,
@@ -226,13 +228,16 @@ const AdminsPage = () => {
   }
 
   return (
-    <AdminLayout title="Administrateurs">
+    <>
       <Head title="Administrateurs" />
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Administrateurs</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <UserCog className="h-8 w-8" />
+              Administrateurs
+            </h1>
             <p className="text-muted-foreground">
               Gestion des comptes administrateurs
             </p>
@@ -529,8 +534,9 @@ const AdminsPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }
 
+AdminsPage.layout = (page: ReactNode) => getAdminLayout(page)
 export default AdminsPage

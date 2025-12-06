@@ -1,3 +1,4 @@
+import { ReactNode } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { ClientSidebar } from '@/components/sidebar/client-sidebar'
 import { Separator } from '@/components/ui/separator'
@@ -10,14 +11,20 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { CLIENT_DASHBOARD } from '@/app/routes'
+import { usePage } from '@inertiajs/react'
 
 interface ClientLayoutProps {
   children: React.ReactNode
-  title: string
+  title?: string
   breadcrumbs?: { label: string; href?: string }[]
 }
 
-export function ClientLayout({ children, title, breadcrumbs = [] }: ClientLayoutProps) {
+export function ClientLayout({ children, title, breadcrumbs }: ClientLayoutProps) {
+  // Utiliser les props de la page via usePage() si disponibles
+  const { props } = usePage<{ pageTitle?: string; breadcrumbs?: { label: string; href?: string }[] }>()
+  const pageTitle = title || props.pageTitle || 'Espace Client'
+  const pageBreadcrumbs = breadcrumbs || props.breadcrumbs || []
+
   return (
     <SidebarProvider>
       <ClientSidebar />
@@ -30,7 +37,7 @@ export function ClientLayout({ children, title, breadcrumbs = [] }: ClientLayout
               <BreadcrumbItem>
                 <BreadcrumbLink href={CLIENT_DASHBOARD}>Espace Client</BreadcrumbLink>
               </BreadcrumbItem>
-              {breadcrumbs.map((crumb, index) => (
+              {pageBreadcrumbs.map((crumb, index) => (
                 <span key={index} className="flex items-center gap-2">
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
@@ -42,11 +49,11 @@ export function ClientLayout({ children, title, breadcrumbs = [] }: ClientLayout
                   </BreadcrumbItem>
                 </span>
               ))}
-              {breadcrumbs.length === 0 && (
+              {pageBreadcrumbs.length === 0 && (
                 <>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>{title}</BreadcrumbPage>
+                    <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
                   </BreadcrumbItem>
                 </>
               )}
@@ -59,4 +66,9 @@ export function ClientLayout({ children, title, breadcrumbs = [] }: ClientLayout
       </SidebarInset>
     </SidebarProvider>
   )
+}
+
+// Fonction pour utiliser ClientLayout comme layout persistant
+export function getClientLayout(page: ReactNode) {
+  return <ClientLayout>{page}</ClientLayout>
 }
