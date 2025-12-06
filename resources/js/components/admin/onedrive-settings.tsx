@@ -327,8 +327,18 @@ export function OneDriveSettings() {
               )}
             </div>
 
+            <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+              <p className="font-medium mb-2">Structure des dossiers OneDrive:</p>
+              <code className="text-xs bg-muted px-2 py-1 rounded block">
+                /Portail Cabinet/Clients/[Nom Client]/[Ref Dossier] - [Intitule]/
+              </code>
+              <p className="text-muted-foreground mt-2">
+                Les documents sont automatiquement uploades dans le dossier du dossier correspondant.
+              </p>
+            </div>
+
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={handleTest} disabled={testing}>
+              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
                 {testing ? (
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -336,7 +346,7 @@ export function OneDriveSettings() {
                 )}
                 Tester la connexion
               </Button>
-              <Button variant="outline" onClick={handleInitialize} disabled={initializing}>
+              <Button variant="outline" size="sm" onClick={handleInitialize} disabled={initializing}>
                 {initializing ? (
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -344,7 +354,7 @@ export function OneDriveSettings() {
                 )}
                 Initialiser les dossiers
               </Button>
-              <Button variant="outline" onClick={handleSync} disabled={syncing}>
+              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
                 {syncing ? (
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -354,6 +364,7 @@ export function OneDriveSettings() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                 onClick={handleDisconnect}
                 disabled={disconnecting}
@@ -365,16 +376,6 @@ export function OneDriveSettings() {
                 )}
                 Deconnecter
               </Button>
-            </div>
-
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm">
-              <p className="font-medium mb-2">Structure des dossiers OneDrive:</p>
-              <code className="text-xs bg-muted px-2 py-1 rounded block">
-                /Portail Cabinet/Clients/[Nom Client]/[Ref Dossier] - [Intitule]/
-              </code>
-              <p className="text-muted-foreground mt-2">
-                Les documents sont automatiquement uploades dans le dossier du dossier correspondant.
-              </p>
             </div>
           </div>
         )}
