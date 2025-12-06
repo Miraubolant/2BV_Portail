@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
-import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, ADMIN_DOSSIERS_API, formatDate, formatDateTime } from '@/lib/constants'
+import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, ADMIN_DOSSIERS_API, ADMIN_FAVORIS_API, formatDate, formatDateTime } from '@/lib/constants'
+import { emitFavorisUpdated } from '@/hooks/use-favoris'
 import { ADMIN_CLIENTS } from '@/app/routes'
 import { useEffect, useState } from 'react'
 import {
@@ -31,6 +32,7 @@ import {
   StickyNote,
   Globe,
   Plus,
+  Star,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -119,18 +121,58 @@ const ClientShowPage = () => {
     return params.get('tab') || null
   })
   const [admins, setAdmins] = useState<AdminOption[]>([])
-  const [showResponsableModal, setShowResponsableModal] = useState(false)
-  const [selectedResponsableId, setSelectedResponsableId] = useState<string>('')
   const [showNewDossierModal, setShowNewDossierModal] = useState(false)
   const [newDossierData, setNewDossierData] = useState({ intitule: '', typeAffaire: '', description: '' })
   const [creatingDossier, setCreatingDossier] = useState(false)
+
+  // Favoris
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [togglingFavorite, setTogglingFavorite] = useState(false)
 
   const clientId = window.location.pathname.split('/').pop()
 
   useEffect(() => {
     fetchClient()
     fetchAdmins()
+    checkFavorite()
   }, [clientId])
+
+  const checkFavorite = async () => {
+    if (!clientId) return
+    try {
+      const response = await fetch(`${ADMIN_FAVORIS_API}/check?type=client&id=${clientId}`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setIsFavorite(result.isFavorite)
+      }
+    } catch (error) {
+      console.error('Error checking favorite:', error)
+    }
+  }
+
+  const toggleFavorite = async () => {
+    if (!clientId) return
+    setTogglingFavorite(true)
+    try {
+      const response = await fetch(`${ADMIN_FAVORIS_API}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ type: 'client', id: clientId }),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setIsFavorite(result.isFavorite)
+        emitFavorisUpdated()
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setTogglingFavorite(false)
+    }
+  }
 
   const fetchAdmins = async () => {
     try {
@@ -243,29 +285,6 @@ const ClientShowPage = () => {
     }
   }
 
-  const openResponsableModal = () => {
-    setSelectedResponsableId(client?.responsableId || 'none')
-    setShowResponsableModal(true)
-  }
-
-  const handleChangeResponsable = async () => {
-    try {
-      const newResponsableId = selectedResponsableId === 'none' ? null : selectedResponsableId
-      const response = await fetch(`${ADMIN_CLIENTS_API}/${clientId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ responsableId: newResponsableId }),
-      })
-      if (response.ok) {
-        await fetchClient()
-        setShowResponsableModal(false)
-      }
-    } catch (error) {
-      console.error('Error changing responsable:', error)
-    }
-  }
-
   const handleCreateDossier = async () => {
     if (!client || !newDossierData.intitule.trim()) return
 
@@ -339,9 +358,21 @@ const ClientShowPage = () => {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">
-                {client.civilite} {client.prenom} {client.nom}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold">
+                  {client.civilite} {client.prenom} {client.nom}
+                </h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFavorite}
+                  disabled={togglingFavorite}
+                  className={isFavorite ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-yellow-500'}
+                  title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                >
+                  <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+                </Button>
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant={client.actif ? 'default' : 'destructive'}>
                   {client.actif ? 'Actif' : 'Inactif'}
@@ -373,10 +404,42 @@ const ClientShowPage = () => {
                 </Button>
               )
             )}
-            <Button variant="outline" onClick={openResponsableModal}>
-              <UserCog className="mr-2 h-4 w-4" />
-              Responsable
-            </Button>
+            <Select
+              value={client.responsableId || 'none'}
+              onValueChange={async (value) => {
+                const newResponsableId = value === 'none' ? null : value
+                try {
+                  const response = await fetch(`${ADMIN_CLIENTS_API}/${clientId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ responsableId: newResponsableId }),
+                  })
+                  if (response.ok) {
+                    await fetchClient()
+                  }
+                } catch (error) {
+                  console.error('Error changing responsable:', error)
+                }
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <UserCog className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Responsable">
+                  {client.responsable
+                    ? (client.responsable.username || `${client.responsable.prenom} ${client.responsable.nom}`)
+                    : 'Aucun responsable'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Aucun responsable</SelectItem>
+                {admins.map((admin) => (
+                  <SelectItem key={admin.id} value={admin.id}>
+                    {admin.username || `${admin.prenom} ${admin.nom}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
@@ -987,55 +1050,6 @@ const ClientShowPage = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Modal Changer Responsable */}
-      <Dialog open={showResponsableModal} onOpenChange={setShowResponsableModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Changer le responsable</DialogTitle>
-            <DialogDescription>
-              Selectionnez le responsable pour ce client
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="space-y-2">
-              <Label>Responsable actuel</Label>
-              <p className="text-sm text-muted-foreground">
-                {client.responsable
-                  ? (client.responsable.username || `${client.responsable.prenom} ${client.responsable.nom}`)
-                  : 'Aucun responsable assigne'}
-              </p>
-            </div>
-            <div className="space-y-2 mt-4">
-              <Label>Nouveau responsable</Label>
-              <Select
-                value={selectedResponsableId}
-                onValueChange={setSelectedResponsableId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selectionner un responsable" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun responsable</SelectItem>
-                  {admins.map((admin) => (
-                    <SelectItem key={admin.id} value={admin.id}>
-                      {admin.username || `${admin.prenom} ${admin.nom}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowResponsableModal(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleChangeResponsable}>
-              Enregistrer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Modal Nouveau Dossier */}
       <Dialog open={showNewDossierModal} onOpenChange={setShowNewDossierModal}>

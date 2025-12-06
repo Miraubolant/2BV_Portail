@@ -561,14 +561,16 @@ const ClientDossierShowPage = () => {
 
           {/* Tab: Documents */}
           <TabsContent value="documents" className="space-y-4">
-            {canUpload && (
-              <div className="flex justify-end">
-                <Button onClick={() => setShowUploadModal(true)}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Envoyer un document
-                </Button>
-              </div>
-            )}
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setShowUploadModal(true)}
+                disabled={!canUpload}
+                title={!canUpload ? 'L\'envoi de documents n\'est pas autorise pour votre compte' : undefined}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Envoyer un document
+              </Button>
+            </div>
 
             {documents.length > 0 ? (
               <Card>
@@ -627,12 +629,15 @@ const ClientDossierShowPage = () => {
                   <p className="text-sm text-muted-foreground">
                     Ce dossier ne contient pas encore de documents
                   </p>
-                  {canUpload && (
-                    <Button className="mt-4" onClick={() => setShowUploadModal(true)}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Envoyer un document
-                    </Button>
-                  )}
+                  <Button
+                    className="mt-4"
+                    onClick={() => setShowUploadModal(true)}
+                    disabled={!canUpload}
+                    title={!canUpload ? 'L\'envoi de documents n\'est pas autorise pour votre compte' : undefined}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Envoyer un document
+                  </Button>
                 </CardContent>
               </Card>
             )}

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -13,7 +13,10 @@ import {
   ChevronsUpDown,
   Shield,
   User,
+  Star,
+  X,
 } from 'lucide-react'
+import { useFavorisUpdates, emitFavorisUpdated } from '@/hooks/use-favoris'
 
 import {
   Sidebar,
@@ -27,6 +30,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarMenuAction,
 } from '@/components/ui/sidebar'
 import {
   ADMIN_DASHBOARD,
@@ -37,7 +41,7 @@ import {
   ADMIN_PARAMETRES,
   ADMIN_ADMINS,
 } from '@/app/routes'
-import { ADMIN_LOGOUT_API } from '@/lib/constants'
+import { ADMIN_LOGOUT_API, ADMIN_FAVORIS_API } from '@/lib/constants'
 import { Link, usePage } from '@inertiajs/react'
 import {
   DropdownMenu,
@@ -84,9 +88,47 @@ interface UserInfo {
   role: 'super_admin' | 'admin'
 }
 
+interface Favori {
+  id: string
+  type: 'dossier' | 'client'
+  favoriId: string
+  label: string
+  sublabel: string | null
+  clientName?: string | null
+}
+
 export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { url } = usePage()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  const [favoris, setFavoris] = useState<Favori[]>([])
+
+  const fetchFavoris = useCallback(async () => {
+    try {
+      const response = await fetch(ADMIN_FAVORIS_API, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setFavoris(data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching favoris:', error)
+    }
+  }, [])
+
+  const removeFavori = async (favoriId: string) => {
+    try {
+      const response = await fetch(`${ADMIN_FAVORIS_API}/${favoriId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        setFavoris((prev) => prev.filter((f) => f.id !== favoriId))
+      }
+    } catch (error) {
+      console.error('Error removing favori:', error)
+    }
+  }
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -99,13 +141,20 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
           if (data.user) {
             setUserInfo(data.user)
           }
+        } else if (response.status === 401) {
+          // Non authentifie - rediriger vers login
+          window.location.href = '/admin/login'
         }
       } catch (error) {
         console.error('Error fetching user info:', error)
       }
     }
     fetchUserInfo()
-  }, [])
+    fetchFavoris()
+  }, [fetchFavoris])
+
+  // Listen for favoris updates from other components
+  useFavorisUpdates(fetchFavoris)
 
   const isSuperAdmin = userInfo?.role === 'super_admin'
 
@@ -158,6 +207,43 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {favoris.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>
+              <Star className="h-3 w-3 mr-1" />
+              Favoris
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {favoris.map((favori) => (
+                  <SidebarMenuItem key={favori.id}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={url === (favori.type === 'dossier' ? `/admin/dossiers/${favori.favoriId}` : `/admin/clients/${favori.favoriId}`)}
+                      tooltip={favori.sublabel || favori.label}
+                    >
+                      <Link href={favori.type === 'dossier' ? `/admin/dossiers/${favori.favoriId}` : `/admin/clients/${favori.favoriId}`}>
+                        {favori.type === 'dossier' ? (
+                          <FolderKanban className="h-4 w-4" />
+                        ) : (
+                          <User className="h-4 w-4" />
+                        )}
+                        <span className="truncate">{favori.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    <SidebarMenuAction
+                      onClick={() => removeFavori(favori.id)}
+                      className="opacity-0 group-hover/menu-item:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </SidebarMenuAction>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
       </SidebarContent>
       <SidebarFooter>

@@ -28,6 +28,9 @@ export const ADMIN_DEMANDES_RDV_API = API_BASE_URL + 'admin/demandes-rdv'
 export const ADMIN_PARAMETRES_API = API_BASE_URL + 'admin/parametres'
 export const ADMIN_ADMINS_API = API_BASE_URL + 'admin/admins'
 export const ADMIN_RESPONSABLES_API = API_BASE_URL + 'admin/responsables'
+export const ADMIN_FAVORIS_API = API_BASE_URL + 'admin/favoris'
+export const ADMIN_SEARCH_API = API_BASE_URL + 'admin/search'
+export const ADMIN_NOTIFICATIONS_API = API_BASE_URL + 'admin/notifications'
 
 // Client APIs
 export const CLIENT_DASHBOARD_API = API_BASE_URL + 'client/dashboard'

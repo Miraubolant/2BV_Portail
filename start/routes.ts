@@ -29,6 +29,9 @@ const AdminDocumentsController = () => import('#controllers/admin/documents_cont
 const ClientDocumentsController = () => import('#controllers/client/documents_controller')
 const MicrosoftOAuthController = () => import('#controllers/admin/microsoft_oauth_controller')
 const GoogleOAuthController = () => import('#controllers/admin/google_oauth_controller')
+const AdminFavorisController = () => import('#controllers/admin/favoris_controller')
+const AdminSearchController = () => import('#controllers/admin/search_controller')
+const AdminNotificationsController = () => import('#controllers/admin/notifications_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -110,12 +113,30 @@ router.group(() => {
 
   // Demandes RDV
   router.get('demandes-rdv', [AdminDemandesRdvController, 'index'])
+  router.get('demandes-rdv/filters', [AdminDemandesRdvController, 'filters'])
   router.get('demandes-rdv/:id', [AdminDemandesRdvController, 'show'])
   router.post('demandes-rdv/:id/accepter', [AdminDemandesRdvController, 'accepter'])
   router.post('demandes-rdv/:id/refuser', [AdminDemandesRdvController, 'refuser'])
 
   // Liste des responsables (pour les dropdowns)
   router.get('responsables', [AdminAdminsController, 'responsables'])
+
+  // Favoris
+  router.get('favoris', [AdminFavorisController, 'index'])
+  router.post('favoris', [AdminFavorisController, 'store'])
+  router.delete('favoris/:id', [AdminFavorisController, 'destroy'])
+  router.post('favoris/toggle', [AdminFavorisController, 'toggle'])
+  router.get('favoris/check', [AdminFavorisController, 'check'])
+
+  // Recherche globale
+  router.get('search', [AdminSearchController, 'search'])
+
+  // Notifications
+  router.get('notifications', [AdminNotificationsController, 'index'])
+  router.get('notifications/unread-count', [AdminNotificationsController, 'unreadCount'])
+  router.post('notifications/:id/read', [AdminNotificationsController, 'markAsRead'])
+  router.post('notifications/read-all', [AdminNotificationsController, 'markAllAsRead'])
+  router.delete('notifications/:id', [AdminNotificationsController, 'destroy'])
 
 }).prefix('api/admin').use(middleware.adminAuth())
 

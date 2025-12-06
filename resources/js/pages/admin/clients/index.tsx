@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate } from '@/lib/constants'
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useAdminAuth } from '@/hooks/use-admin-auth'
 import { DataTable, Column } from '@/components/ui/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -62,6 +63,9 @@ interface AdminOption {
 }
 
 const ClientsListPage = () => {
+  const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
+  const filterInitialized = useRef(false)
+
   const [clients, setClients] = useState<Client[]>([])
   const [admins, setAdmins] = useState<AdminOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -180,9 +184,22 @@ const ClientsListPage = () => {
     }
   }, [pagination.page, pagination.limit, search, typeFilter, responsableFilter])
 
+  // Initialiser le filtre responsable si l'option est activee
   useEffect(() => {
-    fetchClients()
-  }, [fetchClients])
+    if (!authLoading && !filterInitialized.current && adminId) {
+      filterInitialized.current = true
+      if (filterByResponsable) {
+        setResponsableFilter(adminId)
+      }
+    }
+  }, [authLoading, filterByResponsable, adminId])
+
+  useEffect(() => {
+    // Attendre l'initialisation du filtre avant de fetch
+    if (!authLoading && filterInitialized.current) {
+      fetchClients()
+    }
+  }, [fetchClients, authLoading])
 
   useEffect(() => {
     fetchAdmins()

@@ -39,7 +39,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ADMIN_DOSSIERS_API, formatDate, API_BASE_URL } from '@/lib/constants'
+import { ADMIN_DOSSIERS_API, ADMIN_FAVORIS_API, formatDate, API_BASE_URL } from '@/lib/constants'
+import { emitFavorisUpdated } from '@/hooks/use-favoris'
 import { ADMIN_DOSSIERS } from '@/app/routes'
 import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import {
@@ -63,6 +64,7 @@ import {
   File,
   Image,
   FileSpreadsheet,
+  Star,
 } from 'lucide-react'
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -333,7 +335,10 @@ const DossierShowPage = () => {
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<Partial<Dossier>>({})
-  const [activeTab, setActiveTab] = useState('documents')
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tab') || 'documents'
+  })
 
   // Document modals
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
@@ -365,11 +370,53 @@ const DossierShowPage = () => {
   const [savingDoc, setSavingDoc] = useState(false)
   const [deletingDoc, setDeletingDoc] = useState(false)
 
+  // Favoris
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [togglingFavorite, setTogglingFavorite] = useState(false)
+
   const dossierId = window.location.pathname.split('/').pop()
 
   useEffect(() => {
     fetchDossier()
+    checkFavorite()
   }, [dossierId])
+
+  const checkFavorite = async () => {
+    if (!dossierId) return
+    try {
+      const response = await fetch(`${ADMIN_FAVORIS_API}/check?type=dossier&id=${dossierId}`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setIsFavorite(result.isFavorite)
+      }
+    } catch (error) {
+      console.error('Error checking favorite:', error)
+    }
+  }
+
+  const toggleFavorite = async () => {
+    if (!dossierId) return
+    setTogglingFavorite(true)
+    try {
+      const response = await fetch(`${ADMIN_FAVORIS_API}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ type: 'dossier', id: dossierId }),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setIsFavorite(result.isFavorite)
+        emitFavorisUpdated()
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setTogglingFavorite(false)
+    }
+  }
 
   const fetchDossier = async () => {
     try {
@@ -630,10 +677,56 @@ const DossierShowPage = () => {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">{dossier.reference}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold">{dossier.reference}</h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFavorite}
+                  disabled={togglingFavorite}
+                  className={isFavorite ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-yellow-500'}
+                  title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                >
+                  <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+                </Button>
+              </div>
               <p className="text-muted-foreground">{dossier.intitule}</p>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant={statutConfig.variant}>{statutConfig.label}</Badge>
+                <Select
+                  value={dossier.statut}
+                  onValueChange={async (value) => {
+                    try {
+                      const response = await fetch(`${ADMIN_DOSSIERS_API}/${dossierId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ statut: value }),
+                      })
+                      if (response.ok) {
+                        const updated = await response.json()
+                        setDossier(updated)
+                      }
+                    } catch (error) {
+                      console.error('Error updating statut:', error)
+                    }
+                  }}
+                >
+                  <SelectTrigger className={`h-7 w-auto text-xs font-medium gap-1 ${
+                    dossier.statut.startsWith('cloture_gagne') ? 'bg-primary text-primary-foreground' :
+                    dossier.statut.startsWith('cloture_perdu') ? 'bg-destructive text-destructive-foreground' :
+                    dossier.statut === 'archive' ? 'bg-muted text-muted-foreground' :
+                    'bg-secondary text-secondary-foreground'
+                  }`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(statutLabels).map(([key, { label }]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {dossier.typeAffaire && <Badge variant="outline">{dossier.typeAffaire}</Badge>}
               </div>
             </div>
@@ -667,7 +760,7 @@ const DossierShowPage = () => {
         </div>
 
         <Tabs
-          defaultValue="documents"
+          value={activeTab}
           onValueChange={(value) => {
             setActiveTab(value)
             if (value !== 'infos') setEditMode(false)

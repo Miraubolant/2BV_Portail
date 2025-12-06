@@ -3,6 +3,7 @@ import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column, hasMany, belongsTo } from '@adonisjs/lucid/orm'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
+import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
 import type { HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
 import AdminToken from './admin_token.js'
 
@@ -12,6 +13,7 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
 })
 
 export default class Admin extends compose(BaseModel, AuthFinder) {
+  static rememberMeTokens = DbRememberMeTokensProvider.forModel(Admin)
   @column({ isPrimary: true })
   declare id: string
 
@@ -48,6 +50,10 @@ export default class Admin extends compose(BaseModel, AuthFinder) {
 
   @column()
   declare emailNotification: string | null
+
+  // Filter preferences
+  @column()
+  declare filterByResponsable: boolean
 
   @column()
   declare createdById: string | null

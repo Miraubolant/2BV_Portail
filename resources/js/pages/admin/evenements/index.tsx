@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ADMIN_EVENEMENTS_API, ADMIN_DOSSIERS_API, ADMIN_RESPONSABLES_API, formatDateTime } from '@/lib/constants'
-import { useEffect, useState, useCallback, memo } from 'react'
+import { useEffect, useState, useCallback, memo, useRef } from 'react'
+import { useAdminAuth } from '@/hooks/use-admin-auth'
 import {
   Plus,
   Calendar,
@@ -134,201 +135,266 @@ interface EventFormFieldsProps {
 }
 
 const EventFormFields = memo(function EventFormFields({ formData, setFormData, dossiers }: EventFormFieldsProps) {
+  const [dossierSearch, setDossierSearch] = useState('')
+
+  const filteredDossiers = dossiers.filter((dossier) => {
+    if (!dossierSearch) return true
+    const search = dossierSearch.toLowerCase()
+    return (
+      dossier.reference.toLowerCase().includes(search) ||
+      dossier.intitule?.toLowerCase().includes(search) ||
+      dossier.client?.nom.toLowerCase().includes(search) ||
+      dossier.client?.prenom.toLowerCase().includes(search)
+    )
+  })
+
+  const selectedDossier = dossiers.find((d) => d.id === formData.dossierId)
+
   return (
-    <>
-      {/* Dossier selection */}
-      <div className="space-y-2">
-        <Label htmlFor="dossierId">Dossier (optionnel)</Label>
-        <Select
-          value={formData.dossierId || 'none'}
-          onValueChange={(value) => setFormData((prev) => ({ ...prev, dossierId: value === 'none' ? '' : value }))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selectionner un dossier" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Aucun dossier</SelectItem>
-            {dossiers.map((dossier) => (
-              <SelectItem key={dossier.id} value={dossier.id}>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{dossier.reference}</span>
-                  {dossier.client && (
-                    <span className="text-muted-foreground">
-                      - {dossier.client.prenom} {dossier.client.nom}
-                    </span>
-                  )}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {formData.dossierId && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <User className="h-3 w-3" />
-            Client:{' '}
-            {dossiers.find((d) => d.id === formData.dossierId)?.client
-              ? `${dossiers.find((d) => d.id === formData.dossierId)?.client?.prenom} ${dossiers.find((d) => d.id === formData.dossierId)?.client?.nom}`
-              : 'Non defini'}
-          </p>
-        )}
-      </div>
-
-      {/* Title */}
-      <div className="space-y-2">
-        <Label htmlFor="titre">Titre *</Label>
-        <Input
-          id="titre"
-          placeholder="Titre de l'evenement"
-          value={formData.titre}
-          onChange={(e) => setFormData((prev) => ({ ...prev, titre: e.target.value }))}
-          required
-          minLength={3}
-        />
-      </div>
-
-      {/* Type */}
-      <div className="space-y-2">
-        <Label htmlFor="type">Type *</Label>
-        <Select
-          value={formData.type}
-          onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(typeLabels).map(([key, { label, color }]) => (
-              <SelectItem key={key} value={key}>
-                <span className={color}>{label}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* All day checkbox */}
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="journeeEntiere"
-          checked={formData.journeeEntiere}
-          onCheckedChange={(checked) =>
-            setFormData((prev) => ({ ...prev, journeeEntiere: checked as boolean }))
-          }
-        />
-        <Label htmlFor="journeeEntiere" className="font-normal">
-          Journee entiere
-        </Label>
-      </div>
-
-      {/* Dates */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="dateDebut">Date debut *</Label>
-          <Input
-            id="dateDebut"
-            type="date"
-            value={formData.dateDebut}
-            onChange={(e) => setFormData((prev) => ({ ...prev, dateDebut: e.target.value }))}
-            required
-          />
+    <div className="space-y-6">
+      {/* Section 1: Informations principales */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Calendar className="h-4 w-4" />
+          Informations principales
         </div>
-        {!formData.journeeEntiere && (
-          <div className="space-y-2">
-            <Label htmlFor="heureDebut">Heure debut *</Label>
+
+        {/* Title and Type on same row */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="titre">Titre *</Label>
             <Input
-              id="heureDebut"
-              type="time"
-              value={formData.heureDebut}
-              onChange={(e) => setFormData((prev) => ({ ...prev, heureDebut: e.target.value }))}
+              id="titre"
+              placeholder="Ex: Audience TGI, RDV client Dupont..."
+              value={formData.titre}
+              onChange={(e) => setFormData((prev) => ({ ...prev, titre: e.target.value }))}
+              required
+              minLength={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="type">Type *</Label>
+            <Select
+              value={formData.type}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(typeLabels).map(([key, { label, badgeVariant }]) => (
+                  <SelectItem key={key} value={key}>
+                    <Badge variant="outline" className={cn('text-xs', badgeVariant)}>
+                      {label}
+                    </Badge>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Dossier selection with search */}
+        <div className="space-y-2">
+          <Label htmlFor="dossierId">Dossier associe</Label>
+          <Select
+            value={formData.dossierId || 'none'}
+            onValueChange={(value) => setFormData((prev) => ({ ...prev, dossierId: value === 'none' ? '' : value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selectionner un dossier (optionnel)">
+                {selectedDossier ? (
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{selectedDossier.reference}</span>
+                    {selectedDossier.client && (
+                      <span className="text-muted-foreground text-sm">
+                        - {selectedDossier.client.prenom} {selectedDossier.client.nom}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  'Aucun dossier'
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <div className="px-2 pb-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher un dossier..."
+                    value={dossierSearch}
+                    onChange={(e) => setDossierSearch(e.target.value)}
+                    className="pl-8 h-8"
+                  />
+                </div>
+              </div>
+              <SelectItem value="none">
+                <span className="text-muted-foreground">Aucun dossier</span>
+              </SelectItem>
+              {filteredDossiers.slice(0, 20).map((dossier) => (
+                <SelectItem key={dossier.id} value={dossier.id}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{dossier.reference}</span>
+                    {dossier.client && (
+                      <span className="text-muted-foreground">
+                        - {dossier.client.prenom} {dossier.client.nom}
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+              {filteredDossiers.length > 20 && (
+                <div className="px-2 py-1 text-xs text-muted-foreground">
+                  +{filteredDossiers.length - 20} autres resultats...
+                </div>
+              )}
+            </SelectContent>
+          </Select>
+          {selectedDossier?.client && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+              <User className="h-3 w-3" />
+              Client: <span className="font-medium text-foreground">{selectedDossier.client.prenom} {selectedDossier.client.nom}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Section 2: Date et heure */}
+      <div className="space-y-4 pt-4 border-t">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            Date et heure
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="journeeEntiere"
+              checked={formData.journeeEntiere}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, journeeEntiere: checked as boolean }))
+              }
+            />
+            <Label htmlFor="journeeEntiere" className="font-normal text-sm">
+              Journee entiere
+            </Label>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3 p-3 rounded-lg bg-muted/30">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Debut *</Label>
+            <Input
+              type="date"
+              value={formData.dateDebut}
+              onChange={(e) => setFormData((prev) => ({ ...prev, dateDebut: e.target.value }))}
               required
             />
+            {!formData.journeeEntiere && (
+              <Input
+                type="time"
+                value={formData.heureDebut}
+                onChange={(e) => setFormData((prev) => ({ ...prev, heureDebut: e.target.value }))}
+                required
+              />
+            )}
           </div>
-        )}
+          <div className="space-y-3 p-3 rounded-lg bg-muted/30">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fin</Label>
+            <Input
+              type="date"
+              value={formData.dateFin}
+              onChange={(e) => setFormData((prev) => ({ ...prev, dateFin: e.target.value }))}
+              placeholder={formData.dateDebut}
+            />
+            {!formData.journeeEntiere && (
+              <Input
+                type="time"
+                value={formData.heureFin}
+                onChange={(e) => setFormData((prev) => ({ ...prev, heureFin: e.target.value }))}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="dateFin">Date fin</Label>
-          <Input
-            id="dateFin"
-            type="date"
-            value={formData.dateFin}
-            onChange={(e) => setFormData((prev) => ({ ...prev, dateFin: e.target.value }))}
-          />
+      {/* Section 3: Lieu */}
+      <div className="space-y-4 pt-4 border-t">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <MapPin className="h-4 w-4" />
+          Lieu (optionnel)
         </div>
-        {!formData.journeeEntiere && (
+
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="heureFin">Heure fin</Label>
+            <Label htmlFor="lieu">Lieu</Label>
             <Input
-              id="heureFin"
-              type="time"
-              value={formData.heureFin}
-              onChange={(e) => setFormData((prev) => ({ ...prev, heureFin: e.target.value }))}
+              id="lieu"
+              placeholder="Tribunal, Cabinet, Visio..."
+              value={formData.lieu}
+              onChange={(e) => setFormData((prev) => ({ ...prev, lieu: e.target.value }))}
             />
           </div>
-        )}
-      </div>
-
-      {/* Location */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="lieu">Lieu</Label>
-          <Input
-            id="lieu"
-            placeholder="Tribunal, Cabinet..."
-            value={formData.lieu}
-            onChange={(e) => setFormData((prev) => ({ ...prev, lieu: e.target.value }))}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="salle">Salle / Chambre</Label>
+            <Input
+              id="salle"
+              placeholder="1ere chambre civile..."
+              value={formData.salle}
+              onChange={(e) => setFormData((prev) => ({ ...prev, salle: e.target.value }))}
+            />
+          </div>
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="salle">Salle</Label>
+          <Label htmlFor="adresse">Adresse complete</Label>
           <Input
-            id="salle"
-            placeholder="Salle d'audience..."
-            value={formData.salle}
-            onChange={(e) => setFormData((prev) => ({ ...prev, salle: e.target.value }))}
+            id="adresse"
+            placeholder="4 Boulevard du Palais, 75001 Paris"
+            value={formData.adresse}
+            onChange={(e) => setFormData((prev) => ({ ...prev, adresse: e.target.value }))}
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="adresse">Adresse</Label>
-        <Input
-          id="adresse"
-          placeholder="Adresse complete"
-          value={formData.adresse}
-          onChange={(e) => setFormData((prev) => ({ ...prev, adresse: e.target.value }))}
-        />
-      </div>
+      {/* Section 4: Notes et options */}
+      <div className="space-y-4 pt-4 border-t">
+        <div className="space-y-2">
+          <Label htmlFor="description">Notes / Description</Label>
+          <Textarea
+            id="description"
+            placeholder="Informations supplementaires, points a aborder..."
+            value={formData.description}
+            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+            rows={2}
+            className="resize-none"
+          />
+        </div>
 
-      {/* Description */}
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          placeholder="Notes sur l'evenement..."
-          value={formData.description}
-          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-          rows={3}
-        />
+        <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-blue-600" />
+            <div>
+              <p className="text-sm font-medium">Google Calendar</p>
+              <p className="text-xs text-muted-foreground">Synchroniser avec votre agenda Google</p>
+            </div>
+          </div>
+          <Checkbox
+            id="syncGoogle"
+            checked={formData.syncGoogle}
+            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, syncGoogle: checked as boolean }))}
+          />
+        </div>
       </div>
-
-      {/* Google sync */}
-      <div className="flex items-center space-x-2 pt-2 border-t">
-        <Checkbox
-          id="syncGoogle"
-          checked={formData.syncGoogle}
-          onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, syncGoogle: checked as boolean }))}
-        />
-        <Label htmlFor="syncGoogle" className="font-normal">
-          Synchroniser avec Google Calendar
-        </Label>
-      </div>
-    </>
+    </div>
   )
 })
 
 const EvenementsPage = () => {
+  const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
+  const filterInitialized = useRef(false)
+
   const [evenements, setEvenements] = useState<Evenement[]>([])
   const [dossiers, setDossiers] = useState<DossierRef[]>([])
   const [loading, setLoading] = useState(true)
@@ -373,21 +439,23 @@ const EvenementsPage = () => {
     syncGoogle: false,
   })
 
-  const resetForm = () => {
+  const resetForm = (date?: Date) => {
+    const targetDate = date || new Date()
+    const dateStr = targetDate.toISOString().split('T')[0]
     setFormData({
       dossierId: '',
       titre: '',
       type: 'rdv_client',
       description: '',
-      dateDebut: '',
+      dateDebut: dateStr,
       heureDebut: '09:00',
-      dateFin: '',
+      dateFin: dateStr,
       heureFin: '10:00',
       journeeEntiere: false,
       lieu: '',
       adresse: '',
       salle: '',
-      syncGoogle: false,
+      syncGoogle: true,
     })
   }
 
@@ -445,9 +513,22 @@ const EvenementsPage = () => {
     }
   }, [currentMonth, filterResponsable])
 
+  // Initialiser le filtre responsable si l'option est activee
   useEffect(() => {
-    fetchEvenements()
-  }, [fetchEvenements])
+    if (!authLoading && !filterInitialized.current && adminId) {
+      filterInitialized.current = true
+      if (filterByResponsable) {
+        setFilterResponsable(adminId)
+      }
+    }
+  }, [authLoading, filterByResponsable, adminId])
+
+  useEffect(() => {
+    // Attendre l'initialisation du filtre avant de fetch
+    if (!authLoading && filterInitialized.current) {
+      fetchEvenements()
+    }
+  }, [fetchEvenements, authLoading])
 
   useEffect(() => {
     fetchDossiers()
@@ -803,7 +884,7 @@ const EvenementsPage = () => {
             <h1 className="text-3xl font-bold">Evenements</h1>
             <p className="text-muted-foreground">Calendrier des evenements du cabinet</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => { resetForm(); setShowCreateModal(true) }}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvel evenement
           </Button>
@@ -893,13 +974,11 @@ const EvenementsPage = () => {
               </div>
               <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'list')}>
                 <TabsList>
-                  <TabsTrigger value="calendar">
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    Calendrier
+                  <TabsTrigger value="calendar" title="Calendrier">
+                    <CalendarDays className="h-4 w-4" />
                   </TabsTrigger>
-                  <TabsTrigger value="list">
-                    <List className="mr-2 h-4 w-4" />
-                    Liste
+                  <TabsTrigger value="list" title="Liste">
+                    <List className="h-4 w-4" />
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -988,7 +1067,7 @@ const EvenementsPage = () => {
                       : 'Aucun evenement ce mois-ci'}
                   </p>
                   {!searchQuery && filterType === 'all' && !showUnassigned && (
-                    <Button variant="outline" className="mt-4" onClick={() => setShowCreateModal(true)}>
+                    <Button variant="outline" className="mt-4" onClick={() => { resetForm(); setShowCreateModal(true) }}>
                       <Plus className="mr-2 h-4 w-4" />
                       Creer un evenement
                     </Button>

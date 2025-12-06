@@ -23,8 +23,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+
+interface AdminOption {
+  id: string
+  username: string | null
+  nom: string
+  prenom: string
+}
+
+interface DossierOption {
+  id: string
+  reference: string
+}
 
 interface DemandeRdv {
   id: string
@@ -41,6 +60,12 @@ interface DemandeRdv {
     prenom: string
     email: string
     telephone: string | null
+    responsable?: {
+      id: string
+      username: string | null
+      nom: string
+      prenom: string
+    } | null
   }
   dossier?: {
     id: string
@@ -75,10 +100,40 @@ const DemandesRdvPage = () => {
     lieu: 'Cabinet',
   })
 
+  // Filters
+  const [responsables, setResponsables] = useState<AdminOption[]>([])
+  const [dossiers, setDossiers] = useState<DossierOption[]>([])
+  const [responsableFilter, setResponsableFilter] = useState('')
+  const [dossierFilter, setDossierFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
+  const fetchFilters = async () => {
+    try {
+      const response = await fetch(`${ADMIN_DEMANDES_RDV_API}/filters`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setResponsables(result.responsables || [])
+        setDossiers(result.dossiers || [])
+      }
+    } catch (error) {
+      console.error('Error fetching filters:', error)
+    }
+  }
+
   const fetchDemandes = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(ADMIN_DEMANDES_RDV_API, {
+      const params = new URLSearchParams()
+      if (responsableFilter) params.append('responsableId', responsableFilter)
+      if (dossierFilter) params.append('dossierId', dossierFilter)
+      if (dateFrom) params.append('dateFrom', dateFrom)
+      if (dateTo) params.append('dateTo', dateTo)
+
+      const url = params.toString() ? `${ADMIN_DEMANDES_RDV_API}?${params}` : ADMIN_DEMANDES_RDV_API
+      const response = await fetch(url, {
         credentials: 'include',
       })
       if (response.ok) {
@@ -90,6 +145,10 @@ const DemandesRdvPage = () => {
     } finally {
       setLoading(false)
     }
+  }, [responsableFilter, dossierFilter, dateFrom, dateTo])
+
+  useEffect(() => {
+    fetchFilters()
   }, [])
 
   useEffect(() => {
@@ -198,6 +257,70 @@ const DemandesRdvPage = () => {
             Gestion des demandes de rendez-vous clients
           </p>
         </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex gap-4">
+              <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Responsable" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les responsables</SelectItem>
+                  <SelectItem value="none">Sans responsable</SelectItem>
+                  {responsables.map((admin) => (
+                    <SelectItem key={admin.id} value={admin.id}>
+                      {admin.username || `${admin.prenom} ${admin.nom}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={dossierFilter || 'all'} onValueChange={(v) => setDossierFilter(v === 'all' ? '' : v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Dossier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les dossiers</SelectItem>
+                  {dossiers.map((dossier) => (
+                    <SelectItem key={dossier.id} value={dossier.id}>
+                      {dossier.reference}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                placeholder="Date debut"
+              />
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                placeholder="Date fin"
+              />
+              {(responsableFilter || dossierFilter || dateFrom || dateTo) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setResponsableFilter('')
+                    setDossierFilter('')
+                    setDateFrom('')
+                    setDateTo('')
+                  }}
+                  title="Effacer les filtres"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">

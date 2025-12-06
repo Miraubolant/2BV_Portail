@@ -9,6 +9,7 @@ const updateNotificationsValidator = vine.compile(
   vine.object({
     notifEmailDocument: vine.boolean().optional(),
     emailNotification: vine.string().email().optional().nullable(),
+    filterByResponsable: vine.boolean().optional(),
   })
 )
 
@@ -28,7 +29,7 @@ export default class AdminAuthController {
    * Connexion admin
    */
   async login({ request, auth, session, response }: HttpContext) {
-    const { email, password } = request.only(['email', 'password'])
+    const { email, password, rememberMe } = request.only(['email', 'password', 'rememberMe'])
 
     try {
       // Verifier les credentials
@@ -39,8 +40,8 @@ export default class AdminAuthController {
         return response.unauthorized({ message: 'Compte desactive' })
       }
 
-      // Connecter l'admin
-      await auth.use('admin').login(admin)
+      // Connecter l'admin avec option "Se souvenir de moi"
+      await auth.use('admin').login(admin, !!rememberMe)
 
       // Mettre a jour last_login
       admin.lastLogin = DateTime.now()
@@ -68,7 +69,8 @@ export default class AdminAuthController {
           totpEnabled: admin.totpEnabled,
         }
       })
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error)
       return response.unauthorized({ message: 'Identifiants invalides' })
     }
   }
@@ -199,6 +201,7 @@ export default class AdminAuthController {
         totpEnabled: admin.totpEnabled,
         notifEmailDocument: admin.notifEmailDocument,
         emailNotification: admin.emailNotification,
+        filterByResponsable: admin.filterByResponsable,
       }
     })
   }
@@ -221,6 +224,7 @@ export default class AdminAuthController {
       message: 'Preferences mises a jour',
       notifEmailDocument: admin.notifEmailDocument,
       emailNotification: admin.emailNotification,
+      filterByResponsable: admin.filterByResponsable,
     })
   }
 

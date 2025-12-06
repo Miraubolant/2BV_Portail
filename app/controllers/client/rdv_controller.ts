@@ -1,5 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import DemandeRdv from '#models/demande_rdv'
+import Notification from '#models/notification'
+import Client from '#models/client'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
 
@@ -65,7 +67,25 @@ export default class RdvController {
       urgence: data.urgence || 'normal',
     })
 
-    // TODO: Envoyer notification aux admins
+    // Notifier l'admin responsable du client
+    const clientWithResponsable = await Client.query()
+      .where('id', client.id)
+      .preload('responsable')
+      .first()
+
+    if (clientWithResponsable?.responsable) {
+      const urgenceLabel = data.urgence === 'tres_urgent' ? ' (TRES URGENT)' :
+                          data.urgence === 'urgent' ? ' (URGENT)' : ''
+
+      await Notification.create({
+        destinataireType: 'admin',
+        destinataireId: clientWithResponsable.responsable.id,
+        type: 'demande_rdv',
+        titre: `Demande de RDV de ${client.fullName}${urgenceLabel}`,
+        message: `Le client ${client.fullName} a fait une demande de RDV: ${data.motif.substring(0, 100)}${data.motif.length > 100 ? '...' : ''}`,
+        lien: '/admin/demandes-rdv',
+      })
+    }
 
     return response.created(demande)
   }

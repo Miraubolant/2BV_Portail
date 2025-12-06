@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import DemandeRdv from '#models/demande_rdv'
 import Evenement from '#models/evenement'
+import Admin from '#models/admin'
+import Dossier from '#models/dossier'
 import { DateTime } from 'luxon'
 
 export default class DemandesRdvController {
@@ -11,9 +13,15 @@ export default class DemandesRdvController {
     const page = request.input('page', 1)
     const limit = request.input('limit', 20)
     const statut = request.input('statut', '')
+    const responsableId = request.input('responsableId', '')
+    const dossierId = request.input('dossierId', '')
+    const dateFrom = request.input('dateFrom', '')
+    const dateTo = request.input('dateTo', '')
 
     let query = (DemandeRdv.query() as any)
-      .preload('client')
+      .preload('client', (clientQuery: any) => {
+        clientQuery.preload('responsable')
+      })
       .preload('dossier')
       .orderBy('created_at', 'desc')
 
@@ -21,8 +29,55 @@ export default class DemandesRdvController {
       query = query.where('statut', statut)
     }
 
+    // Filter by responsable (via client)
+    if (responsableId) {
+      if (responsableId === 'none') {
+        query = query.whereHas('client', (clientQuery: any) => {
+          clientQuery.whereNull('responsable_id')
+        })
+      } else {
+        query = query.whereHas('client', (clientQuery: any) => {
+          clientQuery.where('responsable_id', responsableId)
+        })
+      }
+    }
+
+    // Filter by dossier
+    if (dossierId) {
+      query = query.where('dossier_id', dossierId)
+    }
+
+    // Filter by date range
+    if (dateFrom) {
+      query = query.where('created_at', '>=', dateFrom)
+    }
+    if (dateTo) {
+      query = query.where('created_at', '<=', `${dateTo} 23:59:59`)
+    }
+
     const demandes = await query.paginate(page, limit)
     return response.ok(demandes)
+  }
+
+  /**
+   * GET /api/admin/demandes-rdv/filters
+   * Get filter options (responsables and dossiers)
+   */
+  async filters({ response }: HttpContext) {
+    const responsables = await Admin.query()
+      .where('actif', true)
+      .select('id', 'username', 'nom', 'prenom')
+      .orderBy('prenom')
+
+    const dossiers = await Dossier.query()
+      .where('statut', '!=', 'archive')
+      .select('id', 'reference')
+      .orderBy('reference')
+
+    return response.ok({
+      responsables,
+      dossiers,
+    })
   }
 
   /**

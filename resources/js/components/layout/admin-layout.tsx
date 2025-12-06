@@ -10,6 +10,8 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { ADMIN_DASHBOARD } from '@/app/routes'
+import { GlobalSearch } from '@/components/admin/global-search'
+import { NotificationsDropdown } from '@/components/admin/notifications-dropdown'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -25,7 +27,7 @@ export function AdminLayout({ children, title, breadcrumbs = [] }: AdminLayoutPr
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
+          <Breadcrumb className="hidden md:flex">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink href={ADMIN_DASHBOARD}>Administration</BreadcrumbLink>
@@ -52,6 +54,16 @@ export function AdminLayout({ children, title, breadcrumbs = [] }: AdminLayoutPr
               )}
             </BreadcrumbList>
           </Breadcrumb>
+
+          {/* Search bar - centered */}
+          <div className="flex flex-1 justify-center px-4">
+            <GlobalSearch />
+          </div>
+
+          {/* Notifications - right side */}
+          <div className="flex items-center gap-2">
+            <NotificationsDropdown />
+          </div>
         </header>
         <main className="flex-1 p-6">
           {children}

@@ -9,7 +9,8 @@ const authConfig = defineConfig({
      * Guard pour les administrateurs (super_admin et admin)
      */
     admin: sessionGuard({
-      useRememberMeTokens: false,
+      useRememberMeTokens: true,
+      rememberMeTokensAge: '30 days',
       provider: sessionUserProvider({
         model: () => import('#models/admin'),
       }),
@@ -19,7 +20,8 @@ const authConfig = defineConfig({
      * Guard pour les clients
      */
     client: sessionGuard({
-      useRememberMeTokens: false,
+      useRememberMeTokens: true,
+      rememberMeTokensAge: '30 days',
       provider: sessionUserProvider({
         model: () => import('#models/client'),
       }),

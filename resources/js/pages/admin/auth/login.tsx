@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ADMIN_LOGIN_API } from '@/lib/constants'
 import { ADMIN_DASHBOARD, AUTH_ADMIN_TOTP } from '@/app/routes'
 import { Head, router, useForm } from '@inertiajs/react'
@@ -12,6 +13,7 @@ import { useState } from 'react'
 type LoginForm = {
   email: string
   password: string
+  rememberMe: boolean
 }
 
 const AdminLoginPage = () => {
@@ -21,6 +23,7 @@ const AdminLoginPage = () => {
   const { data, setData, processing, reset } = useForm<LoginForm>({
     email: '',
     password: '',
+    rememberMe: false,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -117,6 +120,17 @@ const AdminLoginPage = () => {
                 </Button>
               </div>
               <InputError message={errors.password} />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="rememberMe"
+                checked={data.rememberMe}
+                onCheckedChange={(checked) => setData('rememberMe', checked as boolean)}
+              />
+              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                Se souvenir de moi
+              </Label>
             </div>
 
             <Button type="submit" className="w-full" disabled={processing}>

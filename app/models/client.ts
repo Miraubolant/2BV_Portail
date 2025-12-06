@@ -3,6 +3,7 @@ import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column, hasMany, belongsTo } from '@adonisjs/lucid/orm'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
+import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
 import type { HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
 import ClientToken from './client_token.js'
 import Dossier from './dossier.js'
@@ -14,6 +15,8 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
 })
 
 export default class Client extends compose(BaseModel, AuthFinder) {
+  static rememberMeTokens = DbRememberMeTokensProvider.forModel(Client)
+
   @column({ isPrimary: true })
   declare id: string
 

@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ADMIN_DOSSIERS_API, ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate } from '@/lib/constants'
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useAdminAuth } from '@/hooks/use-admin-auth'
 import { DataTable, Column } from '@/components/ui/data-table'
 import {
   Plus,
@@ -98,6 +99,9 @@ const statutLabels: Record<string, { label: string; variant: 'default' | 'second
 }
 
 const DossiersListPage = () => {
+  const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
+  const filterInitialized = useRef(false)
+
   const [dossiers, setDossiers] = useState<Dossier[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -190,9 +194,22 @@ const DossiersListPage = () => {
     }
   }
 
+  // Initialiser le filtre responsable si l'option est activee
   useEffect(() => {
-    fetchDossiers()
-  }, [fetchDossiers])
+    if (!authLoading && !filterInitialized.current && adminId) {
+      filterInitialized.current = true
+      if (filterByResponsable) {
+        setResponsableFilter(adminId)
+      }
+    }
+  }, [authLoading, filterByResponsable, adminId])
+
+  useEffect(() => {
+    // Attendre l'initialisation du filtre avant de fetch
+    if (!authLoading && filterInitialized.current) {
+      fetchDossiers()
+    }
+  }, [fetchDossiers, authLoading])
 
   useEffect(() => {
     fetchClients()
@@ -420,7 +437,7 @@ const DossiersListPage = () => {
             <Button variant="ghost" size="icon" onClick={() => openUploadModal(row)} title="Ajouter un document">
               <Upload className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => router.visit(`/admin/dossiers/${row.id}`)} title="Modifier">
+            <Button variant="ghost" size="icon" onClick={() => router.visit(`/admin/dossiers/${row.id}?tab=infos`)} title="Modifier">
               <Edit className="h-4 w-4" />
             </Button>
           </div>

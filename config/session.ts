@@ -15,8 +15,9 @@ const sessionConfig = defineConfig({
   /**
    * Define how long to keep the session data alive without
    * any activity.
+   * Par defaut 1 heure, prolonge a 30 jours si "Se souvenir de moi" est coche
    */
-  age: '2h',
+  age: '1h',
 
   /**
    * Configuration for session cookie and the

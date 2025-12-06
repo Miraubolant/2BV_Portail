@@ -11,7 +11,7 @@ export default class ClientAuthController {
    * Connexion client
    */
   async login({ request, auth, session, response }: HttpContext) {
-    const { email, password } = request.only(['email', 'password'])
+    const { email, password, rememberMe } = request.only(['email', 'password', 'rememberMe'])
 
     try {
       // Verifier les credentials
@@ -22,8 +22,8 @@ export default class ClientAuthController {
         return response.unauthorized({ message: 'Compte desactive. Contactez l\'administration.' })
       }
 
-      // Connecter le client
-      await auth.use('client').login(client)
+      // Connecter le client avec option "Se souvenir de moi"
+      await auth.use('client').login(client, !!rememberMe)
 
       // Mettre a jour last_login
       client.lastLogin = DateTime.now()

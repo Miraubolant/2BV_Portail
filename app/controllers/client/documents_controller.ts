@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Document from '#models/document'
 import Dossier from '#models/dossier'
+import Notification from '#models/notification'
 import EmailService from '#services/email_service'
 import documentSyncService from '#services/microsoft/document_sync_service'
 import vine from '@vinejs/vine'
@@ -48,25 +49,38 @@ export default class ClientDocumentsController {
       sensible: false,
     })
 
-    // Notifier l'admin responsable si les notifications sont activees
+    // Notifier l'admin responsable
     const responsable = dossier.client.responsable
-    if (responsable && responsable.notifEmailDocument) {
-      try {
-        await EmailService.notifyAdminClientUpload(
-          responsable.notificationEmail,
-          responsable.id,
-          responsable.fullName,
-          {
-            documentName: document.nom,
-            dossierName: dossier.intitule,
-            dossierReference: dossier.reference,
-            uploaderName: client.fullName,
-            recipientName: responsable.fullName,
-            portalUrl: '/admin/dossiers/' + dossier.id,
-          }
-        )
-      } catch (error) {
-        console.error('Error sending notification email to admin:', error)
+    if (responsable) {
+      // Creer une notification dans la base
+      await Notification.create({
+        destinataireType: 'admin',
+        destinataireId: responsable.id,
+        type: 'document_upload',
+        titre: `Nouveau document de ${client.fullName}`,
+        message: `Le client ${client.fullName} a ajoute le document "${document.nom}" au dossier ${dossier.reference}`,
+        lien: `/admin/dossiers/${dossier.id}`,
+      })
+
+      // Envoyer email si active
+      if (responsable.notifEmailDocument) {
+        try {
+          await EmailService.notifyAdminClientUpload(
+            responsable.notificationEmail,
+            responsable.id,
+            responsable.fullName,
+            {
+              documentName: document.nom,
+              dossierName: dossier.intitule,
+              dossierReference: dossier.reference,
+              uploaderName: client.fullName,
+              recipientName: responsable.fullName,
+              portalUrl: '/admin/dossiers/' + dossier.id,
+            }
+          )
+        } catch (error) {
+          console.error('Error sending notification email to admin:', error)
+        }
       }
     }
 
@@ -135,23 +149,36 @@ export default class ClientDocumentsController {
 
     // Notifier l'admin responsable
     const responsable = dossier.client.responsable
-    if (responsable && responsable.notifEmailDocument) {
-      try {
-        await EmailService.notifyAdminClientUpload(
-          responsable.notificationEmail,
-          responsable.id,
-          responsable.fullName,
-          {
-            documentName: nom,
-            dossierName: dossier.intitule,
-            dossierReference: dossier.reference,
-            uploaderName: client.fullName,
-            recipientName: responsable.fullName,
-            portalUrl: '/admin/dossiers/' + dossier.id,
-          }
-        )
-      } catch (error) {
-        console.error('Error sending notification email to admin:', error)
+    if (responsable) {
+      // Creer une notification dans la base
+      await Notification.create({
+        destinataireType: 'admin',
+        destinataireId: responsable.id,
+        type: 'document_upload',
+        titre: `Nouveau document de ${client.fullName}`,
+        message: `Le client ${client.fullName} a ajoute le document "${nom}" au dossier ${dossier.reference}`,
+        lien: `/admin/dossiers/${dossier.id}`,
+      })
+
+      // Envoyer email si active
+      if (responsable.notifEmailDocument) {
+        try {
+          await EmailService.notifyAdminClientUpload(
+            responsable.notificationEmail,
+            responsable.id,
+            responsable.fullName,
+            {
+              documentName: nom,
+              dossierName: dossier.intitule,
+              dossierReference: dossier.reference,
+              uploaderName: client.fullName,
+              recipientName: responsable.fullName,
+              portalUrl: '/admin/dossiers/' + dossier.id,
+            }
+          )
+        } catch (error) {
+          console.error('Error sending notification email to admin:', error)
+        }
       }
     }
 
