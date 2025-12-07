@@ -1,6 +1,7 @@
-import { Head, Link } from '@inertiajs/react'
+import { Head, Link, router } from '@inertiajs/react'
 import { getAdminLayout, useBreadcrumb } from '@/components/layout/admin-layout'
 import { ReactNode } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -378,6 +379,10 @@ const DossierShowPage = () => {
   const [isFavorite, setIsFavorite] = useState(false)
   const [togglingFavorite, setTogglingFavorite] = useState(false)
 
+  // Delete dossier
+  const [deleteDossierConfirmOpen, setDeleteDossierConfirmOpen] = useState(false)
+  const [deletingDossier, setDeletingDossier] = useState(false)
+
   const dossierId = window.location.pathname.split('/').pop()
 
   // Breadcrumb dynamique
@@ -654,6 +659,39 @@ const DossierShowPage = () => {
     }
   }
 
+  // Delete dossier handler
+  const handleDeleteDossier = async () => {
+    if (!dossierId) return
+
+    setDeletingDossier(true)
+    try {
+      const response = await fetch(`${ADMIN_DOSSIERS_API}/${dossierId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        toast.success('Dossier supprime', {
+          description: `Le dossier ${dossier?.reference} a ete supprime.`,
+        })
+        router.visit(ADMIN_DOSSIERS)
+      } else {
+        const error = await response.json()
+        toast.error('Erreur lors de la suppression', {
+          description: error.message || 'Une erreur est survenue',
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting dossier:', error)
+      toast.error('Erreur lors de la suppression', {
+        description: 'Une erreur est survenue',
+      })
+    } finally {
+      setDeletingDossier(false)
+      setDeleteDossierConfirmOpen(false)
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -706,6 +744,15 @@ const DossierShowPage = () => {
                   title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                 >
                   <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDeleteDossierConfirmOpen(true)}
+                  className="text-muted-foreground hover:text-destructive"
+                  title="Supprimer le dossier"
+                >
+                  <Trash2 className="h-5 w-5" />
                 </Button>
               </div>
               <p className="text-muted-foreground">{dossier.intitule}</p>
@@ -1457,7 +1504,7 @@ const DossierShowPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Document Confirmation */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1483,6 +1530,39 @@ const DossierShowPage = () => {
                 <>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Supprimer
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Dossier Confirmation */}
+      <AlertDialog open={deleteDossierConfirmOpen} onOpenChange={setDeleteDossierConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le dossier</AlertDialogTitle>
+            <AlertDialogDescription>
+              Etes-vous sur de vouloir supprimer le dossier "{dossier?.reference}" ?
+              Cette action est irreversible et supprimera egalement tous les documents associes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDossier}
+              disabled={deletingDossier}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingDossier ? (
+                <>
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer le dossier
                 </>
               )}
             </AlertDialogAction>

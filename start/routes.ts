@@ -39,6 +39,7 @@ const AdminTasksController = () => import('#controllers/admin/tasks_controller')
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
 // ══════════════════════════════════════════════════════════════
+router.get('/health', [HealthController, 'index'])
 router.get('/api/health', [HealthController, 'index'])
 
 // ══════════════════════════════════════════════════════════════

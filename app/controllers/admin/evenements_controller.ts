@@ -8,12 +8,24 @@ import googleConfig from '#config/google'
 import ActivityLogger from '#services/activity_logger'
 import logger from '@adonisjs/core/services/logger'
 
+const EVENEMENT_TYPES = [
+  'audience',
+  'rdv_client',
+  'rdv_adverse',
+  'expertise',
+  'mediation',
+  'echeance',
+  'autre',
+] as const
+
+const EVENEMENT_STATUTS = ['planifie', 'confirme', 'annule', 'reporte', 'termine'] as const
+
 const createEvenementValidator = vine.compile(
   vine.object({
     dossierId: vine.string().uuid().optional().nullable(),
     titre: vine.string().minLength(3).maxLength(255),
     description: vine.string().optional().nullable(),
-    type: vine.string(),
+    type: vine.enum(EVENEMENT_TYPES),
     dateDebut: vine.string(),
     dateFin: vine.string(),
     journeeEntiere: vine.boolean().optional(),
@@ -29,14 +41,14 @@ const updateEvenementValidator = vine.compile(
     dossierId: vine.string().uuid().optional().nullable(),
     titre: vine.string().minLength(3).maxLength(255).optional(),
     description: vine.string().optional().nullable(),
-    type: vine.string().optional(),
+    type: vine.enum(EVENEMENT_TYPES).optional(),
     dateDebut: vine.string().optional(),
     dateFin: vine.string().optional(),
     journeeEntiere: vine.boolean().optional(),
     lieu: vine.string().optional().nullable(),
     adresse: vine.string().optional().nullable(),
     salle: vine.string().optional().nullable(),
-    statut: vine.string().optional(),
+    statut: vine.enum(EVENEMENT_STATUTS).optional(),
     syncGoogle: vine.boolean().optional(),
   })
 )

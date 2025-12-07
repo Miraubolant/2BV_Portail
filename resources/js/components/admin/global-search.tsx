@@ -80,6 +80,20 @@ export function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Keyboard shortcut Ctrl+K to focus search
+  useEffect(() => {
+    function handleGlobalKeyDown(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault()
+        inputRef.current?.focus()
+        setIsOpen(true)
+      }
+    }
+
+    document.addEventListener('keydown', handleGlobalKeyDown)
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) return
 
@@ -128,7 +142,7 @@ export function GlobalSearch() {
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Rechercher clients, dossiers, documents..."
+          placeholder="Rechercher..."
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -137,8 +151,13 @@ export function GlobalSearch() {
           }}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          className="pl-10 pr-10"
+          className="pl-10 pr-20"
         />
+        {!query && (
+          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+            <span className="text-xs">Ctrl + K</span>
+          </kbd>
+        )}
         {query && (
           <button
             onClick={clearSearch}

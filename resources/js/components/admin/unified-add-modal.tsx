@@ -1,4 +1,5 @@
 import { useState, useEffect, memo, useCallback } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -980,6 +981,9 @@ export function UnifiedAddModal({
       })
       if (response.ok) {
         const data = await response.json()
+        toast.success('Client cree avec succes', {
+          description: `${clientForm.prenom} ${clientForm.nom} a ete ajoute.`,
+        })
         onSuccess?.('client', data)
         onOpenChange(false)
       } else {
@@ -1009,6 +1013,9 @@ export function UnifiedAddModal({
       })
       if (response.ok) {
         const data = await response.json()
+        toast.success('Dossier cree avec succes', {
+          description: `Le dossier "${dossierForm.intitule}" a ete cree.`,
+        })
         onSuccess?.('dossier', data)
         onOpenChange(false)
       } else {
@@ -1063,6 +1070,9 @@ export function UnifiedAddModal({
       })
       if (response.ok) {
         const data = await response.json()
+        toast.success('Evenement cree avec succes', {
+          description: `L'evenement "${eventForm.titre}" a ete planifie.`,
+        })
         onSuccess?.('evenement', data)
         onOpenChange(false)
       } else {

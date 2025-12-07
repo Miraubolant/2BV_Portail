@@ -68,7 +68,7 @@ interface AdminOption {
 const ClientsListPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
   const { openModal, subscribeToCreation } = useUnifiedModal()
-  const filterInitialized = useRef(false)
+  const [filterInitialized, setFilterInitialized] = useState(false)
 
   const [clients, setClients] = useState<Client[]>([])
   const [admins, setAdmins] = useState<AdminOption[]>([])
@@ -190,20 +190,20 @@ const ClientsListPage = () => {
 
   // Initialiser le filtre responsable si l'option est activee
   useEffect(() => {
-    if (!authLoading && !filterInitialized.current && adminId) {
-      filterInitialized.current = true
-      if (filterByResponsable) {
+    if (!authLoading && !filterInitialized) {
+      if (filterByResponsable && adminId) {
         setResponsableFilter(adminId)
       }
+      setFilterInitialized(true)
     }
-  }, [authLoading, filterByResponsable, adminId])
+  }, [authLoading, filterByResponsable, adminId, filterInitialized])
 
   useEffect(() => {
     // Attendre l'initialisation du filtre avant de fetch
-    if (!authLoading && filterInitialized.current) {
+    if (filterInitialized) {
       fetchClients()
     }
-  }, [fetchClients, authLoading])
+  }, [fetchClients, filterInitialized])
 
   useEffect(() => {
     fetchAdmins()

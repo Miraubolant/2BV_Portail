@@ -104,7 +104,7 @@ const statutLabels: Record<string, { label: string; variant: 'default' | 'second
 const DossiersListPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
   const { openModal, subscribeToCreation } = useUnifiedModal()
-  const filterInitialized = useRef(false)
+  const [filterInitialized, setFilterInitialized] = useState(false)
 
   const [dossiers, setDossiers] = useState<Dossier[]>([])
   const [loading, setLoading] = useState(true)
@@ -200,20 +200,20 @@ const DossiersListPage = () => {
 
   // Initialiser le filtre responsable si l'option est activee
   useEffect(() => {
-    if (!authLoading && !filterInitialized.current && adminId) {
-      filterInitialized.current = true
-      if (filterByResponsable) {
+    if (!authLoading && !filterInitialized) {
+      if (filterByResponsable && adminId) {
         setResponsableFilter(adminId)
       }
+      setFilterInitialized(true)
     }
-  }, [authLoading, filterByResponsable, adminId])
+  }, [authLoading, filterByResponsable, adminId, filterInitialized])
 
   useEffect(() => {
     // Attendre l'initialisation du filtre avant de fetch
-    if (!authLoading && filterInitialized.current) {
+    if (filterInitialized) {
       fetchDossiers()
     }
-  }, [fetchDossiers, authLoading])
+  }, [fetchDossiers, filterInitialized])
 
   useEffect(() => {
     fetchClients()

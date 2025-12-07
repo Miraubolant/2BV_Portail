@@ -24,7 +24,6 @@ const dbConfig = defineConfig({
         min: 2,
         max: 20,
       },
-      healthCheck: true,
       debug: !app.inProduction,
     },
   },

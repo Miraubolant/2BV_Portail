@@ -4,6 +4,22 @@ import Evenement from '#models/evenement'
 import Admin from '#models/admin'
 import Dossier from '#models/dossier'
 import { DateTime } from 'luxon'
+import vine from '@vinejs/vine'
+
+const accepterDemandeValidator = vine.compile(
+  vine.object({
+    dateDebut: vine.string(),
+    dateFin: vine.string(),
+    lieu: vine.string().optional(),
+    reponse: vine.string().optional(),
+  })
+)
+
+const refuserDemandeValidator = vine.compile(
+  vine.object({
+    motif: vine.string().minLength(5),
+  })
+)
 
 export default class DemandesRdvController {
   /**
@@ -101,11 +117,7 @@ export default class DemandesRdvController {
     const demande = await DemandeRdv.findOrFail(params.id)
     const admin = auth.use('admin').user!
 
-    const { dateDebut, dateFin, lieu, reponse } = request.only(['dateDebut', 'dateFin', 'lieu', 'reponse'])
-
-    if (!dateDebut || !dateFin) {
-      return response.badRequest({ message: 'Les dates de debut et fin sont requises' })
-    }
+    const { dateDebut, dateFin, lieu, reponse } = await request.validateUsing(accepterDemandeValidator)
 
     // Parse dates - try ISO first, then JS Date
     let parsedDateDebut = DateTime.fromISO(dateDebut)
@@ -161,8 +173,8 @@ export default class DemandesRdvController {
   async refuser({ params, request, auth, response }: HttpContext) {
     const demande = await DemandeRdv.findOrFail(params.id)
     const admin = auth.use('admin').user!
-    
-    const { motif } = request.only(['motif'])
+
+    const { motif } = await request.validateUsing(refuserDemandeValidator)
 
     demande.statut = 'refuse'
     demande.reponseAdmin = motif

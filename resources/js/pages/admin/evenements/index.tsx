@@ -396,7 +396,7 @@ const EventFormFields = memo(function EventFormFields({ formData, setFormData, d
 const EvenementsPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
   const { subscribeToCreation } = useUnifiedModal()
-  const filterInitialized = useRef(false)
+  const [filterInitialized, setFilterInitialized] = useState(false)
 
   const [evenements, setEvenements] = useState<Evenement[]>([])
   const [dossiers, setDossiers] = useState<DossierRef[]>([])
@@ -518,20 +518,20 @@ const EvenementsPage = () => {
 
   // Initialiser le filtre responsable si l'option est activee
   useEffect(() => {
-    if (!authLoading && !filterInitialized.current && adminId) {
-      filterInitialized.current = true
-      if (filterByResponsable) {
+    if (!authLoading && !filterInitialized) {
+      if (filterByResponsable && adminId) {
         setFilterResponsable(adminId)
       }
+      setFilterInitialized(true)
     }
-  }, [authLoading, filterByResponsable, adminId])
+  }, [authLoading, filterByResponsable, adminId, filterInitialized])
 
   useEffect(() => {
     // Attendre l'initialisation du filtre avant de fetch
-    if (!authLoading && filterInitialized.current) {
+    if (filterInitialized) {
       fetchEvenements()
     }
-  }, [fetchEvenements, authLoading])
+  }, [fetchEvenements, filterInitialized])
 
   useEffect(() => {
     fetchDossiers()
@@ -1003,96 +1003,179 @@ const EvenementsPage = () => {
         </Card>
 
         {/* Calendar View */}
-        {view === 'calendar' && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" onClick={prevMonth}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" onClick={goToToday}>
-                    Mois actuel
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={nextMonth}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                <CardTitle className="capitalize text-xl">{monthName}</CardTitle>
-                <div className="w-[180px]" /> {/* Spacer for centering */}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredEvents.length > 0 ? (
-                <div className="space-y-6">
-                  {Object.entries(eventsByDate)
-                    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-                    .map(([date, events]) => {
-                      const dateObj = new Date(date)
-                      const isToday = dateObj.toDateString() === new Date().toDateString()
-                      return (
-                        <div key={date}>
-                          <div
-                            className={cn(
-                              'sticky top-0 z-10 -mx-6 px-6 py-2 mb-3',
-                              isToday ? 'bg-primary/10' : 'bg-muted/50'
-                            )}
-                          >
-                            <h3
-                              className={cn(
-                                'font-semibold text-sm uppercase',
-                                isToday ? 'text-primary' : 'text-muted-foreground'
-                              )}
-                            >
-                              {isToday && (
-                                <Badge variant="default" className="mr-2">
-                                  Aujourd'hui
-                                </Badge>
-                              )}
-                              {dateObj.toLocaleDateString('fr-FR', {
-                                weekday: 'long',
-                                day: 'numeric',
-                                month: 'long',
-                              })}
-                            </h3>
-                          </div>
-                          <div className="space-y-3">
-                            {events
-                              .sort(
-                                (a, b) =>
-                                  new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime()
-                              )
-                              .map((event) => (
-                                <EventCard key={event.id} event={event} />
-                              ))}
-                          </div>
-                        </div>
-                      )
-                    })}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    {searchQuery || filterType !== 'all' || showUnassigned
-                      ? 'Aucun evenement correspondant aux filtres'
-                      : 'Aucun evenement ce mois-ci'}
-                  </p>
-                  {!searchQuery && filterType === 'all' && !showUnassigned && (
-                    <Button variant="outline" className="mt-4" onClick={() => { resetForm(); setShowCreateModal(true) }}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Creer un evenement
+        {view === 'calendar' && (() => {
+          // Build calendar grid
+          const year = currentMonth.getFullYear()
+          const month = currentMonth.getMonth()
+          const firstDay = new Date(year, month, 1)
+          const lastDay = new Date(year, month + 1, 0)
+          const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1 // Monday = 0
+          const daysInMonth = lastDay.getDate()
+          const today = new Date()
+
+          // Build weeks array
+          const weeks: (number | null)[][] = []
+          let currentWeek: (number | null)[] = []
+
+          // Add empty cells before first day
+          for (let i = 0; i < startDay; i++) {
+            currentWeek.push(null)
+          }
+
+          // Add days
+          for (let day = 1; day <= daysInMonth; day++) {
+            currentWeek.push(day)
+            if (currentWeek.length === 7) {
+              weeks.push(currentWeek)
+              currentWeek = []
+            }
+          }
+
+          // Add empty cells after last day
+          while (currentWeek.length > 0 && currentWeek.length < 7) {
+            currentWeek.push(null)
+          }
+          if (currentWeek.length > 0) {
+            weeks.push(currentWeek)
+          }
+
+          const getEventsForDay = (day: number) => {
+            return filteredEvents.filter((event) => {
+              const eventDate = new Date(event.dateDebut)
+              return eventDate.getDate() === day &&
+                     eventDate.getMonth() === month &&
+                     eventDate.getFullYear() === year
+            }).sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime())
+          }
+
+          const handleDayClick = (day: number) => {
+            const date = new Date(year, month, day)
+            resetForm(date)
+            setShowCreateModal(true)
+          }
+
+          return (
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={prevMonth}>
+                      <ChevronLeft className="h-4 w-4" />
                     </Button>
-                  )}
+                    <Button variant="outline" size="sm" onClick={goToToday}>
+                      Aujourd'hui
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={nextMonth}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <CardTitle className="capitalize text-xl">{monthName}</CardTitle>
+                  <Badge variant="secondary" className="text-sm">
+                    {filteredEvents.length} evenement{filteredEvents.length > 1 ? 's' : ''}
+                  </Badge>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </CardHeader>
+              <CardContent className="p-2 sm:p-4">
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    {/* Days header */}
+                    <div className="grid grid-cols-7 bg-muted/50 border-b">
+                      {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day, i) => (
+                        <div
+                          key={day}
+                          className={cn(
+                            'py-2 text-center text-sm font-medium text-muted-foreground',
+                            i === 5 || i === 6 ? 'text-muted-foreground/60' : ''
+                          )}
+                        >
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    {/* Calendar grid */}
+                    <div className="divide-y">
+                      {weeks.map((week, weekIndex) => (
+                        <div key={weekIndex} className="grid grid-cols-7 divide-x min-h-[100px]">
+                          {week.map((day, dayIndex) => {
+                            if (day === null) {
+                              return <div key={dayIndex} className="bg-muted/20 p-1" />
+                            }
+
+                            const dayEvents = getEventsForDay(day)
+                            const isToday = today.getDate() === day &&
+                                           today.getMonth() === month &&
+                                           today.getFullYear() === year
+                            const isWeekend = dayIndex === 5 || dayIndex === 6
+
+                            return (
+                              <div
+                                key={dayIndex}
+                                className={cn(
+                                  'p-1 relative group transition-colors cursor-pointer hover:bg-muted/30',
+                                  isWeekend && 'bg-muted/10',
+                                  isToday && 'bg-primary/5'
+                                )}
+                                onClick={() => handleDayClick(day)}
+                              >
+                                {/* Day number */}
+                                <div className="flex items-center justify-between mb-1">
+                                  <span
+                                    className={cn(
+                                      'inline-flex items-center justify-center w-6 h-6 text-sm rounded-full',
+                                      isToday && 'bg-primary text-primary-foreground font-bold',
+                                      !isToday && 'font-medium text-foreground'
+                                    )}
+                                  >
+                                    {day}
+                                  </span>
+                                  <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                {/* Events */}
+                                <div className="space-y-0.5 max-h-[72px] overflow-hidden">
+                                  {dayEvents.slice(0, 3).map((event) => {
+                                    const typeConfig = typeLabels[event.type] || typeLabels.autre
+                                    return (
+                                      <div
+                                        key={event.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          openEditModal(event)
+                                        }}
+                                        className={cn(
+                                          'text-xs px-1.5 py-0.5 rounded truncate cursor-pointer transition-all hover:ring-1 hover:ring-primary/50',
+                                          typeConfig.badgeVariant
+                                        )}
+                                        title={`${event.titre}${event.journeeEntiere ? '' : ` - ${formatTime(event.dateDebut)}`}`}
+                                      >
+                                        {!event.journeeEntiere && (
+                                          <span className="font-medium mr-1">{formatTime(event.dateDebut)}</span>
+                                        )}
+                                        {event.titre}
+                                      </div>
+                                    )
+                                  })}
+                                  {dayEvents.length > 3 && (
+                                    <div className="text-xs text-muted-foreground px-1.5 font-medium">
+                                      +{dayEvents.length - 3} autres
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })()}
 
         {/* List View */}
         {view === 'list' && (

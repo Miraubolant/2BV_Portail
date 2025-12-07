@@ -6,6 +6,7 @@ tmp
 # Secrets
 .env
 .env.local
+.env.test
 .env.production.local
 .env.development.local
 
@@ -23,7 +24,15 @@ yarn-error.log
 
 # Platform specific
 .DS_Store
+Thumbs.db
+nul
 
 # VitePress
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+# Claude/AI
+.claude
+
+# Misc
+devis-*.html

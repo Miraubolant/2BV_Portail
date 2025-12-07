@@ -73,7 +73,7 @@ test.group('Utils - Date Formatting', () => {
   })
 
   test('should handle null dates gracefully', ({ assert }) => {
-    const nullDate: Date | null = null
+    const nullDate: Date | null = null as Date | null
 
     const result = nullDate ? nullDate.toISOString() : null
 
