@@ -16,26 +16,17 @@ RUN npm ci --include=dev
 # Stage 3: Build the application
 FROM base AS builder
 
-# Build-time environment variables (required for AdonisJS build)
-# These are dummy values - real ones are provided at runtime via Coolify
-ENV NODE_ENV=production
-ENV TZ=Europe/Paris
-ENV PORT=3333
-ENV HOST=0.0.0.0
-ENV LOG_LEVEL=info
-ENV APP_KEY=build-time-key-minimum-32-characters-long
-ENV SESSION_DRIVER=cookie
-ENV DB_HOST=localhost
-ENV DB_PORT=5432
-ENV DB_USER=postgres
-ENV DB_PASSWORD=postgres
-ENV DB_DATABASE=portail_cabinet
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Copy build-time .env file (AdonisJS requires .env file during build)
+COPY .env.docker .env
+
 # Build AdonisJS (compiles TypeScript + Vite assets)
 RUN node ace build
+
+# Remove .env from build output (real values come from Coolify)
+RUN rm -f build/.env
 
 # Stage 4: Production dependencies only
 FROM base AS prod-deps
