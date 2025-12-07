@@ -15,11 +15,16 @@ RUN npm ci --include=dev
 
 # Stage 3: Build the application
 FROM base AS builder
+
+# Build-time environment variables (required for AdonisJS build)
+ENV NODE_ENV=production
+ENV TZ=Europe/Paris
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build AdonisJS (compiles TypeScript + Vite assets)
-RUN npm run build
+RUN node ace build
 
 # Stage 4: Production dependencies only
 FROM base AS prod-deps
