@@ -1,6 +1,9 @@
 # Nixpacks configuration for Coolify
 # Simple configuration for AdonisJS 6
 
+# Disable auto-detection (prevents Caddy from being added)
+providers = []
+
 [phases.setup]
 nixPkgs = ["nodejs_22"]
 
