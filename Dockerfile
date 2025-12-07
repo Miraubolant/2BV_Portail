@@ -19,6 +19,8 @@ FROM base AS builder
 # Build-time environment variables (required for AdonisJS build)
 ENV NODE_ENV=production
 ENV TZ=Europe/Paris
+# Dummy APP_KEY for build (real one provided at runtime)
+ENV APP_KEY=build-time-key-will-be-replaced-at-runtime
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
