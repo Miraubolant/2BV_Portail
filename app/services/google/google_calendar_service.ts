@@ -2,6 +2,7 @@ import googleOAuthService from './google_oauth_service.js'
 import googleConfig from '#config/google'
 import GoogleToken from '#models/google_token'
 import Evenement from '#models/evenement'
+import logger from '@adonisjs/core/services/logger'
 
 const CALENDAR_API_BASE = googleConfig.calendarApiBase
 
@@ -76,14 +77,14 @@ class GoogleCalendarService {
       })
 
       if (!response.ok) {
-        console.error('Failed to list calendars:', await response.text())
+        logger.error({ response: await response.text() }, 'Failed to list calendars')
         return []
       }
 
       const data = (await response.json()) as { items?: CalendarListEntry[] }
       return data.items || []
     } catch (error) {
-      console.error('Error listing calendars:', error)
+      logger.error({ err: error }, 'Error listing calendars')
       return []
     }
   }
@@ -138,14 +139,14 @@ class GoogleCalendarService {
 
       if (!response.ok) {
         const error = await response.text()
-        console.error('Failed to create Google event:', error)
+        logger.error({ response: error }, 'Failed to create Google event')
         return { success: false, error }
       }
 
       const created = (await response.json()) as { id: string }
       return { success: true, googleEventId: created.id }
     } catch (error) {
-      console.error('Error creating Google event:', error)
+      logger.error({ err: error }, 'Error creating Google event')
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
@@ -182,13 +183,13 @@ class GoogleCalendarService {
 
       if (!response.ok) {
         const error = await response.text()
-        console.error('Failed to update Google event:', error)
+        logger.error({ response: error }, 'Failed to update Google event')
         return { success: false, error }
       }
 
       return { success: true }
     } catch (error) {
-      console.error('Error updating Google event:', error)
+      logger.error({ err: error }, 'Error updating Google event')
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
@@ -219,13 +220,13 @@ class GoogleCalendarService {
       // 204 No Content or 410 Gone are both success
       if (!response.ok && response.status !== 204 && response.status !== 410) {
         const error = await response.text()
-        console.error('Failed to delete Google event:', error)
+        logger.error({ response: error }, 'Failed to delete Google event')
         return { success: false, error }
       }
 
       return { success: true }
     } catch (error) {
-      console.error('Error deleting Google event:', error)
+      logger.error({ err: error }, 'Error deleting Google event')
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
@@ -252,7 +253,7 @@ class GoogleCalendarService {
 
       return (await response.json()) as GoogleCalendarEvent
     } catch (error) {
-      console.error('Error getting Google event:', error)
+      logger.error({ err: error }, 'Error getting Google event')
       return null
     }
   }
@@ -289,14 +290,14 @@ class GoogleCalendarService {
       )
 
       if (!response.ok) {
-        console.error('Failed to list Google events:', await response.text())
+        logger.error({ response: await response.text() }, 'Failed to list Google events')
         return []
       }
 
       const data = (await response.json()) as { items?: GoogleCalendarEvent[] }
       return data.items || []
     } catch (error) {
-      console.error('Error listing Google events:', error)
+      logger.error({ err: error }, 'Error listing Google events')
       return []
     }
   }

@@ -5,6 +5,7 @@ import Dossier from '#models/dossier'
 import { DateTime } from 'luxon'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
 import { cuid } from '@adonisjs/core/helpers'
+import logger from '@adonisjs/core/services/logger'
 
 interface UploadResult {
   success: boolean
@@ -272,7 +273,7 @@ class DocumentSyncService {
 
       return null
     } catch (error) {
-      console.error('Error reading file:', error)
+      logger.error({ err: error }, 'Error reading file')
       return null
     }
   }

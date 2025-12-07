@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react'
 import { getAdminLayout } from '@/components/layout/admin-layout'
 import { ReactNode } from 'react'
+import { useUnifiedModal } from '@/contexts/unified-modal-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -394,6 +395,7 @@ const EventFormFields = memo(function EventFormFields({ formData, setFormData, d
 
 const EvenementsPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
+  const { subscribeToCreation } = useUnifiedModal()
   const filterInitialized = useRef(false)
 
   const [evenements, setEvenements] = useState<Evenement[]>([])
@@ -535,6 +537,16 @@ const EvenementsPage = () => {
     fetchDossiers()
     fetchResponsables()
   }, [])
+
+  // S'abonner aux creations depuis le modal unifie
+  useEffect(() => {
+    const unsubscribe = subscribeToCreation((type) => {
+      if (type === 'evenement') {
+        fetchEvenements()
+      }
+    })
+    return unsubscribe
+  }, [subscribeToCreation, fetchEvenements])
 
   const prevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))

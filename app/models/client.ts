@@ -81,7 +81,7 @@ export default class Client extends compose(BaseModel, AuthFinder) {
   declare societeFonction: string | null
 
   // 2FA
-  @column()
+  @column({ serializeAs: null })
   declare totpSecret: string | null
 
   @column()

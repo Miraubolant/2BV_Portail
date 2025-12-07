@@ -6,6 +6,7 @@ import documentSyncService from '#services/microsoft/document_sync_service'
 import ActivityLogger from '#services/activity_logger'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
+import appLogger from '@adonisjs/core/services/logger'
 
 const createDocumentValidator = vine.compile(
   vine.object({
@@ -88,7 +89,7 @@ export default class DocumentsController {
           }
         )
       } catch (error) {
-        console.error('Error sending notification email to client:', error)
+        appLogger.error({ err: error }, 'Error sending notification email to client')
       }
     }
 
@@ -190,7 +191,7 @@ export default class DocumentsController {
           }
         )
       } catch (error) {
-        console.error('Error sending notification email to client:', error)
+        appLogger.error({ err: error }, 'Error sending notification email to client')
       }
     }
 
@@ -242,7 +243,7 @@ export default class DocumentsController {
       const newFileName = data.nom + (document.extension ? `.${document.extension}` : '')
       const renamed = await documentSyncService.renameOnOneDrive(document.onedriveFileId, newFileName)
       if (!renamed) {
-        console.warn('Failed to rename document on OneDrive, but continuing with local update')
+        appLogger.warn('Failed to rename document on OneDrive, but continuing with local update')
       }
     }
 

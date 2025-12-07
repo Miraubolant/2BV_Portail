@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react'
-import { getAdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout, useBreadcrumb } from '@/components/layout/admin-layout'
 import { ReactNode } from 'react'
+import { ADMIN_CLIENTS } from '@/app/routes'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, ADMIN_DOSSIERS_API, ADMIN_FAVORIS_API, formatDate, formatDateTime } from '@/lib/constants'
 import { emitFavorisUpdated } from '@/hooks/use-favoris'
-import { ADMIN_CLIENTS } from '@/app/routes'
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
@@ -132,11 +132,28 @@ const ClientShowPage = () => {
 
   const clientId = window.location.pathname.split('/').pop()
 
+  // Breadcrumb dynamique
+  const { setBreadcrumbs, clearBreadcrumbs } = useBreadcrumb()
+
   useEffect(() => {
     fetchClient()
     fetchAdmins()
     checkFavorite()
   }, [clientId])
+
+  // Mettre a jour le breadcrumb quand le client est charge
+  useEffect(() => {
+    if (client) {
+      setBreadcrumbs([
+        { label: 'Clients', href: ADMIN_CLIENTS },
+        { label: `${client.prenom} ${client.nom}` },
+      ])
+    }
+    // Nettoyer le breadcrumb quand on quitte la page
+    return () => {
+      clearBreadcrumbs()
+    }
+  }, [client, setBreadcrumbs, clearBreadcrumbs])
 
   const checkFavorite = async () => {
     if (!clientId) return

@@ -3,6 +3,7 @@ import env from '#start/env'
 import Parametre from '#models/parametre'
 import Notification from '#models/notification'
 import { DateTime } from 'luxon'
+import logger from '@adonisjs/core/services/logger'
 
 interface EmailOptions {
   to: string
@@ -26,7 +27,7 @@ class EmailService {
   private getResendClient(): Resend | null {
     const apiKey = env.get('RESEND_API_KEY')
     if (!apiKey) {
-      console.warn('RESEND_API_KEY not configured')
+      logger.warn('RESEND_API_KEY not configured')
       return null
     }
     if (!this.resend) {
@@ -64,7 +65,7 @@ class EmailService {
     const config = await this.getEmailConfig()
 
     if (!config.enabled) {
-      console.log('Email sending is disabled in parameters')
+      logger.info('Email sending is disabled in parameters')
       return { success: false, error: 'Email disabled' }
     }
 
@@ -83,7 +84,7 @@ class EmailService {
       })
       return { success: true }
     } catch (error) {
-      console.error('Error sending email:', error)
+      logger.error({ err: error }, 'Error sending email')
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }

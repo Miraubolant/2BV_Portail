@@ -3,6 +3,7 @@ import Evenement from '#models/evenement'
 import SyncLog from '#models/sync_log'
 import Dossier from '#models/dossier'
 import { DateTime } from 'luxon'
+import logger from '@adonisjs/core/services/logger'
 
 interface SyncResult {
   success: boolean
@@ -55,7 +56,7 @@ class CalendarSyncService {
         return result
       }
     } catch (error) {
-      console.error('Error syncing event to Google:', error)
+      logger.error({ err: error }, 'Error syncing event to Google')
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
@@ -435,7 +436,7 @@ class CalendarSyncService {
         triggeredById: data.triggeredById || null,
       })
     } catch (error) {
-      console.error('Failed to log sync operation:', error)
+      logger.error({ err: error }, 'Failed to log sync operation')
     }
   }
 

@@ -47,7 +47,9 @@ import {
   Scale,
   CheckCircle2,
   LoaderCircle,
+  AlertCircle,
 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 // Types
 interface ClientOption {
@@ -795,6 +797,7 @@ export function UnifiedAddModal({
 }: UnifiedAddModalProps) {
   const [activeTab, setActiveTab] = useState<'client' | 'dossier' | 'evenement'>(defaultTab)
   const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Data for selects
   const [clients, setClients] = useState<ClientOption[]>([])
@@ -948,13 +951,30 @@ export function UnifiedAddModal({
     }
   }, [open])
 
+  // Helper to parse error response
+  const parseErrorResponse = async (response: Response): Promise<string> => {
+    try {
+      const data = await response.json()
+      if (data.errors && Array.isArray(data.errors)) {
+        return data.errors.map((e: { message: string }) => e.message).join(', ')
+      }
+      return data.message || `Erreur ${response.status}`
+    } catch {
+      return `Erreur ${response.status}: ${response.statusText}`
+    }
+  }
+
   // Submit handlers
   const handleSubmitClient = async () => {
     setProcessing(true)
+    setError(null)
     try {
       const response = await fetch(ADMIN_CLIENTS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify(clientForm),
       })
@@ -962,9 +982,13 @@ export function UnifiedAddModal({
         const data = await response.json()
         onSuccess?.('client', data)
         onOpenChange(false)
+      } else {
+        const errorMsg = await parseErrorResponse(response)
+        setError(errorMsg)
       }
-    } catch (error) {
-      console.error('Error creating client:', error)
+    } catch (err) {
+      console.error('Error creating client:', err)
+      setError('Erreur de connexion au serveur')
     } finally {
       setProcessing(false)
     }
@@ -972,10 +996,14 @@ export function UnifiedAddModal({
 
   const handleSubmitDossier = async () => {
     setProcessing(true)
+    setError(null)
     try {
       const response = await fetch(ADMIN_DOSSIERS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify(dossierForm),
       })
@@ -983,9 +1011,13 @@ export function UnifiedAddModal({
         const data = await response.json()
         onSuccess?.('dossier', data)
         onOpenChange(false)
+      } else {
+        const errorMsg = await parseErrorResponse(response)
+        setError(errorMsg)
       }
-    } catch (error) {
-      console.error('Error creating dossier:', error)
+    } catch (err) {
+      console.error('Error creating dossier:', err)
+      setError('Erreur de connexion au serveur')
     } finally {
       setProcessing(false)
     }
@@ -993,6 +1025,7 @@ export function UnifiedAddModal({
 
   const handleSubmitEvent = async () => {
     setProcessing(true)
+    setError(null)
     try {
       let dateDebut: string
       let dateFin: string
@@ -1021,7 +1054,10 @@ export function UnifiedAddModal({
 
       const response = await fetch(ADMIN_EVENEMENTS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify(payload),
       })
@@ -1029,9 +1065,13 @@ export function UnifiedAddModal({
         const data = await response.json()
         onSuccess?.('evenement', data)
         onOpenChange(false)
+      } else {
+        const errorMsg = await parseErrorResponse(response)
+        setError(errorMsg)
       }
-    } catch (error) {
-      console.error('Error creating event:', error)
+    } catch (err) {
+      console.error('Error creating event:', err)
+      setError('Erreur de connexion au serveur')
     } finally {
       setProcessing(false)
     }
@@ -1101,7 +1141,7 @@ export function UnifiedAddModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[700px] h-[85vh] max-h-[750px] overflow-hidden flex flex-col">
         <DialogHeader className="pb-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Briefcase className="h-5 w-5 text-primary" />
@@ -1134,19 +1174,26 @@ export function UnifiedAddModal({
             </TabsList>
 
             <div className="flex-1 overflow-y-auto py-4">
-              <TabsContent value="client" className="mt-0">
+              <TabsContent value="client" className="mt-0 h-full">
                 <ClientForm formData={clientForm} setFormData={setClientForm} admins={admins} />
               </TabsContent>
 
-              <TabsContent value="dossier" className="mt-0">
+              <TabsContent value="dossier" className="mt-0 h-full">
                 <DossierForm formData={dossierForm} setFormData={setDossierForm} clients={clients} />
               </TabsContent>
 
-              <TabsContent value="evenement" className="mt-0">
+              <TabsContent value="evenement" className="mt-0 h-full">
                 <EventForm formData={eventForm} setFormData={setEventForm} dossiers={dossiers} />
               </TabsContent>
             </div>
           </Tabs>
+
+          {error && (
+            <Alert variant="destructive" className="mx-4 mb-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           <DialogFooter className="pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

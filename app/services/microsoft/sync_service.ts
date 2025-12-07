@@ -4,6 +4,7 @@ import Dossier from '#models/dossier'
 import Document from '#models/document'
 import SyncLog from '#models/sync_log'
 import { DateTime } from 'luxon'
+import logger from '@adonisjs/core/services/logger'
 
 interface SyncResult {
   success: boolean
@@ -388,7 +389,7 @@ class SyncService {
     try {
       await SyncLog.create(data)
     } catch (error) {
-      console.error('Failed to log sync operation:', error)
+      logger.error({ err: error }, 'Failed to log sync operation')
     }
   }
 

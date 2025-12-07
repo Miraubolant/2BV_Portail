@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react'
-import { getAdminLayout } from '@/components/layout/admin-layout'
+import { getAdminLayout, useBreadcrumb } from '@/components/layout/admin-layout'
 import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -380,10 +380,27 @@ const DossierShowPage = () => {
 
   const dossierId = window.location.pathname.split('/').pop()
 
+  // Breadcrumb dynamique
+  const { setBreadcrumbs, clearBreadcrumbs } = useBreadcrumb()
+
   useEffect(() => {
     fetchDossier()
     checkFavorite()
   }, [dossierId])
+
+  // Mettre a jour le breadcrumb quand le dossier est charge
+  useEffect(() => {
+    if (dossier) {
+      setBreadcrumbs([
+        { label: 'Dossiers', href: ADMIN_DOSSIERS },
+        { label: dossier.reference },
+      ])
+    }
+    // Nettoyer le breadcrumb quand on quitte la page
+    return () => {
+      clearBreadcrumbs()
+    }
+  }, [dossier, setBreadcrumbs, clearBreadcrumbs])
 
   const checkFavorite = async () => {
     if (!dossierId) return

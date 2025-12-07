@@ -5,6 +5,7 @@ import { createDossierValidator, updateDossierValidator } from '#validators/doss
 import { DateTime } from 'luxon'
 import dossierFolderService from '#services/microsoft/dossier_folder_service'
 import ActivityLogger from '#services/activity_logger'
+import logger from '@adonisjs/core/services/logger'
 
 export default class DossiersController {
   /**
@@ -128,7 +129,7 @@ export default class DossiersController {
 
     // Creer automatiquement le dossier OneDrive (en arriere-plan, sans bloquer)
     dossierFolderService.createDossierFolder(dossier.id).catch((err) => {
-      console.error('Error creating OneDrive folder for dossier:', err)
+      logger.error({ err }, 'Error creating OneDrive folder for dossier')
     })
 
     return response.created(dossier)

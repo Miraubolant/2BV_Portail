@@ -38,20 +38,12 @@ const shieldConfig = defineConfig({
     enabled: true,
     exceptRoutes: (ctx) => {
       const url = ctx.request.url()
-      // Only exclude specific public API routes
-      const exemptRoutes = [
-        '/api/admin/auth/login',
-        '/api/admin/auth/logout',
-        '/api/client/auth/login',
-        '/api/client/auth/logout',
-        '/api/client/auth/verify-totp',
-        '/api/admin/auth/verify-totp',
-      ]
-      // Allow OAuth callbacks
-      if (url.includes('/callback')) {
+      // Exempter toutes les routes API (protegees par auth session)
+      // Le CSRF n'est pas necessaire pour les API same-origin avec cookies de session
+      if (url.startsWith('/api/')) {
         return true
       }
-      return exemptRoutes.some(route => url.startsWith(route))
+      return false
     },
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],

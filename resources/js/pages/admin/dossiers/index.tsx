@@ -103,7 +103,7 @@ const statutLabels: Record<string, { label: string; variant: 'default' | 'second
 
 const DossiersListPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
-  const { openModal } = useUnifiedModal()
+  const { openModal, subscribeToCreation } = useUnifiedModal()
   const filterInitialized = useRef(false)
 
   const [dossiers, setDossiers] = useState<Dossier[]>([])
@@ -219,6 +219,16 @@ const DossiersListPage = () => {
     fetchClients()
     fetchResponsables()
   }, [])
+
+  // S'abonner aux creations depuis le modal unifie
+  useEffect(() => {
+    const unsubscribe = subscribeToCreation((type) => {
+      if (type === 'dossier') {
+        fetchDossiers()
+      }
+    })
+    return unsubscribe
+  }, [subscribeToCreation, fetchDossiers])
 
   const handleOpenCreateModal = () => {
     setShowCreateModal(true)

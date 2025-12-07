@@ -30,6 +30,29 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * response to the client
    */
   async handle(error: unknown, ctx: HttpContext) {
+    // Pour les requetes API, toujours retourner du JSON
+    const isApiRequest = ctx.request.url().startsWith('/api') ||
+      ctx.request.accepts(['html', 'json']) === 'json'
+
+    if (isApiRequest) {
+      const err = error as { status?: number; message?: string; messages?: unknown }
+      const status = err.status || 500
+      const message = err.message || 'Erreur interne du serveur'
+
+      // Gestion des erreurs de validation VineJS
+      if (err.messages) {
+        return ctx.response.status(status).json({
+          message: 'Erreur de validation',
+          errors: err.messages,
+        })
+      }
+
+      return ctx.response.status(status).json({
+        message,
+        ...(this.debug && { stack: (error as Error).stack }),
+      })
+    }
+
     return super.handle(error, ctx)
   }
 

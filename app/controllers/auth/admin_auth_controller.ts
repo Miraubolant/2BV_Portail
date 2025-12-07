@@ -28,7 +28,8 @@ export default class AdminAuthController {
    * POST /api/admin/auth/login
    * Connexion admin
    */
-  async login({ request, auth, session, response }: HttpContext) {
+  async login(ctx: HttpContext) {
+    const { request, auth, session, response } = ctx
     const { email, password, rememberMe } = request.only(['email', 'password', 'rememberMe'])
 
     try {
@@ -70,7 +71,7 @@ export default class AdminAuthController {
         }
       })
     } catch (error) {
-      console.error('Login error:', error)
+      ctx.logger.error({ err: error }, 'Login error')
       return response.unauthorized({ message: 'Identifiants invalides' })
     }
   }

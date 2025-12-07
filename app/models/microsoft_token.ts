@@ -9,10 +9,10 @@ export default class MicrosoftToken extends BaseModel {
   @column()
   declare service: string
 
-  @column()
+  @column({ serializeAs: null })
   declare accessToken: string
 
-  @column()
+  @column({ serializeAs: null })
   declare refreshToken: string
 
   @column.dateTime()

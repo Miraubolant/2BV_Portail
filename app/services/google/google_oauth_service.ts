@@ -1,5 +1,6 @@
 import googleConfig from '#config/google'
 import GoogleToken from '#models/google_token'
+import logger from '@adonisjs/core/services/logger'
 
 interface TokenResponse {
   access_token: string
@@ -157,7 +158,7 @@ class GoogleOAuthService {
 
         return refreshed.access_token
       } catch (error) {
-        console.error('Failed to refresh Google token:', error)
+        logger.error({ err: error }, 'Failed to refresh Google token')
         return null
       }
     }

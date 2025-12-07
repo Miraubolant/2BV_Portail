@@ -1,4 +1,5 @@
 import microsoftOAuthService from './microsoft_oauth_service.js'
+import logger from '@adonisjs/core/services/logger'
 
 const GRAPH_API_BASE = 'https://graph.microsoft.com/v1.0'
 
@@ -85,7 +86,7 @@ class OneDriveService {
     const response = await fetch(endpoint, { headers })
 
     if (!response.ok) {
-      console.error('Failed to get folder info:', await response.text())
+      logger.error({ response: await response.text() }, 'Failed to get folder info')
       return null
     }
 
@@ -106,7 +107,7 @@ class OneDriveService {
     const response = await fetch(endpoint, { headers })
 
     if (!response.ok) {
-      console.error('Failed to list folder:', await response.text())
+      logger.error({ response: await response.text() }, 'Failed to list folder')
       return []
     }
 
@@ -152,7 +153,7 @@ class OneDriveService {
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Failed to create root folder:', error)
+      logger.error({ response: error }, 'Failed to create root folder')
       return { success: false, error }
     }
 
@@ -200,7 +201,7 @@ class OneDriveService {
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Failed to create folder:', error)
+      logger.error({ response: error }, 'Failed to create folder')
       return { success: false, error }
     }
 
@@ -282,7 +283,7 @@ class OneDriveService {
 
           if (!createResponse.ok) {
             const error = await createResponse.text()
-            console.error(`Failed to create folder ${part}:`, error)
+            logger.error({ part, response: error }, 'Failed to create folder part')
             return { success: false, error }
           }
 
@@ -344,7 +345,7 @@ class OneDriveService {
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Failed to upload file:', error)
+      logger.error({ response: error }, 'Failed to upload file')
       return { success: false, error }
     }
 
@@ -381,7 +382,7 @@ class OneDriveService {
     )
 
     if (!response.ok) {
-      console.error('Failed to create upload session:', await response.text())
+      logger.error({ response: await response.text() }, 'Failed to create upload session')
       return null
     }
 
@@ -421,7 +422,7 @@ class OneDriveService {
 
       if (!response.ok && response.status !== 202) {
         const error = await response.text()
-        console.error('Failed to upload chunk:', error)
+        logger.error({ response: error }, 'Failed to upload chunk')
         return { success: false, error }
       }
 

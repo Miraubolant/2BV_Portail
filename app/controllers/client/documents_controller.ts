@@ -5,6 +5,7 @@ import Notification from '#models/notification'
 import EmailService from '#services/email_service'
 import documentSyncService from '#services/microsoft/document_sync_service'
 import vine from '@vinejs/vine'
+import logger from '@adonisjs/core/services/logger'
 
 const createDocumentValidator = vine.compile(
   vine.object({
@@ -79,7 +80,7 @@ export default class ClientDocumentsController {
             }
           )
         } catch (error) {
-          console.error('Error sending notification email to admin:', error)
+          logger.error({ err: error }, 'Error sending notification email to admin')
         }
       }
     }
@@ -177,7 +178,7 @@ export default class ClientDocumentsController {
             }
           )
         } catch (error) {
-          console.error('Error sending notification email to admin:', error)
+          logger.error({ err: error }, 'Error sending notification email to admin')
         }
       }
     }

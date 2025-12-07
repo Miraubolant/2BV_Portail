@@ -4,6 +4,7 @@ import googleCalendarService from '#services/google/google_calendar_service'
 import calendarSyncService from '#services/google/calendar_sync_service'
 import GoogleToken from '#models/google_token'
 import googleConfig from '#config/google'
+import logger from '@adonisjs/core/services/logger'
 
 export default class GoogleOAuthController {
   /**
@@ -55,7 +56,7 @@ export default class GoogleOAuthController {
     const frontendUrl = '/admin/parametres?tab=integrations'
 
     if (error) {
-      console.error('Google OAuth error:', error, errorDescription)
+      logger.error({ error, errorDescription }, 'Google OAuth error')
       return response.redirect(
         `${frontendUrl}&google_error=${encodeURIComponent(errorDescription || error)}`
       )
@@ -69,7 +70,7 @@ export default class GoogleOAuthController {
       await googleOAuthService.completeOAuthFlow(code)
       return response.redirect(`${frontendUrl}&google_success=true`)
     } catch (err) {
-      console.error('Google OAuth callback error:', err)
+      logger.error({ err }, 'Google OAuth callback error')
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       return response.redirect(`${frontendUrl}&google_error=${encodeURIComponent(errorMessage)}`)
     }
@@ -84,7 +85,7 @@ export default class GoogleOAuthController {
       await googleOAuthService.disconnect()
       return response.ok({ message: 'Google Calendar disconnected successfully' })
     } catch (error) {
-      console.error('Error disconnecting Google:', error)
+      logger.error({ err: error }, 'Error disconnecting Google')
       return response.internalServerError({
         message: 'Failed to disconnect Google Calendar',
       })
@@ -119,7 +120,7 @@ export default class GoogleOAuthController {
         calendarsCount: calendars.length,
       })
     } catch (error) {
-      console.error('Error testing Google connection:', error)
+      logger.error({ err: error }, 'Error testing Google connection')
       return response.ok({
         success: false,
         message: error instanceof Error ? error.message : 'Connection test failed',
@@ -143,7 +144,7 @@ export default class GoogleOAuthController {
       const calendars = await googleCalendarService.listCalendars()
       return response.ok({ calendars })
     } catch (error) {
-      console.error('Error listing calendars:', error)
+      logger.error({ err: error }, 'Error listing calendars')
       return response.internalServerError({
         message: 'Failed to list calendars',
       })
@@ -171,7 +172,7 @@ export default class GoogleOAuthController {
         calendarName,
       })
     } catch (error) {
-      console.error('Error selecting calendar:', error)
+      logger.error({ err: error }, 'Error selecting calendar')
       return response.internalServerError({
         message: 'Failed to select calendar',
       })
@@ -190,7 +191,7 @@ export default class GoogleOAuthController {
       const result = await calendarSyncService.fullSync(admin.id, { pullFromGoogle })
       return response.ok(result)
     } catch (error) {
-      console.error('Error syncing calendar:', error)
+      logger.error({ err: error }, 'Error syncing calendar')
       return response.internalServerError({
         success: false,
         message: error instanceof Error ? error.message : 'Sync failed',
@@ -207,7 +208,7 @@ export default class GoogleOAuthController {
       const history = await calendarSyncService.getSyncHistory(50)
       return response.ok(history)
     } catch (error) {
-      console.error('Error fetching sync history:', error)
+      logger.error({ err: error }, 'Error fetching sync history')
       return response.internalServerError({
         message: 'Failed to fetch sync history',
       })
@@ -234,7 +235,7 @@ export default class GoogleOAuthController {
         syncMode: mode,
       })
     } catch (error) {
-      console.error('Error updating sync mode:', error)
+      logger.error({ err: error }, 'Error updating sync mode')
       return response.internalServerError({
         message: 'Failed to update sync mode',
       })

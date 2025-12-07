@@ -21,6 +21,25 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    this.schema.dropTable('remember_me_tokens')
+    this.schema.dropTableIfExists('remember_me_tokens')
+
+    // Recreer les tables separees si necessaire
+    this.schema.createTableIfNotExists('admin_remember_me_tokens', (table) => {
+      table.increments('id')
+      table.uuid('tokenable_id').notNullable()
+      table.string('hash').notNullable()
+      table.timestamp('created_at').notNullable()
+      table.timestamp('updated_at').notNullable()
+      table.timestamp('expires_at').notNullable()
+    })
+
+    this.schema.createTableIfNotExists('client_remember_me_tokens', (table) => {
+      table.increments('id')
+      table.uuid('tokenable_id').notNullable()
+      table.string('hash').notNullable()
+      table.timestamp('created_at').notNullable()
+      table.timestamp('updated_at').notNullable()
+      table.timestamp('expires_at').notNullable()
+    })
   }
 }

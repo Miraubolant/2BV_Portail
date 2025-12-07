@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import microsoftOAuthService from '#services/microsoft/microsoft_oauth_service'
 import syncService from '#services/microsoft/sync_service'
+import logger from '@adonisjs/core/services/logger'
 
 export default class MicrosoftOAuthController {
   /**
@@ -46,7 +47,7 @@ export default class MicrosoftOAuthController {
 
     // Handle errors from Microsoft
     if (error) {
-      console.error('Microsoft OAuth error:', error, errorDescription)
+      logger.error({ error, errorDescription }, 'Microsoft OAuth error')
       // Redirect to settings page with error
       return response.redirect(`/admin/parametres?onedrive_error=${encodeURIComponent(errorDescription || error)}`)
     }
@@ -60,7 +61,7 @@ export default class MicrosoftOAuthController {
       // Redirect to settings page with success
       return response.redirect('/admin/parametres?onedrive_success=true')
     } catch (err) {
-      console.error('Microsoft OAuth callback error:', err)
+      logger.error({ err }, 'Microsoft OAuth callback error')
       const message = err instanceof Error ? err.message : 'Unknown error'
       return response.redirect(`/admin/parametres?onedrive_error=${encodeURIComponent(message)}`)
     }
@@ -77,7 +78,7 @@ export default class MicrosoftOAuthController {
         message: 'OneDrive disconnected successfully',
       })
     } catch (error) {
-      console.error('Error disconnecting OneDrive:', error)
+      logger.error({ err: error }, 'Error disconnecting OneDrive')
       return response.internalServerError({
         message: 'Failed to disconnect OneDrive',
       })
@@ -132,7 +133,7 @@ export default class MicrosoftOAuthController {
         },
       })
     } catch (error) {
-      console.error('Error testing OneDrive connection:', error)
+      logger.error({ err: error }, 'Error testing OneDrive connection')
       return response.ok({
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error',
@@ -150,7 +151,7 @@ export default class MicrosoftOAuthController {
       const result = await syncService.syncAllDossiers(admin.id)
       return response.ok(result)
     } catch (error) {
-      console.error('Error syncing all dossiers:', error)
+      logger.error({ err: error }, 'Error syncing all dossiers')
       return response.internalServerError({
         success: false,
         message: error instanceof Error ? error.message : 'Sync failed',
@@ -168,7 +169,7 @@ export default class MicrosoftOAuthController {
       const result = await syncService.syncDossier(params.dossierId, admin.id)
       return response.ok(result)
     } catch (error) {
-      console.error('Error syncing dossier:', error)
+      logger.error({ err: error }, 'Error syncing dossier')
       return response.internalServerError({
         success: false,
         message: error instanceof Error ? error.message : 'Sync failed',
@@ -186,7 +187,7 @@ export default class MicrosoftOAuthController {
       const result = await syncService.initializeAllDossiers(admin.id)
       return response.ok(result)
     } catch (error) {
-      console.error('Error initializing OneDrive:', error)
+      logger.error({ err: error }, 'Error initializing OneDrive')
       return response.internalServerError({
         success: false,
         message: error instanceof Error ? error.message : 'Initialization failed',
@@ -202,7 +203,7 @@ export default class MicrosoftOAuthController {
       const history = await syncService.getSyncHistory(50)
       return response.ok(history)
     } catch (error) {
-      console.error('Error fetching sync history:', error)
+      logger.error({ err: error }, 'Error fetching sync history')
       return response.internalServerError({
         message: 'Failed to fetch sync history',
       })

@@ -1,25 +1,30 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from 'react'
 import { UnifiedAddModal } from '@/components/admin/unified-add-modal'
+
+type CreationType = 'client' | 'dossier' | 'evenement'
+type CreationCallback = (type: CreationType, data: any) => void
 
 interface UnifiedModalContextType {
   openModal: (options?: {
-    tab?: 'client' | 'dossier' | 'evenement'
+    tab?: CreationType
     clientId?: string
     dossierId?: string
   }) => void
   closeModal: () => void
+  subscribeToCreation: (callback: CreationCallback) => () => void
 }
 
 const UnifiedModalContext = createContext<UnifiedModalContextType | null>(null)
 
 export function UnifiedModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [defaultTab, setDefaultTab] = useState<'client' | 'dossier' | 'evenement'>('client')
+  const [defaultTab, setDefaultTab] = useState<CreationType>('client')
   const [preselectedClientId, setPreselectedClientId] = useState<string | undefined>()
   const [preselectedDossierId, setPreselectedDossierId] = useState<string | undefined>()
+  const subscribersRef = useRef<Set<CreationCallback>>(new Set())
 
   const openModal = useCallback((options?: {
-    tab?: 'client' | 'dossier' | 'evenement'
+    tab?: CreationType
     clientId?: string
     dossierId?: string
   }) => {
@@ -45,13 +50,22 @@ export function UnifiedModalProvider({ children }: { children: ReactNode }) {
     }, 200)
   }, [])
 
-  const handleSuccess = useCallback((type: 'client' | 'dossier' | 'evenement', _data: any) => {
-    // Can emit events or refresh data here if needed
-    console.log(`Created ${type}:`, _data)
+  const subscribeToCreation = useCallback((callback: CreationCallback) => {
+    subscribersRef.current.add(callback)
+    return () => {
+      subscribersRef.current.delete(callback)
+    }
+  }, [])
+
+  const handleSuccess = useCallback((type: CreationType, data: any) => {
+    // Notify all subscribers
+    subscribersRef.current.forEach((callback) => {
+      callback(type, data)
+    })
   }, [])
 
   return (
-    <UnifiedModalContext.Provider value={{ openModal, closeModal }}>
+    <UnifiedModalContext.Provider value={{ openModal, closeModal, subscribeToCreation }}>
       {children}
       <UnifiedAddModal
         open={isOpen}

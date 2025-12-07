@@ -67,7 +67,7 @@ interface AdminOption {
 
 const ClientsListPage = () => {
   const { filterByResponsable, adminId, loading: authLoading } = useAdminAuth()
-  const { openModal } = useUnifiedModal()
+  const { openModal, subscribeToCreation } = useUnifiedModal()
   const filterInitialized = useRef(false)
 
   const [clients, setClients] = useState<Client[]>([])
@@ -208,6 +208,16 @@ const ClientsListPage = () => {
   useEffect(() => {
     fetchAdmins()
   }, [])
+
+  // S'abonner aux creations depuis le modal unifie
+  useEffect(() => {
+    const unsubscribe = subscribeToCreation((type) => {
+      if (type === 'client') {
+        fetchClients()
+      }
+    })
+    return unsubscribe
+  }, [subscribeToCreation, fetchClients])
 
   // Ecouter les mises a jour en temps reel
   const handleClientUpdated = useCallback((updatedClient: Client) => {

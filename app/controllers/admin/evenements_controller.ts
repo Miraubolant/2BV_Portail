@@ -6,6 +6,7 @@ import calendarSyncService from '#services/google/calendar_sync_service'
 import GoogleToken from '#models/google_token'
 import googleConfig from '#config/google'
 import ActivityLogger from '#services/activity_logger'
+import logger from '@adonisjs/core/services/logger'
 
 const createEvenementValidator = vine.compile(
   vine.object({
@@ -146,7 +147,7 @@ export default class EvenementsController {
       const syncMode = await GoogleToken.getSyncMode(googleConfig.serviceKey)
       if (syncMode === 'auto') {
         calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
-          console.error('Failed to sync event to Google:', err)
+          logger.error({ err }, 'Failed to sync event to Google')
         })
       }
     }
@@ -189,7 +190,7 @@ export default class EvenementsController {
       const syncMode = await GoogleToken.getSyncMode(googleConfig.serviceKey)
       if (syncMode === 'auto') {
         calendarSyncService.syncEventToGoogle(evenement.id).catch((err) => {
-          console.error('Failed to sync event update to Google:', err)
+          logger.error({ err }, 'Failed to sync event update to Google')
         })
       }
     }
@@ -214,7 +215,7 @@ export default class EvenementsController {
     // Delete from Google Calendar if synced (async, don't block response)
     if (evenement.googleEventId) {
       calendarSyncService.deleteEventFromGoogle(evenement.googleEventId).catch((err) => {
-        console.error('Failed to delete event from Google:', err)
+        logger.error({ err }, 'Failed to delete event from Google')
       })
     }
 

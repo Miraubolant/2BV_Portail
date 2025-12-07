@@ -69,6 +69,7 @@ const ParametresPage = () => {
   })
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [typesSettings, setTypesSettings] = useState<TypesSettings>({
     dossierTypes: [],
     evenementTypes: [],
@@ -227,14 +228,18 @@ const ParametresPage = () => {
   const handleSaveAll = async () => {
     setSaving(true)
     setSaveSuccess(false)
+    setSaveError(null)
     try {
       // Save notification settings
-      await fetch('/api/admin/auth/notifications', {
+      const notifResponse = await fetch('/api/admin/auth/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(notifSettings),
       })
+      if (!notifResponse.ok) {
+        throw new Error('Erreur lors de la sauvegarde des notifications')
+      }
       setInitialNotifSettings({ ...notifSettings })
 
       // Save types (for super_admin only, shared across cabinet)
@@ -248,12 +253,15 @@ const ParametresPage = () => {
           { cle: 'dossier_types_affaire', valeur: JSON.stringify(typesSettings.dossierTypes) },
           { cle: 'evenement_types', valeur: JSON.stringify(typesSettings.evenementTypes) }
         )
-        await fetch(ADMIN_PARAMETRES_API, {
+        const paramResponse = await fetch(ADMIN_PARAMETRES_API, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ parametres: parametresArray }),
         })
+        if (!paramResponse.ok) {
+          throw new Error('Erreur lors de la sauvegarde des parametres')
+        }
         setInitialTypesSettings({
           dossierTypes: [...typesSettings.dossierTypes],
           evenementTypes: [...typesSettings.evenementTypes],
@@ -264,6 +272,7 @@ const ParametresPage = () => {
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (error) {
       console.error('Error saving settings:', error)
+      setSaveError(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)
     }
@@ -335,24 +344,29 @@ const ParametresPage = () => {
               {isSuperAdmin ? 'Configuration du cabinet et preferences personnelles' : 'Mes preferences'}
             </p>
           </div>
-          <Button onClick={handleSaveAll} disabled={saving}>
-            {saveSuccess ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Enregistre
-              </>
-            ) : saving ? (
-              <>
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                Sauvegarde...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Sauvegarder
-              </>
+          <div className="flex items-center gap-3">
+            {saveError && (
+              <span className="text-sm text-destructive">{saveError}</span>
             )}
-          </Button>
+            <Button onClick={handleSaveAll} disabled={saving}>
+              {saveSuccess ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Enregistre
+                </>
+              ) : saving ? (
+                <>
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  Sauvegarde...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Sauvegarder
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="preferences">

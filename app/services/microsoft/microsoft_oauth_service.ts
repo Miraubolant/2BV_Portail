@@ -1,5 +1,6 @@
 import microsoftConfig from '#config/microsoft'
 import MicrosoftToken from '#models/microsoft_token'
+import logger from '@adonisjs/core/services/logger'
 
 interface TokenResponse {
   access_token: string
@@ -161,7 +162,7 @@ class MicrosoftOAuthService {
 
       return newTokens.access_token
     } catch (error) {
-      console.error('Failed to refresh Microsoft token:', error)
+      logger.error({ err: error }, 'Failed to refresh Microsoft token')
       return null
     }
   }

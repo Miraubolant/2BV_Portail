@@ -73,6 +73,14 @@ export default class ClientsController {
     const data = await request.validateUsing(createClientValidator)
     const admin = auth.use('admin').user!
 
+    // Verifier si l'email existe deja
+    const existingClient = await Client.findBy('email', data.email)
+    if (existingClient) {
+      return response.conflict({
+        message: 'Un client avec cette adresse email existe deja',
+      })
+    }
+
     // Generer un mot de passe si non fourni
     let password = data.password
     if (!password) {

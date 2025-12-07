@@ -35,7 +35,7 @@ export default class Admin extends compose(BaseModel, AuthFinder) {
   @column()
   declare role: 'super_admin' | 'admin'
 
-  @column()
+  @column({ serializeAs: null })
   declare totpSecret: string | null
 
   @column()
