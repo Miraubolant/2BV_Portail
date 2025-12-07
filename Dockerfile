@@ -17,20 +17,21 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set build-time env vars and build (these are overridden at runtime by Coolify)
-ENV NODE_ENV=production \
-    TZ=Europe/Paris \
-    PORT=3333 \
-    HOST=0.0.0.0 \
-    LOG_LEVEL=info \
-    APP_KEY=build-time-dummy-key-32-chars-minimum \
-    SESSION_DRIVER=cookie \
-    DB_HOST=localhost \
-    DB_PORT=5432 \
-    DB_USER=postgres \
-    DB_PASSWORD=dummy \
-    DB_DATABASE=dummy
+# Create .env file for build (AdonisJS requires it)
+RUN echo "NODE_ENV=production" > .env && \
+    echo "TZ=Europe/Paris" >> .env && \
+    echo "PORT=3333" >> .env && \
+    echo "HOST=0.0.0.0" >> .env && \
+    echo "LOG_LEVEL=info" >> .env && \
+    echo "APP_KEY=build-time-dummy-key-32-chars-minimum" >> .env && \
+    echo "SESSION_DRIVER=cookie" >> .env && \
+    echo "DB_HOST=localhost" >> .env && \
+    echo "DB_PORT=5432" >> .env && \
+    echo "DB_USER=postgres" >> .env && \
+    echo "DB_PASSWORD=dummy" >> .env && \
+    echo "DB_DATABASE=dummy" >> .env
 
+# Build AdonisJS
 RUN node ace build
 
 # Production image
@@ -40,7 +41,7 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 adonisjs
 
-# Copy only production dependencies
+# Copy production dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev && npm cache clean --force
 
