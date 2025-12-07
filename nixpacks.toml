@@ -1,10 +1,8 @@
-# ================================
 # Nixpacks configuration for Coolify
-# AdonisJS 6 application
-# ================================
+# Simple configuration for AdonisJS 6
 
 [phases.setup]
-nixPkgs = ["nodejs_22", "npm"]
+nixPkgs = ["nodejs_22"]
 
 [phases.install]
 cmds = ["npm ci"]
@@ -13,8 +11,7 @@ cmds = ["npm ci"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "node ./build/bin/server.js"
+cmd = "node build/bin/server.js"
 
 [variables]
-NODE_ENV = "production"
 NPM_CONFIG_PRODUCTION = "false"
