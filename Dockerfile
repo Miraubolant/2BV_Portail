@@ -1,58 +1,101 @@
-# ================================
-# 2BV Portail - Production Dockerfile
-# AdonisJS 6 + React + Inertia
-# ================================
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOCKERFILE - Portail Cabinet d'Avocats
+# Multi-stage build optimise pour la production avec Coolify
+# ═══════════════════════════════════════════════════════════════════════════════
 
-FROM node:22-alpine AS base
-RUN apk add --no-cache libc6-compat curl
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 1: Dependencies
+# ───────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS deps
+
+# Installer pnpm globalement
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
-# Install all dependencies
-FROM base AS deps
-COPY package.json package-lock.json* ./
-RUN npm ci
+# Copier uniquement les fichiers de dependances pour optimiser le cache Docker
+COPY package.json pnpm-lock.yaml ./
 
-# Build the application
-FROM base AS builder
+# Installer toutes les dependances (incluant devDependencies pour le build)
+RUN pnpm install --frozen-lockfile
+
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 2: Builder
+# ───────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copier node_modules du stage deps
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copier le code source
 COPY . .
 
-# Create .env file for build (AdonisJS requires it)
-RUN echo "NODE_ENV=production" > .env && \
-    echo "TZ=Europe/Paris" >> .env && \
-    echo "PORT=3333" >> .env && \
-    echo "HOST=0.0.0.0" >> .env && \
-    echo "LOG_LEVEL=info" >> .env && \
-    echo "APP_KEY=build-time-dummy-key-32-chars-minimum" >> .env && \
-    echo "SESSION_DRIVER=cookie" >> .env && \
-    echo "DB_HOST=localhost" >> .env && \
-    echo "DB_PORT=5432" >> .env && \
-    echo "DB_USER=postgres" >> .env && \
-    echo "DB_PASSWORD=dummy" >> .env && \
-    echo "DB_DATABASE=dummy" >> .env
+# Variables d'environnement pour le build
+ENV NODE_ENV=production
 
-# Build AdonisJS
-RUN node ace build
+# Build de l'application AdonisJS (compile TypeScript + Vite)
+# --ignore-ts-errors car les fichiers de tests sont exclus du contexte Docker
+RUN pnpm build --ignore-ts-errors
 
-# Production image
-FROM base AS runner
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 3: Production
+# ───────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS production
+
+# Metadonnees de l'image
+LABEL maintainer="2BV Cabinet"
+LABEL description="Portail Cabinet d'Avocats - Production"
+LABEL version="1.0.0"
+
+# Installer dumb-init pour une gestion propre des signaux (SIGTERM, SIGINT)
+# et wget pour les health checks
+RUN apk add --no-cache dumb-init wget
+
+# Creer un utilisateur non-root pour la securite
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S adonisjs -u 1001 -G nodejs
+
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 adonisjs
+# Installer pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy production dependencies
-COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev && npm cache clean --force
+# Copier package.json pour les dependances de production
+COPY package.json pnpm-lock.yaml ./
 
-# Copy built application
-COPY --from=builder /app/build ./build
+# Installer UNIQUEMENT les dependances de production
+RUN pnpm install --frozen-lockfile --prod && \
+    pnpm store prune
 
-USER adonisjs
+# Copier le build depuis le stage builder
+COPY --from=builder --chown=adonisjs:nodejs /app/build ./
 
+# Copier les scripts de deploiement
+COPY --chown=adonisjs:nodejs scripts/ ./scripts/
+
+# Variables d'environnement par defaut
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3333
+ENV TZ=Europe/Paris
+ENV LOG_LEVEL=info
+
+# Exposer le port de l'application
 EXPOSE 3333
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3333/health || exit 1
+# Changer vers l'utilisateur non-root
+USER adonisjs
 
-CMD ["node", "build/bin/server.js"]
+# Health check - verifie que l'API repond
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3333/api/health || exit 1
+
+# Point d'entree avec dumb-init pour gestion des signaux
+ENTRYPOINT ["dumb-init", "--"]
+
+# Commande de demarrage
+CMD ["node", "bin/server.js"]

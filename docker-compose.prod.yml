@@ -1,0 +1,117 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOCKER COMPOSE - Production pour Coolify
+# Portail Cabinet d'Avocats
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # APPLICATION - AdonisJS + React
+  # ─────────────────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: portail_cabinet_app
+    restart: unless-stopped
+    environment:
+      # Application
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3333
+      TZ: Europe/Paris
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      APP_KEY: ${APP_KEY}
+
+      # Database (connexion interne Docker)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-portail_cabinet}
+
+      # Session
+      SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+
+      # Email (Resend)
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@votrecabinet.fr}
+
+      # Microsoft OneDrive
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET}
+      MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID}
+      MICROSOFT_REDIRECT_URI: ${MICROSOFT_REDIRECT_URI}
+
+      # Google Calendar
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+    ports:
+      - "3333:3333"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3333/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - portail_network
+    # Limite les ressources pour eviter les abus
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # DATABASE - PostgreSQL
+  # ─────────────────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: portail_cabinet_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-portail_cabinet}
+      # Optimisations PostgreSQL pour production
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=fr_FR.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_DATABASE:-portail_cabinet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - portail_network
+    # La DB n'est PAS exposee a l'exterieur (securite)
+    # Pour l'administration, utiliser un tunnel SSH ou pgAdmin dans un container separe
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VOLUMES PERSISTANTS
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+    name: portail_cabinet_postgres_data
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RESEAU INTERNE
+# ─────────────────────────────────────────────────────────────────────────────
+networks:
+  portail_network:
+    driver: bridge
+    name: portail_cabinet_network
