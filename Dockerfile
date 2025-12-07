@@ -22,8 +22,8 @@ COPY . .
 # Copy build-time .env file (AdonisJS requires .env file during build)
 COPY .env.docker .env
 
-# Build AdonisJS (compiles TypeScript + Vite assets)
-RUN node ace build
+# Debug: show .env content and try build with verbose output
+RUN cat .env && node ace build 2>&1 || (echo "Build failed, showing more info:" && node -e "console.log(process.env)" && exit 1)
 
 # Remove .env from build output (real values come from Coolify)
 RUN rm -f build/.env
