@@ -177,15 +177,15 @@ const DemandesRdvClientPage = () => {
     <>
       <Head title="Mes demandes de RDV" />
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Demandes de RDV</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold">Demandes de RDV</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Gerez vos demandes de rendez-vous avec le cabinet
             </p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto text-sm h-9">
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle demande
           </Button>
@@ -193,67 +193,69 @@ const DemandesRdvClientPage = () => {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
+            <LoaderCircle className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             {/* En attente */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                   En attente ({enAttente.length})
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   Demandes en cours de traitement par le cabinet
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 {enAttente.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {enAttente.map((demande) => (
                       <div
                         key={demande.id}
-                        className="rounded-lg border p-4 space-y-3"
+                        className="rounded-lg border p-3 sm:p-4 space-y-2 sm:space-y-3"
                       >
-                        <div className="flex items-start justify-between">
-                          <Badge variant="outline" className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
+                        <div className="flex items-start justify-between gap-2">
+                          <Badge variant="outline" className="flex items-center gap-1 text-[10px] sm:text-xs">
+                            <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                             En attente
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
                             {formatDateTime(demande.createdAt)}
                           </span>
                         </div>
 
                         <div>
-                          <p className="font-medium">{demande.motif}</p>
+                          <p className="font-medium text-sm sm:text-base line-clamp-2">{demande.motif}</p>
                           {demande.dateSouhaitee && (
-                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                              <CalendarClock className="h-3 w-3" />
-                              Date souhaitee: {new Date(demande.dateSouhaitee).toLocaleDateString('fr-FR')}
-                              {demande.creneau && ` (${creneauLabels[demande.creneau] || demande.creneau})`}
+                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <CalendarClock className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">
+                                Date: {new Date(demande.dateSouhaitee).toLocaleDateString('fr-FR')}
+                                {demande.creneau && ` (${creneauLabels[demande.creneau] || demande.creneau})`}
+                              </span>
                             </p>
                           )}
                           {demande.urgence && demande.urgence !== 'normal' && (
-                            <Badge variant="destructive" className="mt-1 flex items-center gap-1 w-fit">
-                              <AlertCircle className="h-3 w-3" />
+                            <Badge variant="destructive" className="mt-1 flex items-center gap-1 w-fit text-[10px] sm:text-xs">
+                              <AlertCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                               {urgenceLabels[demande.urgence] || demande.urgence}
                             </Badge>
                           )}
                         </div>
 
                         {demande.dossier && (
-                          <p className="text-sm flex items-center gap-1">
-                            <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                            Dossier: {demande.dossier.reference}
+                          <p className="text-xs sm:text-sm flex items-center gap-1">
+                            <FolderKanban className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">Dossier: {demande.dossier.reference}</span>
                           </p>
                         )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
                     Aucune demande en attente
                   </p>
                 )}
@@ -262,54 +264,54 @@ const DemandesRdvClientPage = () => {
 
             {/* Historique */}
             <Card>
-              <CardHeader>
-                <CardTitle>Historique</CardTitle>
-                <CardDescription>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg">Historique</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Demandes traitees par le cabinet
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 {traitees.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {traitees.map((demande) => {
                       const config = statutConfig[demande.statut]
                       const StatusIcon = config.icon
                       return (
                         <div
                           key={demande.id}
-                          className="rounded-lg border p-4 space-y-3"
+                          className="rounded-lg border p-3 sm:p-4 space-y-2 sm:space-y-3"
                         >
-                          <div className="flex items-start justify-between">
-                            <Badge variant={config.variant} className="flex items-center gap-1">
-                              <StatusIcon className="h-3 w-3" />
+                          <div className="flex items-start justify-between gap-2">
+                            <Badge variant={config.variant} className="flex items-center gap-1 text-[10px] sm:text-xs">
+                              <StatusIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                               {config.label}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
                               {formatDateTime(demande.createdAt)}
                             </span>
                           </div>
 
-                          <p className="text-sm">{demande.motif}</p>
+                          <p className="text-xs sm:text-sm line-clamp-2">{demande.motif}</p>
 
                           {demande.reponseAdmin && (
-                            <div className="bg-muted/50 rounded-md p-3">
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium">Reponse du cabinet:</span>{' '}
+                            <div className="bg-muted/50 rounded-md p-2 sm:p-3">
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                <span className="font-medium">Reponse:</span>{' '}
                                 {demande.reponseAdmin}
                               </p>
                             </div>
                           )}
 
                           {demande.evenement && (
-                            <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-3">
-                              <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                            <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2 sm:p-3">
+                              <p className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">
                                 RDV confirme
                               </p>
-                              <p className="text-sm text-green-600 dark:text-green-500">
+                              <p className="text-xs sm:text-sm text-green-600 dark:text-green-500 truncate">
                                 {demande.evenement.titre} - {formatDateTime(demande.evenement.dateDebut)}
                               </p>
                               {demande.evenement.lieu && (
-                                <p className="text-xs text-green-600 dark:text-green-500">
+                                <p className="text-[10px] sm:text-xs text-green-600 dark:text-green-500 truncate">
                                   Lieu: {demande.evenement.lieu}
                                 </p>
                               )}
@@ -320,7 +322,7 @@ const DemandesRdvClientPage = () => {
                     })}
                   </div>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
                     Aucune demande traitee
                   </p>
                 )}
@@ -332,29 +334,29 @@ const DemandesRdvClientPage = () => {
 
       {/* Modal de creation */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nouvelle demande de RDV</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Nouvelle demande de RDV</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Remplissez le formulaire ci-dessous pour demander un rendez-vous.
               Le cabinet vous repondra dans les meilleurs delais.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="dossier">Dossier concerne (optionnel)</Label>
+          <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="dossier" className="text-xs sm:text-sm">Dossier concerne (optionnel)</Label>
               <Select
                 value={formData.dossierId || 'none'}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, dossierId: value === 'none' ? '' : value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                   <SelectValue placeholder="Selectionnez un dossier" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Aucun dossier specifique</SelectItem>
+                  <SelectItem value="none" className="text-xs sm:text-sm">Aucun dossier specifique</SelectItem>
                   {dossiers.map((dossier) => (
-                    <SelectItem key={dossier.id} value={dossier.id}>
+                    <SelectItem key={dossier.id} value={dossier.id} className="text-xs sm:text-sm">
                       {dossier.reference} - {dossier.intitule}
                     </SelectItem>
                   ))}
@@ -362,73 +364,77 @@ const DemandesRdvClientPage = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateSouhaitee">Date souhaitee</Label>
-              <Input
-                id="dateSouhaitee"
-                type="date"
-                value={formData.dateSouhaitee}
-                onChange={(e) => setFormData({ ...formData, dateSouhaitee: e.target.value })}
-                min={new Date().toISOString().split('T')[0]}
-              />
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="dateSouhaitee" className="text-xs sm:text-sm">Date souhaitee</Label>
+                <Input
+                  id="dateSouhaitee"
+                  type="date"
+                  value={formData.dateSouhaitee}
+                  onChange={(e) => setFormData({ ...formData, dateSouhaitee: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="creneau" className="text-xs sm:text-sm">Creneau</Label>
+                <Select
+                  value={formData.creneau}
+                  onValueChange={(value) => setFormData({ ...formData, creneau: value })}
+                >
+                  <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="matin" className="text-xs sm:text-sm">Matin</SelectItem>
+                    <SelectItem value="apres_midi" className="text-xs sm:text-sm">Apres-midi</SelectItem>
+                    <SelectItem value="fin_journee" className="text-xs sm:text-sm">Fin de journee</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="creneau">Creneau prefere</Label>
-              <Select
-                value={formData.creneau}
-                onValueChange={(value) => setFormData({ ...formData, creneau: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="matin">Matin (9h-12h)</SelectItem>
-                  <SelectItem value="apres_midi">Apres-midi (14h-17h)</SelectItem>
-                  <SelectItem value="fin_journee">Fin de journee (17h-19h)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="urgence">Niveau d'urgence</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="urgence" className="text-xs sm:text-sm">Niveau d'urgence</Label>
               <Select
                 value={formData.urgence}
                 onValueChange={(value) => setFormData({ ...formData, urgence: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="tres_urgent">Tres urgent</SelectItem>
+                  <SelectItem value="normal" className="text-xs sm:text-sm">Normal</SelectItem>
+                  <SelectItem value="urgent" className="text-xs sm:text-sm">Urgent</SelectItem>
+                  <SelectItem value="tres_urgent" className="text-xs sm:text-sm">Tres urgent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="motif">Motif de la demande *</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="motif" className="text-xs sm:text-sm">Motif de la demande *</Label>
               <Textarea
                 id="motif"
                 value={formData.motif}
                 onChange={(e) => setFormData({ ...formData, motif: e.target.value })}
-                placeholder="Decrivez le motif de votre demande de rendez-vous (minimum 10 caracteres)..."
-                rows={4}
+                placeholder="Decrivez le motif de votre demande..."
+                rows={3}
+                className="text-xs sm:text-sm resize-none"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {formData.motif.length}/10 caracteres minimum
               </p>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowCreateModal(false)} className="w-full sm:w-auto h-9 text-xs sm:text-sm">
               Annuler
             </Button>
-            <Button onClick={handleCreate} disabled={creating || formData.motif.length < 10}>
-              {creating && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-              Envoyer la demande
+            <Button onClick={handleCreate} disabled={creating || formData.motif.length < 10} className="w-full sm:w-auto h-9 text-xs sm:text-sm">
+              {creating && <LoaderCircle className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />}
+              Envoyer
             </Button>
           </DialogFooter>
         </DialogContent>

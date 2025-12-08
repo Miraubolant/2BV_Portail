@@ -64,23 +64,23 @@ const ClientLoginPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-8 sm:p-4">
       <Head title="Connexion Espace Client" />
 
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-            <Scale className="h-6 w-6 text-primary-foreground" />
+        <CardHeader className="space-y-1 text-center p-4 sm:p-6">
+          <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary">
+            <Scale className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">Espace Client</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-xl sm:text-2xl">Espace Client</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Connectez-vous pour acceder a vos dossiers
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -90,12 +90,13 @@ const ClientLoginPage = () => {
                 required
                 autoFocus
                 autoComplete="email"
+                className="h-9 sm:h-10 text-sm"
               />
               <InputError message={errors.email} />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="password" className="text-xs sm:text-sm">Mot de passe</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -104,6 +105,7 @@ const ClientLoginPage = () => {
                   onChange={(e) => setData('password', e.target.value)}
                   required
                   autoComplete="current-password"
+                  className="h-9 sm:h-10 text-sm pr-10"
                 />
                 <Button
                   type="button"
@@ -128,18 +130,18 @@ const ClientLoginPage = () => {
                 checked={data.rememberMe}
                 onCheckedChange={(checked) => setData('rememberMe', checked as boolean)}
               />
-              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+              <Label htmlFor="rememberMe" className="text-xs sm:text-sm font-normal cursor-pointer">
                 Se souvenir de moi
               </Label>
             </div>
 
-            <Button type="submit" className="w-full" disabled={processing}>
+            <Button type="submit" className="w-full h-9 sm:h-10 text-sm" disabled={processing}>
               {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
               Se connecter
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-muted-foreground">
             <a href="/admin/login" className="hover:text-primary hover:underline">
               Acces administration
             </a>

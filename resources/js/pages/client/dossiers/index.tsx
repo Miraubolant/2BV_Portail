@@ -73,28 +73,28 @@ const ClientDossiersPage = () => {
     <>
       <Head title="Mes dossiers" />
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Mes dossiers</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Mes dossiers</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Consultez l'etat de vos dossiers en cours
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="en_cours">En cours</TabsTrigger>
-            <TabsTrigger value="cloture">Clotures</TabsTrigger>
-            <TabsTrigger value="tous">Tous</TabsTrigger>
+          <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
+            <TabsTrigger value="en_cours" className="text-xs sm:text-sm">En cours</TabsTrigger>
+            <TabsTrigger value="cloture" className="text-xs sm:text-sm">Clotures</TabsTrigger>
+            <TabsTrigger value="tous" className="text-xs sm:text-sm">Tous</TabsTrigger>
           </TabsList>
 
-          <TabsContent value={activeTab} className="mt-6">
+          <TabsContent value={activeTab} className="mt-4 sm:mt-6">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : dossiers.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {dossiers.map((dossier) => {
                   const config = statutLabels[dossier.statut] || {
                     label: dossier.statut,
@@ -102,43 +102,43 @@ const ClientDossiersPage = () => {
                   }
                   return (
                     <Card key={dossier.id} className="transition-shadow hover:shadow-md">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-lg">{dossier.reference}</CardTitle>
-                            <CardDescription className="line-clamp-2">
+                      <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <CardTitle className="text-base sm:text-lg truncate">{dossier.reference}</CardTitle>
+                            <CardDescription className="line-clamp-2 text-xs sm:text-sm">
                               {dossier.intitule}
                             </CardDescription>
                           </div>
-                          <Badge variant={config.variant}>{config.label}</Badge>
+                          <Badge variant={config.variant} className="text-[10px] sm:text-xs flex-shrink-0">{config.label}</Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 space-y-2 sm:space-y-3">
                         {dossier.typeAffaire && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <FolderKanban className="h-4 w-4" />
-                            <span>{dossier.typeAffaire}</span>
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                            <FolderKanban className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span className="truncate">{dossier.typeAffaire}</span>
                           </div>
                         )}
                         {dossier.dateOuverture && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                             <span>Ouvert le {formatDate(dossier.dateOuverture)}</span>
                           </div>
                         )}
                         {dossier.juridiction && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <FileText className="h-4 w-4" />
-                            <span>
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                            <FileText className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span className="truncate">
                               {dossier.juridiction}
                               {dossier.numeroRg && ` - RG: ${dossier.numeroRg}`}
                             </span>
                           </div>
                         )}
-                        <Button variant="outline" className="w-full" asChild>
+                        <Button variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-9" asChild>
                           <Link href={`/espace-client/dossiers/${dossier.id}`}>
                             Voir le detail
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                            <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                           </Link>
                         </Button>
                       </CardContent>

@@ -80,34 +80,34 @@ const ClientTotpPage = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-        <LoaderCircle className="h-8 w-8 animate-spin text-white" />
+        <LoaderCircle className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-white" />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-8 sm:p-4">
       <Head title="Securite 2FA" />
 
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-            <Shield className="h-6 w-6 text-primary-foreground" />
+        <CardHeader className="space-y-1 text-center p-4 sm:p-6">
+          <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary">
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">
+          <CardTitle className="text-xl sm:text-2xl">
             {setupMode ? 'Activation 2FA obligatoire' : 'Verification 2FA'}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             {setupMode
               ? 'Pour securiser votre compte, veuillez configurer l\'authentification a deux facteurs'
               : 'Entrez le code de votre application d\'authentification'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
           {setupMode && (
-            <Alert className="mb-4">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="mb-3 sm:mb-4">
+              <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <AlertDescription className="text-xs sm:text-sm">
                 La double authentification est obligatoire pour acceder a vos dossiers.
                 Utilisez une application comme Google Authenticator ou Authy.
               </AlertDescription>
@@ -115,16 +115,16 @@ const ClientTotpPage = () => {
           )}
 
           {setupMode && qrCode && (
-            <div className="mb-6 flex flex-col items-center space-y-4">
-              <div className="rounded-lg border bg-white p-4">
-                <img src={qrCode} alt="QR Code" className="h-48 w-48" />
+            <div className="mb-4 sm:mb-6 flex flex-col items-center space-y-3 sm:space-y-4">
+              <div className="rounded-lg border bg-white p-3 sm:p-4">
+                <img src={qrCode} alt="QR Code" className="h-36 w-36 sm:h-48 sm:w-48" />
               </div>
               {secret && (
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Ou entrez ce code manuellement :
                   </p>
-                  <code className="mt-1 block rounded bg-muted px-2 py-1 font-mono text-sm">
+                  <code className="mt-1 block rounded bg-muted px-2 py-1 font-mono text-[10px] sm:text-sm break-all">
                     {secret}
                   </code>
                 </div>
@@ -132,9 +132,9 @@ const ClientTotpPage = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">Code a 6 chiffres</Label>
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="code" className="text-xs sm:text-sm">Code a 6 chiffres</Label>
               <Input
                 id="code"
                 type="text"
@@ -146,14 +146,14 @@ const ClientTotpPage = () => {
                 onChange={(e) => setData('code', e.target.value.replace(/\D/g, ''))}
                 required
                 autoFocus
-                className="text-center text-2xl tracking-widest"
+                className="text-center text-xl sm:text-2xl tracking-widest h-12 sm:h-14"
               />
               <InputError message={errors.code} />
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-9 sm:h-10 text-sm"
               disabled={processing || data.code.length !== 6}
             >
               {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}

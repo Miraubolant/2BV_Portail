@@ -447,40 +447,40 @@ const ClientDossierShowPage = () => {
     <>
       <Head title={dossier.reference} />
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0" asChild>
               <Link href="/espace-client/dossiers">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{dossier.reference}</h1>
-                <Badge variant={config.variant}>{config.label}</Badge>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold">{dossier.reference}</h1>
+                <Badge variant={config.variant} className="text-[10px] sm:text-xs">{config.label}</Badge>
               </div>
-              <p className="text-muted-foreground">{dossier.intitule}</p>
+              <p className="text-sm sm:text-base text-muted-foreground line-clamp-2">{dossier.intitule}</p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="documents">
-              Documents {documents.length > 0 && `(${documents.length})`}
+          <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
+            <TabsTrigger value="documents" className="text-xs sm:text-sm px-2 sm:px-3">
+              Documents {documents.length > 0 && <span className="hidden sm:inline ml-1">({documents.length})</span>}
             </TabsTrigger>
-            <TabsTrigger value="infos">Informations</TabsTrigger>
-            <TabsTrigger value="chronologie">
-              Chronologie {evenements.length > 0 && `(${evenements.length})`}
+            <TabsTrigger value="infos" className="text-xs sm:text-sm px-2 sm:px-3">Infos</TabsTrigger>
+            <TabsTrigger value="chronologie" className="text-xs sm:text-sm px-2 sm:px-3">
+              Chrono {evenements.length > 0 && <span className="hidden sm:inline ml-1">({evenements.length})</span>}
             </TabsTrigger>
           </TabsList>
 
           {/* Tab: Informations */}
-          <TabsContent value="infos" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
+          <TabsContent value="infos" className="space-y-4 sm:space-y-6 mt-4">
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
               {/* Informations generales */}
               <Card>
                 <CardHeader>
@@ -560,29 +560,32 @@ const ClientDossierShowPage = () => {
           </TabsContent>
 
           {/* Tab: Documents */}
-          <TabsContent value="documents" className="space-y-4">
+          <TabsContent value="documents" className="space-y-4 mt-4">
             <div className="flex justify-end">
               <Button
                 onClick={() => setShowUploadModal(true)}
                 disabled={!canUpload}
                 title={!canUpload ? 'L\'envoi de documents n\'est pas autorise pour votre compte' : undefined}
+                className="text-xs sm:text-sm h-8 sm:h-9"
+                size="sm"
               >
-                <Upload className="mr-2 h-4 w-4" />
-                Envoyer un document
+                <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Envoyer un document</span>
+                <span className="sm:hidden">Envoyer</span>
               </Button>
             </div>
 
             {documents.length > 0 ? (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                     Documents ({documents.length})
                   </CardTitle>
-                  <CardDescription>Cliquez sur un document pour l'apercevoir</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">Cliquez sur un document pour l'apercevoir</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <CardContent className="p-3 sm:p-6 pt-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
                     {documents.map((doc) => (
                       <div key={doc.id} className="group">
                         {/* Thumbnail */}
@@ -644,32 +647,32 @@ const ClientDossierShowPage = () => {
           </TabsContent>
 
           {/* Tab: Chronologie */}
-          <TabsContent value="chronologie" className="space-y-4">
+          <TabsContent value="chronologie" className="space-y-3 sm:space-y-4 mt-4">
             {evenements.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {evenements.map((evt) => (
                   <Card key={evt.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Clock className="h-6 w-6 text-primary" />
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{evt.titre}</h3>
-                            <Badge variant="outline">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold text-sm sm:text-base">{evt.titre}</h3>
+                            <Badge variant="outline" className="text-[10px] sm:text-xs">
                               {typeEvenementLabels[evt.type] || evt.type}
                             </Badge>
                           </div>
                           {evt.description && (
-                            <p className="text-muted-foreground mt-1">{evt.description}</p>
+                            <p className="text-muted-foreground text-xs sm:text-sm mt-1 line-clamp-2">{evt.description}</p>
                           )}
-                          <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-2 flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             {evt.dateDebut ? formatDate(evt.dateDebut) : '-'}
                           </p>
                           {evt.lieu && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
                               Lieu: {evt.lieu}
                             </p>
                           )}
@@ -681,10 +684,10 @@ const ClientDossierShowPage = () => {
               </div>
             ) : (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Clock className="h-12 w-12 text-muted-foreground" />
-                  <p className="mt-4 text-lg font-medium">Aucun evenement</p>
-                  <p className="text-sm text-muted-foreground">
+                <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+                  <Clock className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
+                  <p className="mt-4 text-base sm:text-lg font-medium">Aucun evenement</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground text-center">
                     Aucun evenement n'a ete enregistre pour ce dossier
                   </p>
                 </CardContent>
@@ -696,18 +699,18 @@ const ClientDossierShowPage = () => {
 
       {/* Preview Modal */}
       <Dialog open={!!previewDoc} onOpenChange={() => closePreview()}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-auto p-3 sm:p-6">
           <DialogHeader>
-            <DialogTitle>{previewDoc?.nom}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg pr-8 truncate">{previewDoc?.nom}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               {previewDoc && typeDocumentLabels[previewDoc.typeDocument || ''] || 'Document'}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-center min-h-[400px] bg-muted/50 rounded-lg">
+          <div className="flex items-center justify-center min-h-[200px] sm:min-h-[400px] bg-muted/50 rounded-lg overflow-auto">
             {!previewUrl ? (
               <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : previewDoc?.mimeType === 'application/pdf' ? (
-              <div className="w-full">
+              <div className="w-full overflow-x-auto">
                 <PDFDocument
                   file={previewUrl}
                   onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -717,8 +720,8 @@ const ClientDossierShowPage = () => {
                     <Page
                       key={`page_${index + 1}`}
                       pageNumber={index + 1}
-                      width={700}
-                      className="mb-4"
+                      width={typeof window !== 'undefined' && window.innerWidth < 640 ? window.innerWidth - 48 : 700}
+                      className="mb-4 mx-auto"
                     />
                   ))}
                 </PDFDocument>
@@ -727,16 +730,16 @@ const ClientDossierShowPage = () => {
               <img
                 src={previewUrl}
                 alt={previewDoc.nom}
-                className="max-w-full max-h-[600px] object-contain"
+                className="max-w-full max-h-[50vh] sm:max-h-[600px] object-contain"
               />
             ) : null}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closePreview}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={closePreview} className="w-full sm:w-auto">
               Fermer
             </Button>
             {previewDoc && (
-              <Button onClick={() => handleDownload(previewDoc)}>
+              <Button onClick={() => handleDownload(previewDoc)} className="w-full sm:w-auto">
                 <Download className="mr-2 h-4 w-4" />
                 Telecharger
               </Button>
@@ -747,10 +750,10 @@ const ClientDossierShowPage = () => {
 
       {/* Upload Modal */}
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="w-[95vw] sm:max-w-[500px] p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Envoyer un document</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Envoyer un document</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Ajoutez un document a votre dossier
             </DialogDescription>
           </DialogHeader>
@@ -841,11 +844,11 @@ const ClientDossierShowPage = () => {
               </>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUploadModal(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowUploadModal(false)} className="w-full sm:w-auto">
               Annuler
             </Button>
-            <Button onClick={handleUpload} disabled={!uploadFile || uploading}>
+            <Button onClick={handleUpload} disabled={!uploadFile || uploading} className="w-full sm:w-auto">
               {uploading ? (
                 <>
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
