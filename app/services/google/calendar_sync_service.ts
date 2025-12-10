@@ -40,11 +40,11 @@ class CalendarSyncService {
       if (evenement.googleEventId) {
         // Update existing event
         const result = await googleCalendarService.updateEvent(evenement)
-        if (result.success) {
+        if (result.success && !result.skipped) {
           evenement.googleLastSync = DateTime.now()
           await evenement.save()
         }
-        return result
+        return { success: result.success, error: result.error }
       } else {
         // Create new event
         const result = await googleCalendarService.createEvent(evenement)
@@ -86,6 +86,7 @@ class CalendarSyncService {
     let updated = 0
     let deleted = 0
     let errors = 0
+    let skipped = 0
 
     const isReady = await googleCalendarService.isReady()
     if (!isReady) {
@@ -115,10 +116,15 @@ class CalendarSyncService {
             // Update existing event
             const result = await googleCalendarService.updateEvent(evenement)
             if (result.success) {
-              evenement.googleLastSync = DateTime.now()
-              await evenement.save()
-              updated++
-              details.push(`Updated: ${evenement.titre}`)
+              if (result.skipped) {
+                skipped++
+                details.push(`Skipped (restricted type): ${evenement.titre}`)
+              } else {
+                evenement.googleLastSync = DateTime.now()
+                await evenement.save()
+                updated++
+                details.push(`Updated: ${evenement.titre}`)
+              }
             } else {
               errors++
               details.push(`Error updating ${evenement.titre}: ${result.error}`)
@@ -167,13 +173,14 @@ class CalendarSyncService {
         elementsSupprimes: deleted,
         elementsErreur: errors,
         message: success
-          ? `Sync completed: ${created} created, ${updated} updated`
+          ? `Sync completed: ${created} created, ${updated} updated${skipped > 0 ? `, ${skipped} skipped` : ''}`
           : `Sync completed with ${errors} errors`,
         details,
         dureeMs: duration,
         triggeredById,
       })
 
+      const skippedMsg = skipped > 0 ? `, ${skipped} ignores` : ''
       return {
         success,
         synced: created + updated,
@@ -182,7 +189,7 @@ class CalendarSyncService {
         deleted,
         errors,
         message: success
-          ? `Synchronisation terminee: ${created} crees, ${updated} mis a jour`
+          ? `Synchronisation terminee: ${created} crees, ${updated} mis a jour${skippedMsg}`
           : `Synchronisation terminee avec ${errors} erreurs`,
         details,
       }

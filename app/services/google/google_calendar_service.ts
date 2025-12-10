@@ -30,7 +30,11 @@ export interface GoogleCalendarEvent {
     }
   }
   status?: string // 'confirmed', 'tentative', 'cancelled'
+  eventType?: string // 'default', 'birthday', 'focusTime', 'outOfOffice', 'workingLocation'
 }
+
+// Event types that cannot be modified via API
+const RESTRICTED_EVENT_TYPES = ['birthday', 'focusTime', 'outOfOffice', 'workingLocation']
 
 export interface CalendarListEntry {
   id: string
@@ -154,7 +158,7 @@ class GoogleCalendarService {
   /**
    * Update an event on Google Calendar
    */
-  async updateEvent(evenement: Evenement): Promise<{ success: boolean; error?: string }> {
+  async updateEvent(evenement: Evenement): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
     if (!evenement.googleEventId) {
       return { success: false, error: 'No Google event ID' }
     }
@@ -167,6 +171,14 @@ class GoogleCalendarService {
     const calendarId = await this.getSelectedCalendarId()
     if (!calendarId) {
       return { success: false, error: 'No calendar selected' }
+    }
+
+    // First, fetch the existing event to check its type
+    const existingEvent = await this.getEvent(evenement.googleEventId)
+    if (existingEvent && existingEvent.eventType && RESTRICTED_EVENT_TYPES.includes(existingEvent.eventType)) {
+      // Skip updating special event types (birthday, focus time, etc.)
+      logger.info({ eventType: existingEvent.eventType, title: evenement.titre }, 'Skipping restricted event type')
+      return { success: true, skipped: true }
     }
 
     const googleEvent = this.evenementToGoogleEvent(evenement)
@@ -182,9 +194,16 @@ class GoogleCalendarService {
       )
 
       if (!response.ok) {
-        const error = await response.text()
-        logger.error({ response: error }, 'Failed to update Google event')
-        return { success: false, error }
+        const errorText = await response.text()
+
+        // Check if it's an eventType restriction error - skip gracefully
+        if (errorText.includes('eventTypeRestriction') || errorText.includes('Event type cannot be changed')) {
+          logger.info({ title: evenement.titre }, 'Skipping event due to type restriction')
+          return { success: true, skipped: true }
+        }
+
+        logger.error({ response: errorText }, 'Failed to update Google event')
+        return { success: false, error: errorText }
       }
 
       return { success: true }
