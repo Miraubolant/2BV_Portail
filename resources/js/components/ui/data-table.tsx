@@ -121,88 +121,96 @@ export function DataTable<T>({
   }, [data.length])
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {columns.map((column) => (
-                <TableHead
-                  key={column.key}
-                  style={{ width: column.width }}
-                  className={cn(
-                    column.sortable && 'cursor-pointer select-none'
-                  )}
-                  onClick={() => column.sortable && handleSort(column.key)}
-                >
-                  <div className="flex items-center">
-                    {column.header}
-                    {column.sortable && getSortIcon(column.key)}
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: skeletonCount }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`}>
+    <div className="space-y-3 sm:space-y-4">
+      <div className="rounded-lg border bg-card overflow-hidden">
+        {/* Scroll indicator for mobile */}
+        <div className="relative">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
                   {columns.map((column) => (
-                    <TableCell key={column.key}>
-                      <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                    </TableCell>
+                    <TableHead
+                      key={column.key}
+                      style={{ width: column.width }}
+                      className={cn(
+                        'whitespace-nowrap',
+                        column.sortable && 'cursor-pointer select-none'
+                      )}
+                      onClick={() => column.sortable && handleSort(column.key)}
+                    >
+                      <div className="flex items-center">
+                        {column.header}
+                        {column.sortable && getSortIcon(column.key)}
+                      </div>
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : paginatedData.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Aucune donnee
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedData.map((row) => (
-                <TableRow key={getRowKey(row)}>
-                  {columns.map((column) => (
-                    <TableCell key={column.key}>
-                      {column.render
-                        ? column.render(row)
-                        : String((row as Record<string, unknown>)[column.key] ?? '-')}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  Array.from({ length: skeletonCount }).map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      {columns.map((column) => (
+                        <TableCell key={column.key}>
+                          <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-20 sm:h-24 text-center text-muted-foreground"
+                    >
+                      Aucune donnee
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                  </TableRow>
+                ) : (
+                  paginatedData.map((row) => (
+                    <TableRow key={getRowKey(row)}>
+                      {columns.map((column) => (
+                        <TableCell key={column.key}>
+                          {column.render
+                            ? column.render(row)
+                            : String((row as Record<string, unknown>)[column.key] ?? '-')}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-1 sm:px-2">
+          <p className="text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
             {sortedData.length} element{sortedData.length > 1 ? 's' : ''}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 order-1 sm:order-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              className="h-8 w-8 sm:h-9 sm:w-9 p-0"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {currentPage} sur {totalPages}
+            <span className="text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[100px] text-center">
+              {currentPage} / {totalPages}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
+              className="h-8 w-8 sm:h-9 sm:w-9 p-0"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

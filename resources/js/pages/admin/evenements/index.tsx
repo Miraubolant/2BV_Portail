@@ -1056,28 +1056,34 @@ const EvenementsPage = () => {
             setShowCreateModal(true)
           }
 
+          // Mobile: show abbreviated day names, Desktop: full names
+          const dayNames = {
+            short: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+            medium: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+          }
+
           return (
             <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={prevMonth}>
+              <CardHeader className="p-3 sm:p-6 pb-2">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+                  <div className="flex items-center gap-1 sm:gap-2 order-2 sm:order-1">
+                    <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8 sm:h-9 sm:w-9">
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={goToToday}>
+                    <Button variant="outline" size="sm" onClick={goToToday} className="h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
                       Aujourd'hui
                     </Button>
-                    <Button variant="outline" size="icon" onClick={nextMonth}>
+                    <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8 sm:h-9 sm:w-9">
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                  <CardTitle className="capitalize text-xl">{monthName}</CardTitle>
-                  <Badge variant="secondary" className="text-sm">
-                    {filteredEvents.length} evenement{filteredEvents.length > 1 ? 's' : ''}
+                  <CardTitle className="capitalize text-base sm:text-xl order-1 sm:order-2">{monthName}</CardTitle>
+                  <Badge variant="secondary" className="text-xs sm:text-sm order-3">
+                    {filteredEvents.length} evt{filteredEvents.length > 1 ? 's' : ''}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="p-2 sm:p-4">
+              <CardContent className="p-1.5 sm:p-4">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -1086,25 +1092,26 @@ const EvenementsPage = () => {
                   <div className="border rounded-lg overflow-hidden">
                     {/* Days header */}
                     <div className="grid grid-cols-7 bg-muted/50 border-b">
-                      {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day, i) => (
+                      {dayNames.medium.map((day, i) => (
                         <div
-                          key={day}
+                          key={day + i}
                           className={cn(
-                            'py-2 text-center text-sm font-medium text-muted-foreground',
+                            'py-1.5 sm:py-2 text-center text-[10px] sm:text-sm font-medium text-muted-foreground',
                             i === 5 || i === 6 ? 'text-muted-foreground/60' : ''
                           )}
                         >
-                          {day}
+                          <span className="hidden sm:inline">{day}</span>
+                          <span className="sm:hidden">{dayNames.short[i]}</span>
                         </div>
                       ))}
                     </div>
                     {/* Calendar grid */}
                     <div className="divide-y">
                       {weeks.map((week, weekIndex) => (
-                        <div key={weekIndex} className="grid grid-cols-7 divide-x min-h-[100px]">
+                        <div key={weekIndex} className="grid grid-cols-7 divide-x min-h-[60px] sm:min-h-[100px]">
                           {week.map((day, dayIndex) => {
                             if (day === null) {
-                              return <div key={dayIndex} className="bg-muted/20 p-1" />
+                              return <div key={dayIndex} className="bg-muted/20 p-0.5 sm:p-1" />
                             }
 
                             const dayEvents = getEventsForDay(day)
@@ -1117,29 +1124,31 @@ const EvenementsPage = () => {
                               <div
                                 key={dayIndex}
                                 className={cn(
-                                  'p-1 relative group transition-colors cursor-pointer hover:bg-muted/30',
+                                  'p-0.5 sm:p-1 relative group transition-colors cursor-pointer hover:bg-muted/30 min-w-0',
                                   isWeekend && 'bg-muted/10',
                                   isToday && 'bg-primary/5'
                                 )}
                                 onClick={() => handleDayClick(day)}
                               >
                                 {/* Day number */}
-                                <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                                   <span
                                     className={cn(
-                                      'inline-flex items-center justify-center w-6 h-6 text-sm rounded-full',
+                                      'inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 text-[10px] sm:text-sm rounded-full',
                                       isToday && 'bg-primary text-primary-foreground font-bold',
                                       !isToday && 'font-medium text-foreground'
                                     )}
                                   >
                                     {day}
                                   </span>
-                                  <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
                                 </div>
-                                {/* Events */}
-                                <div className="space-y-0.5 max-h-[72px] overflow-hidden">
-                                  {dayEvents.slice(0, 3).map((event) => {
+                                {/* Events - responsive display */}
+                                <div className="space-y-0.5 max-h-[36px] sm:max-h-[72px] overflow-hidden">
+                                  {dayEvents.slice(0, 3).map((event, eventIndex) => {
                                     const typeConfig = typeLabels[event.type] || typeLabels.autre
+                                    // Hide 3rd event on mobile
+                                    const hideOnMobile = eventIndex >= 2
                                     return (
                                       <div
                                         key={event.id}
@@ -1148,21 +1157,32 @@ const EvenementsPage = () => {
                                           openEditModal(event)
                                         }}
                                         className={cn(
-                                          'text-xs px-1.5 py-0.5 rounded truncate cursor-pointer transition-all hover:ring-1 hover:ring-primary/50',
-                                          typeConfig.badgeVariant
+                                          'text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer transition-all hover:ring-1 hover:ring-primary/50',
+                                          typeConfig.badgeVariant,
+                                          hideOnMobile && 'hidden sm:block'
                                         )}
                                         title={`${event.titre}${event.journeeEntiere ? '' : ` - ${formatTime(event.dateDebut)}`}`}
                                       >
-                                        {!event.journeeEntiere && (
-                                          <span className="font-medium mr-1">{formatTime(event.dateDebut)}</span>
-                                        )}
-                                        {event.titre}
+                                        <span className="hidden sm:inline">
+                                          {!event.journeeEntiere && (
+                                            <span className="font-medium mr-1">{formatTime(event.dateDebut)}</span>
+                                          )}
+                                          {event.titre}
+                                        </span>
+                                        <span className="sm:hidden">
+                                          {event.titre.slice(0, 6)}{event.titre.length > 6 ? '...' : ''}
+                                        </span>
                                       </div>
                                     )
                                   })}
                                   {dayEvents.length > 3 && (
-                                    <div className="text-xs text-muted-foreground px-1.5 font-medium">
-                                      +{dayEvents.length - 3} autres
+                                    <div className="text-[9px] sm:text-xs text-muted-foreground px-1 sm:px-1.5 font-medium hidden sm:block">
+                                      +{dayEvents.length - 3}
+                                    </div>
+                                  )}
+                                  {dayEvents.length > 2 && (
+                                    <div className="text-[9px] text-muted-foreground px-1 font-medium sm:hidden">
+                                      +{dayEvents.length - 2}
                                     </div>
                                   )}
                                 </div>
@@ -1182,19 +1202,19 @@ const EvenementsPage = () => {
         {/* List View */}
         {view === 'list' && (
           <Card>
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle>Liste des evenements</CardTitle>
-                <Badge variant="secondary">{filteredEvents.length} evenement(s)</Badge>
+                <CardTitle className="text-base sm:text-lg">Liste des evenements</CardTitle>
+                <Badge variant="secondary" className="text-xs sm:text-sm">{filteredEvents.length} evt(s)</Badge>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <LoaderCircle className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : filteredEvents.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {filteredEvents
                     .sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime())
                     .map((event) => {
@@ -1207,34 +1227,39 @@ const EvenementsPage = () => {
                         <div
                           key={event.id}
                           className={cn(
-                            'flex items-center gap-4 p-4 rounded-lg border bg-card hover:shadow-md transition-all',
+                            'flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border bg-card hover:shadow-md transition-all',
                             isPast && 'opacity-60'
                           )}
                         >
-                          {/* Date column */}
-                          <div className="flex flex-col items-center justify-center w-16 shrink-0">
-                            <span className="text-xs text-muted-foreground uppercase">
-                              {eventDate.toLocaleDateString('fr-FR', { weekday: 'short' })}
-                            </span>
-                            <span className="text-2xl font-bold">{eventDate.getDate()}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {eventDate.toLocaleDateString('fr-FR', { month: 'short' })}
-                            </span>
+                          {/* Date column - horizontal on mobile, vertical on desktop */}
+                          <div className="flex sm:flex-col items-center justify-start sm:justify-center gap-2 sm:gap-0 sm:w-16 shrink-0">
+                            <div className="flex sm:flex-col items-center gap-1 sm:gap-0">
+                              <span className="text-[10px] sm:text-xs text-muted-foreground uppercase">
+                                {eventDate.toLocaleDateString('fr-FR', { weekday: 'short' })}
+                              </span>
+                              <span className="text-lg sm:text-2xl font-bold">{eventDate.getDate()}</span>
+                              <span className="text-[10px] sm:text-xs text-muted-foreground">
+                                {eventDate.toLocaleDateString('fr-FR', { month: 'short' })}
+                              </span>
+                            </div>
+                            <Badge variant="outline" className={cn('text-[10px] sm:hidden border', typeConfig.badgeVariant)}>
+                              {typeConfig.label}
+                            </Badge>
                           </div>
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-semibold truncate">{event.titre}</h4>
-                              <Badge variant="outline" className={cn('text-xs border', typeConfig.badgeVariant)}>
+                              <h4 className="font-semibold text-sm sm:text-base truncate">{event.titre}</h4>
+                              <Badge variant="outline" className={cn('text-xs border hidden sm:inline-flex', typeConfig.badgeVariant)}>
                                 {typeConfig.label}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs sm:text-sm text-muted-foreground">
                               <span className="flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" />
+                                <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                 {event.journeeEntiere ? (
-                                  'Journee entiere'
+                                  'Journee'
                                 ) : (
                                   <>
                                     {formatTime(event.dateDebut)} - {formatTime(event.dateFin)}
@@ -1243,16 +1268,16 @@ const EvenementsPage = () => {
                               </span>
                               {event.lieu && (
                                 <span className="flex items-center gap-1">
-                                  <MapPin className="h-3.5 w-3.5" />
-                                  {event.lieu}
+                                  <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                  <span className="truncate max-w-[100px] sm:max-w-none">{event.lieu}</span>
                                 </span>
                               )}
                               {event.dossier && (
                                 <span className="flex items-center gap-1">
-                                  <FolderOpen className="h-3.5 w-3.5" />
-                                  {event.dossier.reference}
+                                  <FolderOpen className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                  <span className="truncate max-w-[80px] sm:max-w-none">{event.dossier.reference}</span>
                                   {clientName && (
-                                    <span className="text-foreground font-medium">({clientName})</span>
+                                    <span className="text-foreground font-medium hidden sm:inline">({clientName})</span>
                                   )}
                                 </span>
                               )}
@@ -1260,14 +1285,14 @@ const EvenementsPage = () => {
                           </div>
 
                           {/* Actions */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Button variant="ghost" size="icon" onClick={() => openEditModal(event)}>
+                          <div className="flex items-center gap-1 sm:gap-2 shrink-0 self-end sm:self-center">
+                            <Button variant="ghost" size="icon" onClick={() => openEditModal(event)} className="h-8 w-8">
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive hover:text-destructive"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
                               onClick={() => {
                                 setSelectedEvent(event)
                                 setShowDeleteDialog(true)
@@ -1281,11 +1306,11 @@ const EvenementsPage = () => {
                     })}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <List className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
+                <div className="text-center py-8 sm:py-12">
+                  <List className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground mb-3 sm:mb-4" />
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     {searchQuery || filterType !== 'all' || showUnassigned || filterDossier !== 'all' || filterClient !== 'all'
-                      ? 'Aucun evenement correspondant aux filtres'
+                      ? 'Aucun evenement correspondant'
                       : 'Aucun evenement'}
                   </p>
                 </div>
