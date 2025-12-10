@@ -465,18 +465,18 @@ const DossiersListPage = () => {
     <>
       <Head title="Dossiers" />
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <FolderKanban className="h-8 w-8" />
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+              <FolderKanban className="h-6 w-6 sm:h-8 sm:w-8" />
               Dossiers
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Gestion des dossiers du cabinet
             </p>
           </div>
-          <Button onClick={() => openModal({ tab: 'dossier' })}>
+          <Button onClick={() => openModal({ tab: 'dossier' })} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Nouveau dossier
           </Button>
@@ -484,57 +484,59 @@ const DossiersListPage = () => {
 
         {/* Filters */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex gap-4">
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher par reference, intitule..."
+                  placeholder="Rechercher..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-9 sm:h-10"
                 />
               </div>
-              <Select value={clientFilter || 'all'} onValueChange={(v) => setClientFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les clients</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.prenom} {client.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={statutFilter || 'all'} onValueChange={(v) => setStatutFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  {STATUT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Responsable" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les responsables</SelectItem>
-                  <SelectItem value="none">Sans responsable</SelectItem>
-                  {responsables.map((resp) => (
-                    <SelectItem key={resp.id} value={resp.id}>
-                      {resp.username || `${resp.prenom} ${resp.nom}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4">
+                <Select value={clientFilter || 'all'} onValueChange={(v) => setClientFilter(v === 'all' ? '' : v)}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder="Client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les clients</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.prenom} {client.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statutFilter || 'all'} onValueChange={(v) => setStatutFilter(v === 'all' ? '' : v)}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts</SelectItem>
+                    {STATUT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm col-span-2 sm:col-span-1">
+                    <SelectValue placeholder="Responsable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="none">Sans responsable</SelectItem>
+                    {responsables.map((resp) => (
+                      <SelectItem key={resp.id} value={resp.id}>
+                        {resp.username || `${resp.prenom} ${resp.nom}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>

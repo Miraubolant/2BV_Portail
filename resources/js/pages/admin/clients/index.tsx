@@ -414,18 +414,18 @@ const ClientsListPage = () => {
     <>
       <Head title="Clients" />
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Users className="h-8 w-8" />
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+              <Users className="h-6 w-6 sm:h-8 sm:w-8" />
               Clients
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Gestion des clients du cabinet
             </p>
           </div>
-          <Button onClick={() => openModal({ tab: 'client' })}>
+          <Button onClick={() => openModal({ tab: 'client' })} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Nouveau client
           </Button>
@@ -433,41 +433,43 @@ const ClientsListPage = () => {
 
         {/* Filters */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex gap-4">
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher par nom, prenom ou email..."
+                  placeholder="Rechercher..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-9 sm:h-10"
                 />
               </div>
-              <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Type de client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="particulier">Particulier</SelectItem>
-                  <SelectItem value="institutionnel">Institutionnel</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Responsable" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les responsables</SelectItem>
-                  <SelectItem value="none">Sans responsable</SelectItem>
-                  {admins.map((admin) => (
-                    <SelectItem key={admin.id} value={admin.id}>
-                      {admin.username || `${admin.prenom} ${admin.nom}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-4">
+                <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les types</SelectItem>
+                    <SelectItem value="particulier">Particulier</SelectItem>
+                    <SelectItem value="institutionnel">Institutionnel</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder="Responsable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="none">Sans responsable</SelectItem>
+                    {admins.map((admin) => (
+                      <SelectItem key={admin.id} value={admin.id}>
+                        {admin.username || `${admin.prenom} ${admin.nom}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>

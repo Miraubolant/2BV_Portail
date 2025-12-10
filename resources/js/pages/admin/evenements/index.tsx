@@ -890,17 +890,17 @@ const EvenementsPage = () => {
     <>
       <Head title="Evenements" />
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <CalendarDays className="h-8 w-8" />
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+              <CalendarDays className="h-6 w-6 sm:h-8 sm:w-8" />
               Evenements
             </h1>
-            <p className="text-muted-foreground">Calendrier des evenements du cabinet</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Calendrier des evenements du cabinet</p>
           </div>
-          <Button onClick={() => { resetForm(); setShowCreateModal(true) }}>
+          <Button onClick={() => { resetForm(); setShowCreateModal(true) }} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Nouvel evenement
           </Button>
@@ -908,92 +908,94 @@ const EvenementsPage = () => {
 
         {/* Filters and View Toggle */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-1 flex-wrap gap-3">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col sm:flex-row flex-1 gap-3">
+                <div className="relative flex-1 min-w-0 sm:max-w-sm">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Rechercher..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 h-9 sm:h-10"
                   />
                 </div>
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[150px]">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les types</SelectItem>
-                    {Object.entries(typeLabels).map(([key, { label }]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={filterDossier} onValueChange={setFilterDossier}>
-                  <SelectTrigger className="w-[180px]">
-                    <FolderOpen className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Dossier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les dossiers</SelectItem>
-                    {dossiers.map((dossier) => (
-                      <SelectItem key={dossier.id} value={dossier.id}>
-                        {dossier.reference}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={filterClient} onValueChange={setFilterClient}>
-                  <SelectTrigger className="w-[180px]">
-                    <User className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les clients</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.prenom} {client.nom}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={filterResponsable} onValueChange={setFilterResponsable}>
-                  <SelectTrigger className="w-[180px]">
-                    <Shield className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Responsable" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les responsables</SelectItem>
-                    <SelectItem value="none">Sans responsable</SelectItem>
-                    {responsables.map((resp) => (
-                      <SelectItem key={resp.id} value={resp.id}>
-                        {resp.username || `${resp.prenom} ${resp.nom}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center space-x-2">
+                <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="w-full sm:w-[130px] h-9 sm:h-10 text-xs sm:text-sm">
+                      <Filter className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous types</SelectItem>
+                      {Object.entries(typeLabels).map(([key, { label }]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterDossier} onValueChange={setFilterDossier}>
+                    <SelectTrigger className="w-full sm:w-[140px] h-9 sm:h-10 text-xs sm:text-sm">
+                      <FolderOpen className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                      <SelectValue placeholder="Dossier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous dossiers</SelectItem>
+                      {dossiers.map((dossier) => (
+                        <SelectItem key={dossier.id} value={dossier.id}>
+                          {dossier.reference}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterClient} onValueChange={setFilterClient}>
+                    <SelectTrigger className="w-full sm:w-[140px] h-9 sm:h-10 text-xs sm:text-sm">
+                      <User className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                      <SelectValue placeholder="Client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous clients</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.prenom} {client.nom}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterResponsable} onValueChange={setFilterResponsable}>
+                    <SelectTrigger className="w-full sm:w-[140px] h-9 sm:h-10 text-xs sm:text-sm">
+                      <Shield className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                      <SelectValue placeholder="Responsable" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="none">Sans responsable</SelectItem>
+                      {responsables.map((resp) => (
+                        <SelectItem key={resp.id} value={resp.id}>
+                          {resp.username || `${resp.prenom} ${resp.nom}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2 col-span-2 sm:col-span-1">
                   <Checkbox
                     id="showUnassigned"
                     checked={showUnassigned}
                     onCheckedChange={(checked) => setShowUnassigned(checked as boolean)}
                   />
-                  <Label htmlFor="showUnassigned" className="font-normal text-sm whitespace-nowrap">
+                  <Label htmlFor="showUnassigned" className="font-normal text-xs sm:text-sm whitespace-nowrap">
                     Sans dossier
                   </Label>
                 </div>
               </div>
               <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'list')}>
-                <TabsList>
-                  <TabsTrigger value="calendar" title="Calendrier">
+                <TabsList className="h-9 sm:h-10">
+                  <TabsTrigger value="calendar" title="Calendrier" className="px-2 sm:px-3">
                     <CalendarDays className="h-4 w-4" />
                   </TabsTrigger>
-                  <TabsTrigger value="list" title="Liste">
+                  <TabsTrigger value="list" title="Liste" className="px-2 sm:px-3">
                     <List className="h-4 w-4" />
                   </TabsTrigger>
                 </TabsList>
