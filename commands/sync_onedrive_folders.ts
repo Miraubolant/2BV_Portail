@@ -5,7 +5,8 @@ import dossierFolderService from '#services/microsoft/dossier_folder_service'
 
 export default class SyncOnedriveFolders extends BaseCommand {
   static commandName = 'onedrive:sync-folders'
-  static description = 'Synchronise tous les dossiers existants sur OneDrive (cree les dossiers CABINET/CLIENT)'
+  static description =
+    'Synchronise tous les dossiers existants sur OneDrive (cree les dossiers CABINET/CLIENT)'
 
   static options: CommandOptions = {
     startApp: true,
@@ -33,7 +34,9 @@ export default class SyncOnedriveFolders extends BaseCommand {
 
     for (const dossier of dossiers) {
       const clientName = dossier.client?.fullName || 'Client Inconnu'
-      this.logger.info(`  Synchronisation: ${dossier.reference} - ${dossier.intitule} (${clientName})`)
+      this.logger.info(
+        `  Synchronisation: ${dossier.reference} - ${dossier.intitule} (${clientName})`
+      )
 
       try {
         const result = await dossierFolderService.createDossierFolder(dossier.id)
@@ -46,7 +49,9 @@ export default class SyncOnedriveFolders extends BaseCommand {
           errorCount++
         }
       } catch (error) {
-        this.logger.error(`    ✗ Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+        this.logger.error(
+          `    ✗ Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+        )
         errorCount++
       }
     }

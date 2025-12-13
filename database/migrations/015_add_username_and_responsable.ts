@@ -9,7 +9,12 @@ export default class extends BaseSchema {
 
     // Add responsable_id to clients
     this.schema.alterTable('clients', (table) => {
-      table.uuid('responsable_id').nullable().references('id').inTable('admins').onDelete('SET NULL')
+      table
+        .uuid('responsable_id')
+        .nullable()
+        .references('id')
+        .inTable('admins')
+        .onDelete('SET NULL')
     })
 
     this.schema.raw('CREATE INDEX idx_clients_responsable ON clients(responsable_id)')

@@ -52,6 +52,7 @@ export const MICROSOFT_DISCONNECT_API = MICROSOFT_API + 'disconnect'
 export const MICROSOFT_TEST_API = MICROSOFT_API + 'test'
 export const MICROSOFT_SYNC_API = MICROSOFT_API + 'sync'
 export const MICROSOFT_SYNC_DOSSIER_API = (dossierId: string) => MICROSOFT_API + 'sync/' + dossierId
+export const MICROSOFT_REVERSE_SYNC_API = MICROSOFT_API + 'reverse-sync'
 export const MICROSOFT_INITIALIZE_API = MICROSOFT_API + 'initialize'
 export const MICROSOFT_SYNC_HISTORY_API = MICROSOFT_API + 'sync-history'
 

@@ -16,10 +16,10 @@ export default class DossiersController {
     const count = await Dossier.query()
       .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [year])
       .count('* as total')
-    
+
     const num = String(Number(count[0].$extras.total) + 1).padStart(3, '0')
     const nom = clientNom.substring(0, 3).toUpperCase()
-    
+
     return year + '-' + num + '-' + nom
   }
 
@@ -120,12 +120,17 @@ export default class DossiersController {
     await dossier.load('client')
 
     // Logger la creation du dossier
-    await ActivityLogger.logDossierCreated(dossier.id, admin.id, {
-      reference: dossier.reference,
-      intitule: dossier.intitule,
-      clientId: dossier.clientId,
-      clientNom: client.nom,
-    }, ctx)
+    await ActivityLogger.logDossierCreated(
+      dossier.id,
+      admin.id,
+      {
+        reference: dossier.reference,
+        intitule: dossier.intitule,
+        clientId: dossier.clientId,
+        clientNom: client.nom,
+      },
+      ctx
+    )
 
     // Creer automatiquement le dossier OneDrive (en arriere-plan, sans bloquer)
     dossierFolderService.createDossierFolder(dossier.id).catch((err) => {
@@ -173,7 +178,13 @@ export default class DossiersController {
 
     // Logger le changement de statut si applicable
     if (data.statut && oldStatut !== data.statut) {
-      await ActivityLogger.logDossierStatutChanged(dossier.id, admin.id, oldStatut, data.statut, ctx)
+      await ActivityLogger.logDossierStatutChanged(
+        dossier.id,
+        admin.id,
+        oldStatut,
+        data.statut,
+        ctx
+      )
     } else if (changedFields.length > 0) {
       // Logger la modification generale
       await ActivityLogger.logDossierUpdated(dossier.id, admin.id, { changes: changedFields }, ctx)

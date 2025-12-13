@@ -117,7 +117,8 @@ export default class DemandesRdvController {
     const demande = await DemandeRdv.findOrFail(params.id)
     const admin = auth.use('admin').user!
 
-    const { dateDebut, dateFin, lieu, reponse } = await request.validateUsing(accepterDemandeValidator)
+    const { dateDebut, dateFin, lieu, reponse } =
+      await request.validateUsing(accepterDemandeValidator)
 
     // Parse dates - try ISO first, then JS Date
     let parsedDateDebut = DateTime.fromISO(dateDebut)

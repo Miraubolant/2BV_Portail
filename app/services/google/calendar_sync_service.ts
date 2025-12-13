@@ -64,7 +64,9 @@ class CalendarSyncService {
   /**
    * Delete event from Google when deleted in Portail
    */
-  async deleteEventFromGoogle(googleEventId: string): Promise<{ success: boolean; error?: string }> {
+  async deleteEventFromGoogle(
+    googleEventId: string
+  ): Promise<{ success: boolean; error?: string }> {
     const isReady = await googleCalendarService.isReady()
     if (!isReady) {
       return { success: false, error: 'Google Calendar not connected' }
@@ -298,7 +300,9 @@ class CalendarSyncService {
         maxResults: 2500, // Increased to get more events
       })
 
-      details.push(`Found ${googleEvents.length} events in Google Calendar (${timeMin.split('T')[0]} to ${timeMax.split('T')[0]})`)
+      details.push(
+        `Found ${googleEvents.length} events in Google Calendar (${timeMin.split('T')[0]} to ${timeMax.split('T')[0]})`
+      )
 
       // Get all portal events that have a Google event ID to avoid duplicates
       const portalEvents = await Evenement.query().whereNotNull('google_event_id')

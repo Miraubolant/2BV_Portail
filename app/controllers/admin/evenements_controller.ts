@@ -76,7 +76,11 @@ export default class EvenementsController {
 
     // Support year/month filtering for calendar view
     if (year && month) {
-      const startDate = DateTime.fromObject({ year: parseInt(year), month: parseInt(month), day: 1 })
+      const startDate = DateTime.fromObject({
+        year: Number.parseInt(year),
+        month: Number.parseInt(month),
+        day: 1,
+      })
       const endDate = startDate.endOf('month')
       query = query.where('date_debut', '>=', startDate.toISO()!)
       query = query.where('date_debut', '<=', endDate.toISO()!)
@@ -94,13 +98,11 @@ export default class EvenementsController {
       if (responsableId === 'none') {
         // Events without dossier OR with dossier whose client has no responsable
         query = query.where((builder) => {
-          builder
-            .whereNull('dossier_id')
-            .orWhereHas('dossier' as any, (dossierQuery: any) => {
-              dossierQuery.whereHas('client', (clientQuery: any) => {
-                clientQuery.whereNull('responsable_id')
-              })
+          builder.whereNull('dossier_id').orWhereHas('dossier' as any, (dossierQuery: any) => {
+            dossierQuery.whereHas('client', (clientQuery: any) => {
+              clientQuery.whereNull('responsable_id')
             })
+          })
         })
       } else {
         // Events with dossier whose client has the specified responsable
@@ -147,12 +149,17 @@ export default class EvenementsController {
     })
 
     // Logger la creation de l'evenement
-    await ActivityLogger.logEvenementCreated(evenement.id, admin.id, {
-      titre: evenement.titre,
-      type: evenement.type,
-      dossierId: evenement.dossierId,
-      dateDebut: evenement.dateDebut.toISO(),
-    }, ctx)
+    await ActivityLogger.logEvenementCreated(
+      evenement.id,
+      admin.id,
+      {
+        titre: evenement.titre,
+        type: evenement.type,
+        dossierId: evenement.dossierId,
+        dateDebut: evenement.dateDebut.toISO(),
+      },
+      ctx
+    )
 
     // Sync to Google Calendar if enabled and sync mode is auto (async, don't block response)
     if (evenement.syncGoogle) {
@@ -192,10 +199,15 @@ export default class EvenementsController {
     await evenement.save()
 
     // Logger la modification de l'evenement
-    await ActivityLogger.logEvenementUpdated(evenement.id, admin.id, {
-      titre: evenement.titre,
-      dossierId: evenement.dossierId,
-    }, ctx)
+    await ActivityLogger.logEvenementUpdated(
+      evenement.id,
+      admin.id,
+      {
+        titre: evenement.titre,
+        dossierId: evenement.dossierId,
+      },
+      ctx
+    )
 
     // Sync to Google Calendar if enabled and sync mode is auto (async, don't block response)
     if (evenement.syncGoogle) {
@@ -219,10 +231,15 @@ export default class EvenementsController {
     const admin = auth.use('admin').user!
 
     // Logger la suppression avant de supprimer
-    await ActivityLogger.logEvenementDeleted(evenement.id, admin.id, {
-      titre: evenement.titre,
-      dossierId: evenement.dossierId,
-    }, ctx)
+    await ActivityLogger.logEvenementDeleted(
+      evenement.id,
+      admin.id,
+      {
+        titre: evenement.titre,
+        dossierId: evenement.dossierId,
+      },
+      ctx
+    )
 
     // Delete from Google Calendar if synced (async, don't block response)
     if (evenement.googleEventId) {

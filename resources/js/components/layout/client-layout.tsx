@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { ClientSidebar } from '@/components/sidebar/client-sidebar'
 import { Separator } from '@/components/ui/separator'

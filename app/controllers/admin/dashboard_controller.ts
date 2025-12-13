@@ -13,12 +13,12 @@ export default class DashboardController {
   async index({ response }: HttpContext) {
     // Compter les clients
     const totalClients = await Client.query().count('* as total')
-    
+
     // Compter les dossiers par statut
     const dossiersEnCours = await Dossier.query()
       .whereIn('statut', ['nouveau', 'en_cours', 'en_attente', 'audience_prevue', 'en_delibere'])
       .count('* as total')
-    
+
     const dossiersClotures = await Dossier.query()
       .where('statut', 'like', 'cloture%')
       .count('* as total')
@@ -61,10 +61,10 @@ export default class DashboardController {
           client: {
             nom: e.dossier.client.nom,
             prenom: e.dossier.client.prenom,
-          }
-        }
+          },
+        },
       })),
-      derniersDossiers: derniersDossiers.map(d => ({
+      derniersDossiers: derniersDossiers.map((d) => ({
         id: d.id,
         reference: d.reference,
         intitule: d.intitule,
@@ -74,7 +74,7 @@ export default class DashboardController {
           id: d.client.id,
           nom: d.client.nom,
           prenom: d.client.prenom,
-        }
+        },
       })),
     })
   }

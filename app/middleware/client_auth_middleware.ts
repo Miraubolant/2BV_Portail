@@ -16,7 +16,7 @@ export default class ClientAuthMiddleware {
         return ctx.response.redirect('/client/login')
       }
       return ctx.response.unauthorized({
-        message: 'Non authentifié'
+        message: 'Non authentifié',
       })
     }
   }

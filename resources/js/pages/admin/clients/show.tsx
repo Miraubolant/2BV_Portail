@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react'
 import { getAdminLayout, useBreadcrumb } from '@/components/layout/admin-layout'
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { ADMIN_CLIENTS } from '@/app/routes'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

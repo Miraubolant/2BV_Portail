@@ -60,7 +60,11 @@ class DossierFolderService {
    * Initialize the root folder structure
    * Creates: /Portail Cabinet/Clients/
    */
-  async initializeRootStructure(): Promise<{ success: boolean; rootFolderId?: string; error?: string }> {
+  async initializeRootStructure(): Promise<{
+    success: boolean
+    rootFolderId?: string
+    error?: string
+  }> {
     const isReady = await oneDriveService.isReady()
     if (!isReady) {
       return { success: false, error: 'OneDrive not connected' }
@@ -73,7 +77,10 @@ class DossierFolderService {
     }
 
     // Create Clients subfolder
-    const clientsResult = await oneDriveService.createFolder(rootResult.folderId!, CLIENTS_FOLDER_NAME)
+    const clientsResult = await oneDriveService.createFolder(
+      rootResult.folderId!,
+      CLIENTS_FOLDER_NAME
+    )
     if (!clientsResult.success) {
       return { success: false, error: clientsResult.error }
     }
@@ -99,17 +106,18 @@ class DossierFolderService {
     }
 
     // Load dossier with client
-    const dossier = await Dossier.query()
-      .where('id', dossierId)
-      .preload('client')
-      .first()
+    const dossier = await Dossier.query().where('id', dossierId).preload('client').first()
 
     if (!dossier) {
       return { success: false, error: 'Dossier not found' }
     }
 
     // If all folders already exist, return them
-    if (dossier.onedriveFolderId && dossier.onedriveCabinetFolderId && dossier.onedriveClientFolderId) {
+    if (
+      dossier.onedriveFolderId &&
+      dossier.onedriveCabinetFolderId &&
+      dossier.onedriveClientFolderId
+    ) {
       // Verify they still exist on OneDrive
       const folderInfo = await oneDriveService.getFolderInfo(dossier.onedriveFolderId)
       if (folderInfo) {
@@ -136,13 +144,19 @@ class DossierFolderService {
     }
 
     // Create CABINET subfolder
-    const cabinetResult = await oneDriveService.createFolder(mainResult.folderId!, CABINET_FOLDER_NAME)
+    const cabinetResult = await oneDriveService.createFolder(
+      mainResult.folderId!,
+      CABINET_FOLDER_NAME
+    )
     if (!cabinetResult.success) {
       logger.error({ error: cabinetResult.error }, 'Failed to create CABINET folder')
     }
 
     // Create CLIENT subfolder
-    const clientResult = await oneDriveService.createFolder(mainResult.folderId!, CLIENT_FOLDER_NAME)
+    const clientResult = await oneDriveService.createFolder(
+      mainResult.folderId!,
+      CLIENT_FOLDER_NAME
+    )
     if (!clientResult.success) {
       logger.error({ error: clientResult.error }, 'Failed to create CLIENT folder')
     }
@@ -181,7 +195,12 @@ class DossierFolderService {
     // Initialize root structure first
     const initResult = await this.initializeRootStructure()
     if (!initResult.success) {
-      return { success: false, synced: 0, errors: 0, details: [initResult.error || 'Failed to initialize'] }
+      return {
+        success: false,
+        synced: 0,
+        errors: 0,
+        details: [initResult.error || 'Failed to initialize'],
+      }
     }
 
     // Get all dossiers without complete OneDrive folders
@@ -222,10 +241,7 @@ class DossierFolderService {
    * Update folder name when dossier is renamed
    */
   async updateDossierFolder(dossierId: string): Promise<boolean> {
-    const dossier = await Dossier.query()
-      .where('id', dossierId)
-      .preload('client')
-      .first()
+    const dossier = await Dossier.query().where('id', dossierId).preload('client').first()
 
     if (!dossier || !dossier.onedriveFolderId) {
       return false
@@ -297,9 +313,8 @@ class DossierFolderService {
     }
 
     // Check if we have the specific subfolder ID
-    const subFolderId = location === 'cabinet'
-      ? dossier.onedriveCabinetFolderId
-      : dossier.onedriveClientFolderId
+    const subFolderId =
+      location === 'cabinet' ? dossier.onedriveCabinetFolderId : dossier.onedriveClientFolderId
 
     if (subFolderId) {
       // Verify folder exists
@@ -330,10 +345,7 @@ class DossierFolderService {
     errors: number
     details: string[]
   }> {
-    const dossier = await Dossier.query()
-      .where('id', dossierId)
-      .preload('documents')
-      .first()
+    const dossier = await Dossier.query().where('id', dossierId).preload('documents').first()
 
     if (!dossier) {
       return { success: false, moved: 0, errors: 0, details: ['Dossier not found'] }
@@ -347,7 +359,12 @@ class DossierFolderService {
     // Ensure folder structure exists
     const folderResult = await this.createDossierFolder(dossierId)
     if (!folderResult.success) {
-      return { success: false, moved: 0, errors: 0, details: [folderResult.error || 'Failed to create folders'] }
+      return {
+        success: false,
+        moved: 0,
+        errors: 0,
+        details: [folderResult.error || 'Failed to create folders'],
+      }
     }
 
     let moved = 0
@@ -361,9 +378,8 @@ class DossierFolderService {
 
       // Determine target location based on visibility
       const targetLocation: 'cabinet' | 'client' = document.visibleClient ? 'client' : 'cabinet'
-      const targetFolderId = targetLocation === 'cabinet'
-        ? folderResult.cabinetFolderId
-        : folderResult.clientFolderId
+      const targetFolderId =
+        targetLocation === 'cabinet' ? folderResult.cabinetFolderId : folderResult.clientFolderId
 
       if (!targetFolderId) {
         errors++

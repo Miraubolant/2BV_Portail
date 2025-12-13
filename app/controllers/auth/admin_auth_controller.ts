@@ -53,7 +53,7 @@ export default class AdminAuthController {
         session.put('admin_pending_totp', admin.id)
         return response.ok({
           requireTotp: true,
-          message: 'Verification 2FA requise'
+          message: 'Verification 2FA requise',
         })
       }
 
@@ -68,7 +68,7 @@ export default class AdminAuthController {
           prenom: admin.prenom,
           role: admin.role,
           totpEnabled: admin.totpEnabled,
-        }
+        },
       })
     } catch (error) {
       ctx.logger.error({ err: error }, 'Login error')
@@ -109,7 +109,7 @@ export default class AdminAuthController {
         prenom: admin.prenom,
         role: admin.role,
         totpEnabled: admin.totpEnabled,
-      }
+      },
     })
   }
 
@@ -137,7 +137,7 @@ export default class AdminAuthController {
     return response.ok({
       secret,
       qrCode,
-      message: 'Scannez le QR code avec votre application'
+      message: 'Scannez le QR code avec votre application',
     })
   }
 
@@ -203,7 +203,7 @@ export default class AdminAuthController {
         notifEmailDocument: admin.notifEmailDocument,
         emailNotification: admin.emailNotification,
         filterByResponsable: admin.filterByResponsable,
-      }
+      },
     })
   }
 

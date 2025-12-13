@@ -58,7 +58,8 @@ class IntegrationHealthService {
         connected: false,
         healthy: false,
         lastHealthCheck: null,
-        error: 'OneDrive not configured. Add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to .env',
+        error:
+          'OneDrive not configured. Add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to .env',
       }
     }
 
@@ -87,13 +88,16 @@ class IntegrationHealthService {
       accountEmail: connectionStatus.accountEmail,
       accountName: connectionStatus.accountName,
       error: healthCheck.error,
-      details: healthCheck.quota ? {
-        quotaUsed: healthCheck.quota.used,
-        quotaTotal: healthCheck.quota.total,
-        quotaPercentage: healthCheck.quota.total > 0
-          ? Math.round((healthCheck.quota.used / healthCheck.quota.total) * 100)
-          : 0,
-      } : undefined,
+      details: healthCheck.quota
+        ? {
+            quotaUsed: healthCheck.quota.used,
+            quotaTotal: healthCheck.quota.total,
+            quotaPercentage:
+              healthCheck.quota.total > 0
+                ? Math.round((healthCheck.quota.used / healthCheck.quota.total) * 100)
+                : 0,
+          }
+        : undefined,
     }
   }
 
@@ -110,7 +114,8 @@ class IntegrationHealthService {
         connected: false,
         healthy: false,
         lastHealthCheck: null,
-        error: 'Google Calendar not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env',
+        error:
+          'Google Calendar not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env',
       }
     }
 
@@ -153,9 +158,7 @@ class IntegrationHealthService {
    */
   async getSyncHistory(limit: number = 20): Promise<SyncHistoryEntry[]> {
     try {
-      const logs = await SyncLog.query()
-        .orderBy('created_at', 'desc')
-        .limit(limit)
+      const logs = await SyncLog.query().orderBy('created_at', 'desc').limit(limit)
 
       return logs.map((log) => ({
         id: log.id,
@@ -197,9 +200,7 @@ class IntegrationHealthService {
     ])
 
     const integrations = [oneDriveStatus, googleStatus]
-    const overallHealthy = integrations.every(
-      (i) => !i.configured || (i.connected && i.healthy)
-    )
+    const overallHealthy = integrations.every((i) => !i.configured || (i.connected && i.healthy))
 
     const report: IntegrationHealthReport = {
       timestamp: new Date(),
@@ -265,8 +266,7 @@ class IntegrationHealthService {
   }> {
     try {
       const since = DateTime.now().minus({ days })
-      const logs = await SyncLog.query()
-        .where('created_at', '>=', since.toJSDate())
+      const logs = await SyncLog.query().where('created_at', '>=', since.toJSDate())
 
       const totalSyncs = logs.length
       const successfulSyncs = logs.filter((l) => l.statut === 'success').length

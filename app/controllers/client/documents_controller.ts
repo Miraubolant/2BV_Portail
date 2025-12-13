@@ -38,7 +38,7 @@ export default class ClientDocumentsController {
 
     // Verifier que le client peut uploader
     if (!client.peutUploader) {
-      return response.forbidden({ message: 'Vous n\'etes pas autorise a uploader des documents' })
+      return response.forbidden({ message: "Vous n'etes pas autorise a uploader des documents" })
     }
 
     const document = await Document.create({
@@ -100,7 +100,7 @@ export default class ClientDocumentsController {
 
     // Verifier que le client peut uploader
     if (!client.peutUploader) {
-      return response.forbidden({ message: 'Vous n\'etes pas autorise a uploader des documents' })
+      return response.forbidden({ message: "Vous n'etes pas autorise a uploader des documents" })
     }
 
     // Get the uploaded file - added ppt/pptx support
@@ -147,7 +147,7 @@ export default class ClientDocumentsController {
 
     if (!result.success) {
       return response.internalServerError({
-        message: 'Erreur lors de l\'upload du document',
+        message: "Erreur lors de l'upload du document",
         error: result.error,
       })
     }

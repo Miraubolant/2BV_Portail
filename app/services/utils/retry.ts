@@ -73,10 +73,7 @@ function calculateDelay(
 /**
  * Execute a function with retry logic and exponential backoff
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options }
   let lastError: Error | null = null
 
@@ -142,11 +139,7 @@ export async function fetchWithRetry(
 
     if (!response.ok) {
       const body = await response.text()
-      throw new ApiError(
-        `HTTP ${response.status}: ${response.statusText}`,
-        response.status,
-        body
-      )
+      throw new ApiError(`HTTP ${response.status}: ${response.statusText}`, response.status, body)
     }
 
     return response
@@ -159,7 +152,7 @@ export async function fetchWithRetry(
 export function parseRateLimitDelay(response: Response): number | null {
   const retryAfter = response.headers.get('Retry-After')
   if (retryAfter) {
-    const seconds = parseInt(retryAfter, 10)
+    const seconds = Number.parseInt(retryAfter, 10)
     if (!isNaN(seconds)) {
       return seconds * 1000
     }

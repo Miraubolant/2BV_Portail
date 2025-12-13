@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CLIENT_DEMANDES_RDV_API, CLIENT_DOSSIERS_API, formatDateTime } from '@/lib/constants'
-import { ReactNode, useEffect, useState, useCallback } from 'react'
+import { type ReactNode, useEffect, useState, useCallback } from 'react'
 import {
   Clock,
   Check,

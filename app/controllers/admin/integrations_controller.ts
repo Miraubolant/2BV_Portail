@@ -27,7 +27,7 @@ export default class IntegrationsController {
    * Get sync history for all integrations
    */
   async syncHistory({ request, response }: HttpContext) {
-    const limit = Math.min(parseInt(request.input('limit', '50')), 100)
+    const limit = Math.min(Number.parseInt(request.input('limit', '50')), 100)
     const type = request.input('type') as 'onedrive' | 'google_calendar' | undefined
 
     try {
@@ -69,7 +69,7 @@ export default class IntegrationsController {
    * Get sync statistics for dashboard
    */
   async statistics({ request, response }: HttpContext) {
-    const days = Math.min(parseInt(request.input('days', '7')), 30)
+    const days = Math.min(Number.parseInt(request.input('days', '7')), 30)
 
     try {
       const stats = await integrationHealthService.getSyncStatistics(days)

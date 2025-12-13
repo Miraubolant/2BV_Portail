@@ -9,14 +9,12 @@ export default class EvenementsSeeder extends BaseSeeder {
     const admin = await Admin.first()
 
     if (!admin) {
-      console.log('Aucun admin trouve. Executez d\'abord le seeder admin.')
+      console.log("Aucun admin trouve. Executez d'abord le seeder admin.")
       return
     }
 
     // Recuperer tous les dossiers sans evenements
-    const dossiers = await Dossier.query()
-      .preload('client')
-      .preload('evenements')
+    const dossiers = await Dossier.query().preload('client').preload('evenements')
 
     const dossiersWithoutEvents = dossiers.filter((d) => d.evenements.length === 0)
 
@@ -29,8 +27,7 @@ export default class EvenementsSeeder extends BaseSeeder {
 
     let totalEvents = 0
 
-    for (let i = 0; i < dossiersWithoutEvents.length; i++) {
-      const dossier = dossiersWithoutEvents[i]
+    for (const [i, dossier] of dossiersWithoutEvents.entries()) {
       const clientName = dossier.client?.fullName || 'Client Inconnu'
 
       const evenementsData = getEvenementsForDossier(
@@ -151,7 +148,7 @@ function getEvenementsForDossier(
   evenements.push({
     dossierId,
     titre: `RDV suivi dossier`,
-    description: 'Point sur l\'avancement du dossier et preparation de l\'audience',
+    description: "Point sur l'avancement du dossier et preparation de l'audience",
     type: 'rdv_client',
     dateDebut: rdvSuiviDate.set({ hour: 14 + (index % 4), minute: index % 2 === 0 ? 0 : 30 }),
     dateFin: rdvSuiviDate.set({ hour: 15 + (index % 4), minute: index % 2 === 0 ? 0 : 30 }),
@@ -196,7 +193,7 @@ function getEvenementsForDossier(
       dateDebut: conciliationDate.set({ hour: 9, minute: 30 }),
       dateFin: conciliationDate.set({ hour: 10, minute: 30 }),
       journeeEntiere: false,
-      lieu: 'Conseil de Prud\'hommes',
+      lieu: "Conseil de Prud'hommes",
       adresse: null,
       statut: 'confirme',
       syncGoogle: true,
@@ -210,7 +207,7 @@ function getEvenementsForDossier(
     evenements.push({
       dossierId,
       titre: 'Audition commissariat',
-      description: 'Audition dans le cadre de l\'enquete',
+      description: "Audition dans le cadre de l'enquete",
       type: 'autre',
       dateDebut: expertiseDate.set({ hour: 10, minute: 0 }),
       dateFin: expertiseDate.set({ hour: 12, minute: 0 }),

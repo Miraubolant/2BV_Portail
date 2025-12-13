@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Client from '#models/client'
 import { createClientValidator, updateClientValidator } from '#validators/client_validator'
 import transmit from '@adonisjs/transmit/services/main'
-import { randomBytes } from 'crypto'
+import { randomBytes } from 'node:crypto'
 import { DateTime } from 'luxon'
 import emailService from '#services/email_service'
 import env from '#start/env'
@@ -155,12 +155,14 @@ export default class ClientsController {
         peutUploader: client.peutUploader,
         peutDemanderRdv: client.peutDemanderRdv,
         responsableId: client.responsableId,
-        responsable: client.responsable ? {
-          id: client.responsable.id,
-          username: client.responsable.username,
-          nom: client.responsable.nom,
-          prenom: client.responsable.prenom,
-        } : null,
+        responsable: client.responsable
+          ? {
+              id: client.responsable.id,
+              username: client.responsable.username,
+              nom: client.responsable.nom,
+              prenom: client.responsable.prenom,
+            }
+          : null,
         createdAt: client.createdAt.toISO(),
       },
     })
@@ -201,7 +203,10 @@ export default class ClientsController {
     })
 
     if (!emailResult.success) {
-      logger.warn({ error: emailResult.error }, `Failed to send password reset email to ${client.email}`)
+      logger.warn(
+        { error: emailResult.error },
+        `Failed to send password reset email to ${client.email}`
+      )
     }
 
     return response.ok({

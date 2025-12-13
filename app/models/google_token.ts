@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import Admin from './admin.js'
 
 export default class GoogleToken extends BaseModel {
@@ -77,7 +77,10 @@ export default class GoogleToken extends BaseModel {
   /**
    * Find token by service and admin (per-admin token)
    */
-  static async findByServiceAndAdmin(service: string, adminId: string): Promise<GoogleToken | null> {
+  static async findByServiceAndAdmin(
+    service: string,
+    adminId: string
+  ): Promise<GoogleToken | null> {
     return await this.query().where('service', service).where('admin_id', adminId).first()
   }
 
@@ -118,7 +121,8 @@ export default class GoogleToken extends BaseModel {
       if (data.accountEmail !== undefined) existing.accountEmail = data.accountEmail
       if (data.accountName !== undefined) existing.accountName = data.accountName
       if (data.scopes !== undefined) existing.scopes = data.scopes
-      if (data.selectedCalendarId !== undefined) existing.selectedCalendarId = data.selectedCalendarId
+      if (data.selectedCalendarId !== undefined)
+        existing.selectedCalendarId = data.selectedCalendarId
       if (data.selectedCalendarName !== undefined)
         existing.selectedCalendarName = data.selectedCalendarName
       await existing.save()
@@ -177,7 +181,11 @@ export default class GoogleToken extends BaseModel {
   /**
    * Update sync mode for a service
    */
-  static async updateSyncMode(service: string, mode: 'auto' | 'manual', adminId?: string | null): Promise<void> {
+  static async updateSyncMode(
+    service: string,
+    mode: 'auto' | 'manual',
+    adminId?: string | null
+  ): Promise<void> {
     let query = this.query().where('service', service)
     if (adminId) {
       query = query.where('admin_id', adminId)

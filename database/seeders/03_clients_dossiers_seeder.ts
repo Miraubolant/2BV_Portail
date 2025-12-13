@@ -11,7 +11,7 @@ export default class ClientsDossiersSeeder extends BaseSeeder {
     const admin = await Admin.first()
 
     if (!admin) {
-      console.log('Aucun admin trouve. Executez d\'abord le seeder admin.')
+      console.log("Aucun admin trouve. Executez d'abord le seeder admin.")
       return
     }
 
@@ -88,8 +88,8 @@ export default class ClientsDossiersSeeder extends BaseSeeder {
         dossier: {
           intitule: 'Licenciement abusif - Dossier Bernard',
           typeAffaire: 'social',
-          description: 'Contestation d\'un licenciement pour faute grave',
-          juridiction: 'Conseil de Prud\'hommes Paris',
+          description: "Contestation d'un licenciement pour faute grave",
+          juridiction: "Conseil de Prud'hommes Paris",
           numeroRg: '2024/PRH/456',
           adversaireNom: 'Groupe Industria SA',
           adversaireAvocat: 'Cabinet Lefebvre',
@@ -261,9 +261,7 @@ export default class ClientsDossiersSeeder extends BaseSeeder {
 
     let createdCount = 0
 
-    for (let i = 0; i < clientsData.length; i++) {
-      const data = clientsData[i]
-
+    for (const [i, data] of clientsData.entries()) {
       // Verifier si le client existe deja
       const existingClient = await Client.findBy('email', data.email)
       if (existingClient) {
@@ -441,7 +439,7 @@ function getEvenementsForDossier(
   evenements.push({
     dossierId,
     titre: `RDV suivi dossier`,
-    description: 'Point sur l\'avancement du dossier et preparation de l\'audience',
+    description: "Point sur l'avancement du dossier et preparation de l'audience",
     type: 'rdv_client',
     dateDebut: rdvSuiviDate.set({ hour: 14 + (index % 4), minute: index % 2 === 0 ? 0 : 30 }),
     dateFin: rdvSuiviDate.set({ hour: 15 + (index % 4), minute: index % 2 === 0 ? 0 : 30 }),
@@ -486,7 +484,7 @@ function getEvenementsForDossier(
       dateDebut: conciliationDate.set({ hour: 9, minute: 30 }),
       dateFin: conciliationDate.set({ hour: 10, minute: 30 }),
       journeeEntiere: false,
-      lieu: 'Conseil de Prud\'hommes',
+      lieu: "Conseil de Prud'hommes",
       adresse: null,
       statut: 'confirme',
       syncGoogle: true,
@@ -500,7 +498,7 @@ function getEvenementsForDossier(
     evenements.push({
       dossierId,
       titre: 'Audition commissariat',
-      description: 'Audition dans le cadre de l\'enquete',
+      description: "Audition dans le cadre de l'enquete",
       type: 'autre',
       dateDebut: expertiseDate.set({ hour: 10, minute: 0 }),
       dateFin: expertiseDate.set({ hour: 12, minute: 0 }),

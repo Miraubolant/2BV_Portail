@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Admin from '#models/admin'
 import vine from '@vinejs/vine'
-import { randomBytes } from 'crypto'
+import { randomBytes } from 'node:crypto'
 
 const createAdminValidator = vine.compile(
   vine.object({
@@ -36,12 +36,14 @@ export default class AdminsController {
       .where('role', 'admin') // Exclure les super_admin
       .orderBy('username', 'asc')
 
-    return response.ok(admins.map(a => ({
-      id: a.id,
-      username: a.username,
-      nom: a.nom,
-      prenom: a.prenom,
-    })))
+    return response.ok(
+      admins.map((a) => ({
+        id: a.id,
+        username: a.username,
+        nom: a.nom,
+        prenom: a.prenom,
+      }))
+    )
   }
 
   /**
@@ -49,24 +51,24 @@ export default class AdminsController {
    * Liste des admins (super_admin only)
    */
   async index({ response }: HttpContext) {
-    const admins = await Admin.query()
-      .where('role', 'admin')
-      .orderBy('created_at', 'desc')
+    const admins = await Admin.query().where('role', 'admin').orderBy('created_at', 'desc')
 
-    return response.ok(admins.map(a => ({
-      id: a.id,
-      email: a.email,
-      nom: a.nom,
-      prenom: a.prenom,
-      username: a.username,
-      role: a.role,
-      actif: a.actif,
-      totpEnabled: a.totpEnabled,
-      notifEmailDocument: a.notifEmailDocument,
-      emailNotification: a.emailNotification,
-      lastLogin: a.lastLogin,
-      createdAt: a.createdAt,
-    })))
+    return response.ok(
+      admins.map((a) => ({
+        id: a.id,
+        email: a.email,
+        nom: a.nom,
+        prenom: a.prenom,
+        username: a.username,
+        role: a.role,
+        actif: a.actif,
+        totpEnabled: a.totpEnabled,
+        notifEmailDocument: a.notifEmailDocument,
+        emailNotification: a.emailNotification,
+        lastLogin: a.lastLogin,
+        createdAt: a.createdAt,
+      }))
+    )
   }
 
   /**
@@ -74,7 +76,7 @@ export default class AdminsController {
    */
   async show({ params, response }: HttpContext) {
     const admin = await Admin.findOrFail(params.id)
-    
+
     return response.ok({
       id: admin.id,
       email: admin.email,
@@ -132,7 +134,9 @@ export default class AdminsController {
     const admin = await Admin.findOrFail(params.id)
 
     if (admin.role === 'super_admin') {
-      return response.forbidden({ message: 'Impossible de reinitialiser le mot de passe d\'un super admin' })
+      return response.forbidden({
+        message: "Impossible de reinitialiser le mot de passe d'un super admin",
+      })
     }
 
     const { password: providedPassword } = request.only(['password'])
@@ -140,7 +144,9 @@ export default class AdminsController {
     // Utiliser le mot de passe fourni ou en generer un nouveau
     if (providedPassword) {
       if (providedPassword.length < 8) {
-        return response.badRequest({ message: 'Le mot de passe doit contenir au moins 8 caracteres' })
+        return response.badRequest({
+          message: 'Le mot de passe doit contenir au moins 8 caracteres',
+        })
       }
       admin.password = providedPassword
       await admin.save()
@@ -166,7 +172,7 @@ export default class AdminsController {
    */
   async update({ params, request, response }: HttpContext) {
     const admin = await Admin.findOrFail(params.id)
-    
+
     // Empecher la modification d'un super_admin
     if (admin.role === 'super_admin') {
       return response.forbidden({ message: 'Impossible de modifier un super admin' })
@@ -194,7 +200,7 @@ export default class AdminsController {
    */
   async destroy({ params, response }: HttpContext) {
     const admin = await Admin.findOrFail(params.id)
-    
+
     // Empecher la suppression d'un super_admin
     if (admin.role === 'super_admin') {
       return response.forbidden({ message: 'Impossible de supprimer un super admin' })
@@ -210,7 +216,7 @@ export default class AdminsController {
    */
   async toggleStatus({ params, response }: HttpContext) {
     const admin = await Admin.findOrFail(params.id)
-    
+
     if (admin.role === 'super_admin') {
       return response.forbidden({ message: 'Impossible de desactiver un super admin' })
     }

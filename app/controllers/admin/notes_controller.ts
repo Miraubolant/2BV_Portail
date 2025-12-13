@@ -102,12 +102,7 @@ export default class NotesController {
     await note.save()
 
     // Logger la modification
-    await ActivityLogger.logNoteUpdated(
-      note.id,
-      note.dossierId,
-      admin.id,
-      ctx
-    )
+    await ActivityLogger.logNoteUpdated(note.id, note.dossierId, admin.id, ctx)
 
     await note.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')
@@ -148,12 +143,7 @@ export default class NotesController {
     await note.save()
 
     // Logger la modification
-    await ActivityLogger.logNoteUpdated(
-      note.id,
-      note.dossierId,
-      admin.id,
-      ctx
-    )
+    await ActivityLogger.logNoteUpdated(note.id, note.dossierId, admin.id, ctx)
 
     await note.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')

@@ -1,7 +1,7 @@
 /// <reference path="../../../adonisrc.ts" />
 /// <reference path="../../../config/inertia.ts" />
 
-import { StrictMode, ReactNode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'

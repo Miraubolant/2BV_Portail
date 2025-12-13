@@ -21,40 +21,41 @@ export default class FavorisController {
     const dossierIds = favoris.filter((f) => f.favoriType === 'dossier').map((f) => f.favoriId)
     const clientIds = favoris.filter((f) => f.favoriType === 'client').map((f) => f.favoriId)
 
-    const dossiers = dossierIds.length > 0
-      ? await Dossier.query().whereIn('id', dossierIds).preload('client')
-      : []
+    const dossiers =
+      dossierIds.length > 0 ? await Dossier.query().whereIn('id', dossierIds).preload('client') : []
     const clients = clientIds.length > 0 ? await Client.query().whereIn('id', clientIds) : []
 
     const dossiersMap = new Map(dossiers.map((d) => [d.id, d]))
     const clientsMap = new Map(clients.map((c) => [c.id, c]))
 
-    const result = favoris.map((f) => {
-      if (f.favoriType === 'dossier') {
-        const dossier = dossiersMap.get(f.favoriId)
-        return {
-          id: f.id,
-          type: 'dossier',
-          favoriId: f.favoriId,
-          ordre: f.ordre,
-          label: dossier?.reference || 'Dossier supprime',
-          sublabel: dossier?.intitule || null,
-          clientName: dossier?.client ? `${dossier.client.prenom} ${dossier.client.nom}` : null,
-          exists: !!dossier,
+    const result = favoris
+      .map((f) => {
+        if (f.favoriType === 'dossier') {
+          const dossier = dossiersMap.get(f.favoriId)
+          return {
+            id: f.id,
+            type: 'dossier',
+            favoriId: f.favoriId,
+            ordre: f.ordre,
+            label: dossier?.reference || 'Dossier supprime',
+            sublabel: dossier?.intitule || null,
+            clientName: dossier?.client ? `${dossier.client.prenom} ${dossier.client.nom}` : null,
+            exists: !!dossier,
+          }
+        } else {
+          const client = clientsMap.get(f.favoriId)
+          return {
+            id: f.id,
+            type: 'client',
+            favoriId: f.favoriId,
+            ordre: f.ordre,
+            label: client ? `${client.prenom} ${client.nom}` : 'Client supprime',
+            sublabel: client?.email || null,
+            exists: !!client,
+          }
         }
-      } else {
-        const client = clientsMap.get(f.favoriId)
-        return {
-          id: f.id,
-          type: 'client',
-          favoriId: f.favoriId,
-          ordre: f.ordre,
-          label: client ? `${client.prenom} ${client.nom}` : 'Client supprime',
-          sublabel: client?.email || null,
-          exists: !!client,
-        }
-      }
-    }).filter((f) => f.exists) // Ne retourner que les favoris qui existent encore
+      })
+      .filter((f) => f.exists) // Ne retourner que les favoris qui existent encore
 
     return response.ok(result)
   }

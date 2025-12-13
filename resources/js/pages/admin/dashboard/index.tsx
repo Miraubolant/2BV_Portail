@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ADMIN_DASHBOARD_API, formatDateTime } from '@/lib/constants'
 import { ADMIN_CLIENTS, ADMIN_DOSSIERS, ADMIN_DEMANDES_RDV, ADMIN_EVENEMENTS } from '@/app/routes'
-import { useEffect, useState, ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from '@inertiajs/react'
 import {
   Users,

@@ -4,16 +4,16 @@ import logger from '@adonisjs/core/services/logger'
 const GRAPH_API_BASE = 'https://graph.microsoft.com/v1.0'
 
 export interface DriveItem {
-  id: string
-  name: string
-  size?: number
-  webUrl?: string
+  'id': string
+  'name': string
+  'size'?: number
+  'webUrl'?: string
   '@microsoft.graph.downloadUrl'?: string
-  folder?: { childCount: number }
-  file?: { mimeType: string }
-  createdDateTime?: string
-  lastModifiedDateTime?: string
-  parentReference?: {
+  'folder'?: { childCount: number }
+  'file'?: { mimeType: string }
+  'createdDateTime'?: string
+  'lastModifiedDateTime'?: string
+  'parentReference'?: {
     driveId: string
     id: string
     path: string
@@ -94,7 +94,11 @@ class OneDriveService {
   /**
    * Perform a health check on the OneDrive connection
    */
-  async checkHealth(): Promise<{ healthy: boolean; error?: string; quota?: { used: number; total: number } }> {
+  async checkHealth(): Promise<{
+    healthy: boolean
+    error?: string
+    quota?: { used: number; total: number }
+  }> {
     const headers = await this.getHeaders()
     if (!headers) {
       this.connectionHealthy = false
@@ -111,16 +115,18 @@ class OneDriveService {
         return { healthy: false, error: `HTTP ${response.status}` }
       }
 
-      const data = await response.json() as { quota?: { used?: number; total?: number } }
+      const data = (await response.json()) as { quota?: { used?: number; total?: number } }
       this.connectionHealthy = true
       this.lastHealthCheck = new Date()
 
       return {
         healthy: true,
-        quota: data.quota ? {
-          used: data.quota.used || 0,
-          total: data.quota.total || 0,
-        } : undefined,
+        quota: data.quota
+          ? {
+              used: data.quota.used || 0,
+              total: data.quota.total || 0,
+            }
+          : undefined,
       }
     } catch (error) {
       this.connectionHealthy = false
@@ -147,7 +153,7 @@ class OneDriveService {
       return null
     }
 
-    return await response.json() as DriveItem
+    return (await response.json()) as DriveItem
   }
 
   /**
@@ -168,7 +174,7 @@ class OneDriveService {
       return []
     }
 
-    const data = await response.json() as { value?: DriveItem[] }
+    const data = (await response.json()) as { value?: DriveItem[] }
     return data.value || []
   }
 
@@ -176,7 +182,9 @@ class OneDriveService {
    * Get or create the root folder for the application
    * Creates: /Portail Cabinet/
    */
-  async getOrCreateRootFolder(rootFolderName: string = 'Portail Cabinet'): Promise<FolderCreateResult> {
+  async getOrCreateRootFolder(
+    rootFolderName: string = 'Portail Cabinet'
+  ): Promise<FolderCreateResult> {
     const headers = await this.getHeaders()
     if (!headers) {
       return { success: false, error: 'Not authenticated' }
@@ -184,8 +192,8 @@ class OneDriveService {
 
     // Check if folder already exists
     const existingItems = await this.listFolder()
-    const existing = existingItems.find(item =>
-      item.name.toLowerCase() === rootFolderName.toLowerCase() && item.folder
+    const existing = existingItems.find(
+      (item) => item.name.toLowerCase() === rootFolderName.toLowerCase() && item.folder
     )
 
     if (existing) {
@@ -202,8 +210,8 @@ class OneDriveService {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        name: rootFolderName,
-        folder: {},
+        'name': rootFolderName,
+        'folder': {},
         '@microsoft.graph.conflictBehavior': 'rename',
       }),
     })
@@ -214,7 +222,7 @@ class OneDriveService {
       return { success: false, error }
     }
 
-    const folder = await response.json() as DriveItem
+    const folder = (await response.json()) as DriveItem
     return {
       success: true,
       folderId: folder.id,
@@ -234,8 +242,8 @@ class OneDriveService {
 
     // Check if folder already exists
     const existingItems = await this.listFolder(parentFolderId)
-    const existing = existingItems.find(item =>
-      item.name.toLowerCase() === folderName.toLowerCase() && item.folder
+    const existing = existingItems.find(
+      (item) => item.name.toLowerCase() === folderName.toLowerCase() && item.folder
     )
 
     if (existing) {
@@ -250,8 +258,8 @@ class OneDriveService {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        name: folderName,
-        folder: {},
+        'name': folderName,
+        'folder': {},
         '@microsoft.graph.conflictBehavior': 'rename',
       }),
     })
@@ -262,7 +270,7 @@ class OneDriveService {
       return { success: false, error }
     }
 
-    const folder = await response.json() as DriveItem
+    const folder = (await response.json()) as DriveItem
     return {
       success: true,
       folderId: folder.id,
@@ -288,16 +296,18 @@ class OneDriveService {
       method: 'PUT',
       headers,
       body: JSON.stringify({
-        folder: {},
+        'folder': {},
         '@microsoft.graph.conflictBehavior': 'rename',
       }),
     })
 
     // If 409 conflict, folder might exist - try to get it
     if (response.status === 409) {
-      const getResponse = await fetch(`${GRAPH_API_BASE}/me/drive/root:${normalizedPath}`, { headers })
+      const getResponse = await fetch(`${GRAPH_API_BASE}/me/drive/root:${normalizedPath}`, {
+        headers,
+      })
       if (getResponse.ok) {
-        const folder = await getResponse.json() as DriveItem
+        const folder = (await getResponse.json()) as DriveItem
         return {
           success: true,
           folderId: folder.id,
@@ -317,23 +327,26 @@ class OneDriveService {
         currentPath += `/${part}`
 
         // Check if exists
-        const checkResponse = await fetch(`${GRAPH_API_BASE}/me/drive/root:${currentPath}`, { headers })
+        const checkResponse = await fetch(`${GRAPH_API_BASE}/me/drive/root:${currentPath}`, {
+          headers,
+        })
 
         if (checkResponse.ok) {
-          const folder = await checkResponse.json() as DriveItem
+          const folder = (await checkResponse.json()) as DriveItem
           lastFolderId = folder.id
         } else {
           // Create the folder
-          const parentEndpoint = currentPath === `/${part}`
-            ? `${GRAPH_API_BASE}/me/drive/root/children`
-            : `${GRAPH_API_BASE}/me/drive/items/${lastFolderId}/children`
+          const parentEndpoint =
+            currentPath === `/${part}`
+              ? `${GRAPH_API_BASE}/me/drive/root/children`
+              : `${GRAPH_API_BASE}/me/drive/items/${lastFolderId}/children`
 
           const createResponse = await fetch(parentEndpoint, {
             method: 'POST',
             headers,
             body: JSON.stringify({
-              name: part,
-              folder: {},
+              'name': part,
+              'folder': {},
               '@microsoft.graph.conflictBehavior': 'fail',
             }),
           })
@@ -344,15 +357,17 @@ class OneDriveService {
             return { success: false, error }
           }
 
-          const folder = await createResponse.json() as DriveItem
+          const folder = (await createResponse.json()) as DriveItem
           lastFolderId = folder.id
         }
       }
 
       // Get final folder info
-      const finalResponse = await fetch(`${GRAPH_API_BASE}/me/drive/items/${lastFolderId}`, { headers })
+      const finalResponse = await fetch(`${GRAPH_API_BASE}/me/drive/items/${lastFolderId}`, {
+        headers,
+      })
       if (finalResponse.ok) {
-        const folder = await finalResponse.json() as DriveItem
+        const folder = (await finalResponse.json()) as DriveItem
         return {
           success: true,
           folderId: folder.id,
@@ -364,7 +379,7 @@ class OneDriveService {
       return { success: true, folderId: lastFolderId, folderPath: normalizedPath }
     }
 
-    const folder = await response.json() as DriveItem
+    const folder = (await response.json()) as DriveItem
     return {
       success: true,
       folderId: folder.id,
@@ -406,7 +421,7 @@ class OneDriveService {
       return { success: false, error }
     }
 
-    const file = await response.json() as DriveItem
+    const file = (await response.json()) as DriveItem
     return {
       success: true,
       fileId: file.id,
@@ -443,7 +458,7 @@ class OneDriveService {
       return null
     }
 
-    return await response.json() as UploadSession
+    return (await response.json()) as UploadSession
   }
 
   /**
@@ -485,7 +500,7 @@ class OneDriveService {
 
       // If upload is complete (status 200 or 201)
       if (response.status === 200 || response.status === 201) {
-        const file = await response.json() as DriveItem
+        const file = (await response.json()) as DriveItem
         return {
           success: true,
           fileId: file.id,
@@ -534,7 +549,7 @@ class OneDriveService {
       return { success: false, error: 'File not found' }
     }
 
-    const fileInfo = await infoResponse.json() as DriveItem
+    const fileInfo = (await infoResponse.json()) as DriveItem
     const downloadUrl = fileInfo['@microsoft.graph.downloadUrl']
 
     if (!downloadUrl) {
@@ -569,7 +584,7 @@ class OneDriveService {
       return null
     }
 
-    return await response.json() as DriveItem
+    return (await response.json()) as DriveItem
   }
 
   /**
@@ -639,10 +654,9 @@ class OneDriveService {
     const headers = await this.getHeaders()
     if (!headers) return null
 
-    const response = await fetch(
-      `${GRAPH_API_BASE}/me/drive/items/${fileId}/thumbnails`,
-      { headers }
-    )
+    const response = await fetch(`${GRAPH_API_BASE}/me/drive/items/${fileId}/thumbnails`, {
+      headers,
+    })
 
     if (!response.ok) {
       return null
@@ -654,7 +668,7 @@ class OneDriveService {
       large?: { url?: string }
     }
 
-    const data = await response.json() as { value?: ThumbnailSet[] }
+    const data = (await response.json()) as { value?: ThumbnailSet[] }
     const thumbnails = data.value?.[0]
 
     if (!thumbnails) return null

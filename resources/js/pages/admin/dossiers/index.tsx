@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react'
 import { getAdminLayout } from '@/components/layout/admin-layout'
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,7 +11,7 @@ import { ADMIN_DOSSIERS_API, ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDa
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import { useUnifiedModal } from '@/contexts/unified-modal-context'
-import { DataTable, Column } from '@/components/ui/data-table'
+import { DataTable, type Column } from '@/components/ui/data-table'
 import {
   Plus,
   Search,

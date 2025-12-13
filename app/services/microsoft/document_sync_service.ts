@@ -67,8 +67,8 @@ class DocumentSyncService {
     // Determine the location based on visibility if not explicitly specified
     // - If visibleClient is true OR uploader is client -> CLIENT folder
     // - If visibleClient is false (internal document) -> CABINET folder
-    const targetLocation: 'cabinet' | 'client' = location
-      || (metadata.visibleClient === false ? 'cabinet' : 'client')
+    const targetLocation: 'cabinet' | 'client' =
+      location || (metadata.visibleClient === false ? 'cabinet' : 'client')
 
     // Ensure dossier has the correct OneDrive subfolder
     const folderId = await dossierFolderService.ensureDossierFolder(dossierId, targetLocation)
@@ -190,7 +190,10 @@ class DocumentSyncService {
   /**
    * Sync a single document to OneDrive (for documents that failed initial upload)
    */
-  async syncDocument(documentId: string, fileContent: Buffer): Promise<{ success: boolean; error?: string }> {
+  async syncDocument(
+    documentId: string,
+    fileContent: Buffer
+  ): Promise<{ success: boolean; error?: string }> {
     const document = await Document.query()
       .where('id', documentId)
       .preload('dossier' as never)
@@ -210,8 +213,12 @@ class DocumentSyncService {
     }
 
     // Ensure dossier folder exists with the correct location
-    const targetLocation = document.dossierLocation || (document.visibleClient ? 'client' : 'cabinet')
-    const folderId = await dossierFolderService.ensureDossierFolder(document.dossierId, targetLocation)
+    const targetLocation =
+      document.dossierLocation || (document.visibleClient ? 'client' : 'cabinet')
+    const folderId = await dossierFolderService.ensureDossierFolder(
+      document.dossierId,
+      targetLocation
+    )
     if (!folderId) {
       return { success: false, error: 'Failed to create dossier folder' }
     }
@@ -294,7 +301,9 @@ class DocumentSyncService {
   /**
    * Get fresh download URL for a document (OneDrive URLs expire)
    */
-  async getDownloadUrl(documentId: string): Promise<{ success: boolean; url?: string; error?: string }> {
+  async getDownloadUrl(
+    documentId: string
+  ): Promise<{ success: boolean; url?: string; error?: string }> {
     const document = await Document.find(documentId)
     if (!document) {
       return { success: false, error: 'Document not found' }
@@ -382,7 +391,10 @@ class DocumentSyncService {
   /**
    * Get thumbnail URL for a document
    */
-  async getThumbnailUrl(documentId: string, size: 'small' | 'medium' | 'large' = 'medium'): Promise<{ success: boolean; url?: string; error?: string }> {
+  async getThumbnailUrl(
+    documentId: string,
+    size: 'small' | 'medium' | 'large' = 'medium'
+  ): Promise<{ success: boolean; url?: string; error?: string }> {
     const document = await Document.find(documentId)
     if (!document) {
       return { success: false, error: 'Document not found' }

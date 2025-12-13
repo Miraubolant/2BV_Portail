@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CLIENT_DASHBOARD_API, formatDateTime } from '@/lib/constants'
 import { CLIENT_DOSSIERS, CLIENT_DEMANDES_RDV } from '@/app/routes'
-import { ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { Link } from '@inertiajs/react'
 import {
   FolderKanban,

@@ -16,7 +16,7 @@ export default class TotpVerifiedMiddleware {
         return ctx.response.redirect('/client/login')
       }
       return ctx.response.unauthorized({
-        message: 'Non authentifié'
+        message: 'Non authentifié',
       })
     }
 
@@ -27,7 +27,7 @@ export default class TotpVerifiedMiddleware {
       }
       return ctx.response.status(428).json({
         message: 'Configuration 2FA requise',
-        code: 'TOTP_SETUP_REQUIRED'
+        code: 'TOTP_SETUP_REQUIRED',
       })
     }
 
@@ -39,7 +39,7 @@ export default class TotpVerifiedMiddleware {
       }
       return ctx.response.status(428).json({
         message: 'Vérification 2FA requise',
-        code: 'TOTP_VERIFICATION_REQUIRED'
+        code: 'TOTP_VERIFICATION_REQUIRED',
       })
     }
 

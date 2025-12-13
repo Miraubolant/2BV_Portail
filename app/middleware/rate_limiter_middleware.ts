@@ -28,7 +28,7 @@ export default class RateLimiterMiddleware {
       const remainingMinutes = Math.ceil((entry.lockedUntil - now) / 60000)
       return ctx.response.tooManyRequests({
         message: `Trop de tentatives. Reessayez dans ${remainingMinutes} minute(s).`,
-        retryAfter: remainingMinutes
+        retryAfter: remainingMinutes,
       })
     }
 
@@ -51,15 +51,18 @@ export default class RateLimiterMiddleware {
       entry.lockedUntil = now + LOCKOUT_MS
       loginAttempts.set(ip, entry)
 
-      ctx.logger.warn({
-        type: 'rate_limit_exceeded',
-        ip,
-        attempts: entry.count
-      }, 'Rate limit exceeded for IP')
+      ctx.logger.warn(
+        {
+          type: 'rate_limit_exceeded',
+          ip,
+          attempts: entry.count,
+        },
+        'Rate limit exceeded for IP'
+      )
 
       return ctx.response.tooManyRequests({
         message: 'Trop de tentatives de connexion. Compte temporairement bloque pour 30 minutes.',
-        retryAfter: 30
+        retryAfter: 30,
       })
     }
 
@@ -87,12 +90,15 @@ export default class RateLimiterMiddleware {
 }
 
 // Cleanup old entries every hour
-setInterval(() => {
-  const now = Date.now()
-  for (const [ip, entry] of loginAttempts.entries()) {
-    // Remove entries older than lockout period
-    if (now - entry.firstAttempt > LOCKOUT_MS + WINDOW_MS) {
-      loginAttempts.delete(ip)
+setInterval(
+  () => {
+    const now = Date.now()
+    for (const [ip, entry] of loginAttempts.entries()) {
+      // Remove entries older than lockout period
+      if (now - entry.firstAttempt > LOCKOUT_MS + WINDOW_MS) {
+        loginAttempts.delete(ip)
+      }
     }
-  }
-}, 60 * 60 * 1000)
+  },
+  60 * 60 * 1000
+)

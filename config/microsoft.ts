@@ -5,7 +5,10 @@ const microsoftConfig = {
   clientSecret: env.get('MICROSOFT_CLIENT_SECRET', ''),
   // 'consumers' for personal accounts, 'organizations' for work/school, or tenant ID
   tenantId: env.get('MICROSOFT_TENANT_ID', 'consumers'),
-  redirectUri: env.get('MICROSOFT_REDIRECT_URI', 'http://localhost:3333/api/admin/microsoft/callback'),
+  redirectUri: env.get(
+    'MICROSOFT_REDIRECT_URI',
+    'http://localhost:3333/api/admin/microsoft/callback'
+  ),
 
   // OAuth endpoints
   get authorizeUrl(): string {

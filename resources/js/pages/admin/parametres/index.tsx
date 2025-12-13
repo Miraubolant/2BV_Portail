@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react'
 import { getAdminLayout } from '@/components/layout/admin-layout'
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

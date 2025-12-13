@@ -50,22 +50,26 @@ export default class TasksController {
       .preload('assignedTo', (query) => {
         query.select('id', 'nom', 'prenom')
       })
-      .orderByRaw(`
+      .orderByRaw(
+        `
         CASE
           WHEN statut = 'a_faire' THEN 1
           WHEN statut = 'en_cours' THEN 2
           WHEN statut = 'terminee' THEN 3
           WHEN statut = 'annulee' THEN 4
         END
-      `)
-      .orderByRaw(`
+      `
+      )
+      .orderByRaw(
+        `
         CASE
           WHEN priorite = 'urgente' THEN 1
           WHEN priorite = 'haute' THEN 2
           WHEN priorite = 'normale' THEN 3
           WHEN priorite = 'basse' THEN 4
         END
-      `)
+      `
+      )
       .orderBy('date_echeance', 'asc')
 
     return response.ok(tasks)
@@ -174,20 +178,40 @@ export default class TasksController {
 
     // Tracker autres changements
     if (restData.titre && restData.titre !== task.titre) changes.push('titre')
-    if (restData.description !== undefined && restData.description !== task.description) changes.push('description')
+    if (restData.description !== undefined && restData.description !== task.description)
+      changes.push('description')
     if (restData.priorite && restData.priorite !== task.priorite) changes.push('priorite')
-    if (restData.assignedToId !== undefined && restData.assignedToId !== task.assignedToId) changes.push('assignedTo')
+    if (restData.assignedToId !== undefined && restData.assignedToId !== task.assignedToId)
+      changes.push('assignedTo')
 
     task.merge(restData)
     await task.save()
 
     // Logger la modification
     if (statut === 'terminee' && oldStatut !== 'terminee') {
-      await ActivityLogger.logTaskCompleted(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
+      await ActivityLogger.logTaskCompleted(
+        task.id,
+        task.dossierId,
+        admin.id,
+        { titre: task.titre },
+        ctx
+      )
     } else if (oldStatut === 'terminee' && statut && statut !== 'terminee') {
-      await ActivityLogger.logTaskReopened(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
+      await ActivityLogger.logTaskReopened(
+        task.id,
+        task.dossierId,
+        admin.id,
+        { titre: task.titre },
+        ctx
+      )
     } else if (changes.length > 0) {
-      await ActivityLogger.logTaskUpdated(task.id, task.dossierId, admin.id, { titre: task.titre, changes }, ctx)
+      await ActivityLogger.logTaskUpdated(
+        task.id,
+        task.dossierId,
+        admin.id,
+        { titre: task.titre, changes },
+        ctx
+      )
     }
 
     await task.load('createdBy', (query) => {
@@ -242,7 +266,13 @@ export default class TasksController {
     await task.save()
 
     // Logger la completion
-    await ActivityLogger.logTaskCompleted(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
+    await ActivityLogger.logTaskCompleted(
+      task.id,
+      task.dossierId,
+      admin.id,
+      { titre: task.titre },
+      ctx
+    )
 
     await task.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')
@@ -272,7 +302,13 @@ export default class TasksController {
     await task.save()
 
     // Logger la reouverture
-    await ActivityLogger.logTaskReopened(task.id, task.dossierId, admin.id, { titre: task.titre }, ctx)
+    await ActivityLogger.logTaskReopened(
+      task.id,
+      task.dossierId,
+      admin.id,
+      { titre: task.titre },
+      ctx
+    )
 
     await task.load('createdBy', (query) => {
       query.select('id', 'nom', 'prenom')
@@ -297,14 +333,16 @@ export default class TasksController {
       .where('assigned_to_id', admin.id)
       .preload('dossier' as any, (q: any) => q.select('id', 'reference', 'intitule'))
       .preload('createdBy', (q) => q.select('id', 'nom', 'prenom'))
-      .orderByRaw(`
+      .orderByRaw(
+        `
         CASE
           WHEN priorite = 'urgente' THEN 1
           WHEN priorite = 'haute' THEN 2
           WHEN priorite = 'normale' THEN 3
           WHEN priorite = 'basse' THEN 4
         END
-      `)
+      `
+      )
       .orderBy('date_echeance', 'asc')
 
     if (statut) {

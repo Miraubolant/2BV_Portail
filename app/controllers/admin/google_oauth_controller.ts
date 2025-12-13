@@ -63,7 +63,9 @@ export default class GoogleOAuthController {
     }
 
     if (!code) {
-      return response.redirect(`${frontendUrl}&google_error=${encodeURIComponent('No code provided')}`)
+      return response.redirect(
+        `${frontendUrl}&google_error=${encodeURIComponent('No code provided')}`
+      )
     }
 
     try {

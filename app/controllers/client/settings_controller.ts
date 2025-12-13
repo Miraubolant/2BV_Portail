@@ -90,7 +90,7 @@ export default class SettingsController {
     return response.ok({
       secret,
       qrCode,
-      message: 'Scannez le QR code avec votre application d\'authentification',
+      message: "Scannez le QR code avec votre application d'authentification",
     })
   }
 

@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   FolderSync,
   FolderPlus,
+  FolderDown,
 } from 'lucide-react'
 import {
   MICROSOFT_STATUS_API,
@@ -23,6 +24,7 @@ import {
   MICROSOFT_TEST_API,
   MICROSOFT_INITIALIZE_API,
   MICROSOFT_SYNC_API,
+  MICROSOFT_REVERSE_SYNC_API,
 } from '@/lib/constants'
 
 interface OneDriveStatus {
@@ -50,6 +52,7 @@ export function OneDriveSettings() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [initializing, setInitializing] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [reverseSyncing, setReverseSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -199,6 +202,36 @@ export function OneDriveSettings() {
       setError('Erreur lors de la synchronisation')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const handleReverseSync = async () => {
+    setReverseSyncing(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const response = await fetch(MICROSOFT_REVERSE_SYNC_API, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        let message = `Import OneDrive termine: ${data.created} fichiers importes`
+        if (data.linkedDossiers > 0) {
+          message += `, ${data.linkedDossiers} dossiers lies`
+        }
+        if (data.unmatchedClients?.length > 0 || data.unmatchedDossiers?.length > 0) {
+          message += ` (${data.unmatchedClients?.length || 0} clients et ${data.unmatchedDossiers?.length || 0} dossiers non reconnus)`
+        }
+        setSuccess(message)
+      } else {
+        setError(data.message || 'Erreur lors de l\'import')
+      }
+    } catch (err) {
+      setError('Erreur lors de l\'import OneDrive')
+    } finally {
+      setReverseSyncing(false)
     }
   }
 
@@ -361,6 +394,14 @@ export function OneDriveSettings() {
                   <FolderSync className="mr-2 h-4 w-4" />
                 )}
                 Synchroniser
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleReverseSync} disabled={reverseSyncing}>
+                {reverseSyncing ? (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FolderDown className="mr-2 h-4 w-4" />
+                )}
+                Importer depuis OneDrive
               </Button>
               <Button
                 variant="outline"

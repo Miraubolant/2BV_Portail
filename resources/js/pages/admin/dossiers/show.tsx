@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react'
 import { getAdminLayout, useBreadcrumb } from '@/components/layout/admin-layout'
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'

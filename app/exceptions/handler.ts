@@ -31,8 +31,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    */
   async handle(error: unknown, ctx: HttpContext) {
     // Pour les requetes API, toujours retourner du JSON
-    const isApiRequest = ctx.request.url().startsWith('/api') ||
-      ctx.request.accepts(['html', 'json']) === 'json'
+    const isApiRequest =
+      ctx.request.url().startsWith('/api') || ctx.request.accepts(['html', 'json']) === 'json'
 
     if (isApiRequest) {
       const err = error as { status?: number; message?: string; messages?: unknown }

@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AdminSidebar } from '@/components/sidebar/admin-sidebar'
 import { Separator } from '@/components/ui/separator'

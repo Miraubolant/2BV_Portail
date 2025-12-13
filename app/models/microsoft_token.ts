@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, beforeCreate } from '@adonisjs/lucid/orm'
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 
 export default class MicrosoftToken extends BaseModel {
   @column({ isPrimary: true })

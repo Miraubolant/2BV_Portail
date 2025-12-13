@@ -12,7 +12,8 @@ export default class MicrosoftOAuthController {
       return response.ok({
         configured: false,
         connected: false,
-        message: 'Microsoft OAuth not configured. Please add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to .env',
+        message:
+          'Microsoft OAuth not configured. Please add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to .env',
       })
     }
 
@@ -49,7 +50,9 @@ export default class MicrosoftOAuthController {
     if (error) {
       logger.error({ error, errorDescription }, 'Microsoft OAuth error')
       // Redirect to settings page with error
-      return response.redirect(`/admin/parametres?onedrive_error=${encodeURIComponent(errorDescription || error)}`)
+      return response.redirect(
+        `/admin/parametres?onedrive_error=${encodeURIComponent(errorDescription || error)}`
+      )
     }
 
     if (!code) {
@@ -113,7 +116,7 @@ export default class MicrosoftOAuthController {
         })
       }
 
-      const driveInfo = await driveResponse.json() as {
+      const driveInfo = (await driveResponse.json()) as {
         id: string
         driveType: string
         quota?: { used?: number; total?: number; remaining?: number }
@@ -206,6 +209,25 @@ export default class MicrosoftOAuthController {
       logger.error({ err: error }, 'Error fetching sync history')
       return response.internalServerError({
         message: 'Failed to fetch sync history',
+      })
+    }
+  }
+
+  /**
+   * Reverse sync: Import files added directly to OneDrive
+   * Scans /Portail Cabinet/Clients/ and imports new files to existing dossiers
+   */
+  async reverseSync({ auth, response }: HttpContext) {
+    const admin = auth.use('admin').user!
+
+    try {
+      const result = await syncService.reverseSyncFromOneDrive(admin.id)
+      return response.ok(result)
+    } catch (error) {
+      logger.error({ err: error }, 'Error performing reverse sync')
+      return response.internalServerError({
+        success: false,
+        message: error instanceof Error ? error.message : 'Reverse sync failed',
       })
     }
   }

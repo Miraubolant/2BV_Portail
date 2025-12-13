@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CLIENT_DOSSIERS_API, formatDate, API_BASE_URL } from '@/lib/constants'
-import { ReactNode, useEffect, useState, useCallback, memo } from 'react'
+import { type ReactNode, useEffect, useState, useCallback, memo } from 'react'
 import {
   ArrowLeft,
   FileText,

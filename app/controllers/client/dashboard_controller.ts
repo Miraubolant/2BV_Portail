@@ -17,19 +17,20 @@ export default class DashboardController {
       .where('client_id', client.id)
       .orderBy('created_at', 'desc')
 
-    const dossiersEnCours = dossiers.filter(d => !d.isClosed).length
-    const dossiersClotures = dossiers.filter(d => d.isClosed).length
+    const dossiersEnCours = dossiers.filter((d) => !d.isClosed).length
+    const dossiersClotures = dossiers.filter((d) => d.isClosed).length
 
     // Evenements a venir
-    const dossierIds = dossiers.map(d => d.id)
-    const evenementsAVenir = dossierIds.length > 0
-      ? await (Evenement.query() as any)
-          .whereIn('dossier_id', dossierIds)
-          .where('date_debut', '>=', DateTime.now().toSQL()!)
-          .orderBy('date_debut', 'asc')
-          .limit(5)
-          .preload('dossier')
-      : []
+    const dossierIds = dossiers.map((d) => d.id)
+    const evenementsAVenir =
+      dossierIds.length > 0
+        ? await (Evenement.query() as any)
+            .whereIn('dossier_id', dossierIds)
+            .where('date_debut', '>=', DateTime.now().toSQL()!)
+            .orderBy('date_debut', 'asc')
+            .limit(5)
+            .preload('dossier')
+        : []
 
     // Notifications non lues
     const notificationsNonLues = await Notification.query()
@@ -66,7 +67,7 @@ export default class DashboardController {
         dossier: {
           reference: e.dossier.reference,
           intitule: e.dossier.intitule,
-        }
+        },
       })),
       dernieresNotifications: notificationsNonLues,
     })

@@ -6,9 +6,24 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.raw('gen_random_uuid()'))
-      table.uuid('dossier_id').notNullable().references('id').inTable('dossiers').onDelete('CASCADE')
-      table.uuid('created_by_id').notNullable().references('id').inTable('admins').onDelete('CASCADE')
-      table.uuid('assigned_to_id').nullable().references('id').inTable('admins').onDelete('SET NULL')
+      table
+        .uuid('dossier_id')
+        .notNullable()
+        .references('id')
+        .inTable('dossiers')
+        .onDelete('CASCADE')
+      table
+        .uuid('created_by_id')
+        .notNullable()
+        .references('id')
+        .inTable('admins')
+        .onDelete('CASCADE')
+      table
+        .uuid('assigned_to_id')
+        .nullable()
+        .references('id')
+        .inTable('admins')
+        .onDelete('SET NULL')
       table.string('titre', 255).notNullable()
       table.text('description').nullable()
       table.enum('priorite', ['basse', 'normale', 'haute', 'urgente']).defaultTo('normale')

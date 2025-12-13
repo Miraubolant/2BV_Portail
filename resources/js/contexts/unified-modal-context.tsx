@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
 import { UnifiedAddModal } from '@/components/admin/unified-add-modal'
 
 type CreationType = 'client' | 'dossier' | 'evenement'

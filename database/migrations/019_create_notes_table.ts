@@ -6,8 +6,18 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.raw('gen_random_uuid()'))
-      table.uuid('dossier_id').notNullable().references('id').inTable('dossiers').onDelete('CASCADE')
-      table.uuid('created_by_id').notNullable().references('id').inTable('admins').onDelete('CASCADE')
+      table
+        .uuid('dossier_id')
+        .notNullable()
+        .references('id')
+        .inTable('dossiers')
+        .onDelete('CASCADE')
+      table
+        .uuid('created_by_id')
+        .notNullable()
+        .references('id')
+        .inTable('admins')
+        .onDelete('CASCADE')
       table.text('contenu').notNullable()
       table.boolean('is_pinned').defaultTo(false)
       table.timestamp('created_at', { useTz: true }).notNullable()

@@ -48,11 +48,12 @@ export default class RdvController {
 
     // Si un dossier est specifie, verifier qu'il appartient au client
     if (data.dossierId) {
-      const dossierExists = await client.related('dossiers')
+      const dossierExists = await client
+        .related('dossiers')
         .query()
         .where('id', data.dossierId)
         .first()
-      
+
       if (!dossierExists) {
         return response.forbidden({ message: 'Dossier non autorise' })
       }
@@ -74,8 +75,12 @@ export default class RdvController {
       .first()
 
     if (clientWithResponsable?.responsable) {
-      const urgenceLabel = data.urgence === 'tres_urgent' ? ' (TRES URGENT)' :
-                          data.urgence === 'urgent' ? ' (URGENT)' : ''
+      const urgenceLabel =
+        data.urgence === 'tres_urgent'
+          ? ' (TRES URGENT)'
+          : data.urgence === 'urgent'
+            ? ' (URGENT)'
+            : ''
 
       await Notification.create({
         destinataireType: 'admin',

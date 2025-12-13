@@ -35,7 +35,7 @@ export default class Parametre extends BaseModel {
   // Get typed value
   get typedValue(): string | number | boolean | object | null {
     if (this.valeur === null) return null
-    
+
     switch (this.type) {
       case 'boolean':
         return this.valeur === 'true'

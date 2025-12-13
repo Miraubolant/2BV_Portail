@@ -59,7 +59,7 @@ class GoogleCalendarService {
       return null
     }
     return {
-      Authorization: `Bearer ${accessToken}`,
+      'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     }
   }
@@ -109,7 +109,7 @@ class GoogleCalendarService {
         return { healthy: false, error: `HTTP ${response.status}` }
       }
 
-      const data = await response.json() as { items?: unknown[] }
+      const data = (await response.json()) as { items?: unknown[] }
       this.connectionHealthy = true
       this.lastHealthCheck = new Date()
 
@@ -214,7 +214,9 @@ class GoogleCalendarService {
   /**
    * Update an event on Google Calendar
    */
-  async updateEvent(evenement: Evenement): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
+  async updateEvent(
+    evenement: Evenement
+  ): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
     if (!evenement.googleEventId) {
       return { success: false, error: 'No Google event ID' }
     }
@@ -231,9 +233,16 @@ class GoogleCalendarService {
 
     // First, fetch the existing event to check its type
     const existingEvent = await this.getEvent(evenement.googleEventId)
-    if (existingEvent && existingEvent.eventType && RESTRICTED_EVENT_TYPES.includes(existingEvent.eventType)) {
+    if (
+      existingEvent &&
+      existingEvent.eventType &&
+      RESTRICTED_EVENT_TYPES.includes(existingEvent.eventType)
+    ) {
       // Skip updating special event types (birthday, focus time, etc.)
-      logger.info({ eventType: existingEvent.eventType, title: evenement.titre }, 'Skipping restricted event type')
+      logger.info(
+        { eventType: existingEvent.eventType, title: evenement.titre },
+        'Skipping restricted event type'
+      )
       return { success: true, skipped: true }
     }
 
@@ -253,7 +262,10 @@ class GoogleCalendarService {
         const errorText = await response.text()
 
         // Check if it's an eventType restriction error - skip gracefully
-        if (errorText.includes('eventTypeRestriction') || errorText.includes('Event type cannot be changed')) {
+        if (
+          errorText.includes('eventTypeRestriction') ||
+          errorText.includes('Event type cannot be changed')
+        ) {
           logger.info({ title: evenement.titre }, 'Skipping event due to type restriction')
           return { success: true, skipped: true }
         }

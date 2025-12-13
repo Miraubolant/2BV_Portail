@@ -12,13 +12,17 @@ export default class DossiersController {
     const limit = request.input('limit', 20)
     const statut = request.input('statut', '')
 
-    let query = Dossier.query()
-      .where('client_id', client.id)
-      .orderBy('created_at', 'desc')
+    let query = Dossier.query().where('client_id', client.id).orderBy('created_at', 'desc')
 
     if (statut) {
       if (statut === 'en_cours') {
-        query = query.whereIn('statut', ['nouveau', 'en_cours', 'en_attente', 'audience_prevue', 'en_delibere'])
+        query = query.whereIn('statut', [
+          'nouveau',
+          'en_cours',
+          'en_attente',
+          'audience_prevue',
+          'en_delibere',
+        ])
       } else if (statut === 'cloture') {
         query = query.where('statut', 'like', 'cloture%')
       } else {

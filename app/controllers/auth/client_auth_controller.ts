@@ -19,7 +19,7 @@ export default class ClientAuthController {
 
       // Verifier que le compte est actif
       if (!client.actif) {
-        return response.unauthorized({ message: 'Compte desactive. Contactez l\'administration.' })
+        return response.unauthorized({ message: "Compte desactive. Contactez l'administration." })
       }
 
       // Connecter le client avec option "Se souvenir de moi"
@@ -40,7 +40,7 @@ export default class ClientAuthController {
             nom: client.nom,
             prenom: client.prenom,
             type: client.type,
-          }
+          },
         })
       }
 
@@ -48,7 +48,7 @@ export default class ClientAuthController {
       session.put('client_pending_totp', client.id)
       return response.ok({
         requireTotp: true,
-        message: 'Verification 2FA requise'
+        message: 'Verification 2FA requise',
       })
     } catch {
       return response.unauthorized({ message: 'Identifiants invalides' })
@@ -69,7 +69,7 @@ export default class ClientAuthController {
     if (client.totpEnabled) {
       return response.ok({
         needsSetup: false,
-        totpEnabled: true
+        totpEnabled: true,
       })
     }
 
@@ -86,7 +86,7 @@ export default class ClientAuthController {
       totpEnabled: false,
       secret,
       qrCode,
-      message: 'Scannez le QR code avec votre application'
+      message: 'Scannez le QR code avec votre application',
     })
   }
 
@@ -114,7 +114,7 @@ export default class ClientAuthController {
     return response.ok({
       secret,
       qrCode,
-      message: 'Scannez le QR code avec votre application'
+      message: 'Scannez le QR code avec votre application',
     })
   }
 
@@ -153,7 +153,7 @@ export default class ClientAuthController {
         nom: client.nom,
         prenom: client.prenom,
         type: client.type,
-      }
+      },
     })
   }
 
@@ -189,7 +189,7 @@ export default class ClientAuthController {
         nom: client.nom,
         prenom: client.prenom,
         type: client.type,
-      }
+      },
     })
   }
 
@@ -223,7 +223,7 @@ export default class ClientAuthController {
         type: client.type,
         peutUploader: client.peutUploader,
         peutDemanderRdv: client.peutDemanderRdv,
-      }
+      },
     })
   }
 }

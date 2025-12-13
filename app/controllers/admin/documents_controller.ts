@@ -75,19 +75,14 @@ export default class DocumentsController {
     const client = dossier.client
     if (client && client.notifEmailDocument && document.visibleClient !== false) {
       try {
-        await EmailService.notifyClientNewDocument(
-          client.email,
-          client.id,
-          client.fullName,
-          {
-            documentName: document.nom,
-            dossierName: dossier.intitule,
-            dossierReference: dossier.reference,
-            uploaderName: admin.username || admin.fullName,
-            recipientName: client.fullName,
-            portalUrl: '/espace-client/dossiers/' + dossier.id,
-          }
-        )
+        await EmailService.notifyClientNewDocument(client.email, client.id, client.fullName, {
+          documentName: document.nom,
+          dossierName: dossier.intitule,
+          dossierReference: dossier.reference,
+          uploaderName: admin.username || admin.fullName,
+          recipientName: client.fullName,
+          portalUrl: '/espace-client/dossiers/' + dossier.id,
+        })
       } catch (error) {
         appLogger.error({ err: error }, 'Error sending notification email to client')
       }
@@ -108,7 +103,23 @@ export default class DocumentsController {
     // Get the uploaded file - added ppt/pptx support
     const file = request.file('file', {
       size: '50mb',
-      extnames: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv', 'zip', 'rar'],
+      extnames: [
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+        'ppt',
+        'pptx',
+        'jpg',
+        'jpeg',
+        'png',
+        'gif',
+        'txt',
+        'csv',
+        'zip',
+        'rar',
+      ],
     })
 
     if (!file) {
@@ -159,7 +170,7 @@ export default class DocumentsController {
 
     if (!result.success) {
       return response.internalServerError({
-        message: 'Erreur lors de l\'upload du document',
+        message: "Erreur lors de l'upload du document",
         error: result.error,
       })
     }
@@ -185,19 +196,14 @@ export default class DocumentsController {
     const client = dossier.client
     if (client && client.notifEmailDocument && visibleClient) {
       try {
-        await EmailService.notifyClientNewDocument(
-          client.email,
-          client.id,
-          client.fullName,
-          {
-            documentName: nom,
-            dossierName: dossier.intitule,
-            dossierReference: dossier.reference,
-            uploaderName: admin.username || admin.fullName,
-            recipientName: client.fullName,
-            portalUrl: '/espace-client/dossiers/' + dossier.id,
-          }
-        )
+        await EmailService.notifyClientNewDocument(client.email, client.id, client.fullName, {
+          documentName: nom,
+          dossierName: dossier.intitule,
+          dossierReference: dossier.reference,
+          uploaderName: admin.username || admin.fullName,
+          recipientName: client.fullName,
+          portalUrl: '/espace-client/dossiers/' + dossier.id,
+        })
       } catch (error) {
         appLogger.error({ err: error }, 'Error sending notification email to client')
       }
@@ -249,7 +255,10 @@ export default class DocumentsController {
     // If name is changing and document is on OneDrive, rename it there too
     if (data.nom && data.nom !== document.nom && document.onedriveFileId) {
       const newFileName = data.nom + (document.extension ? `.${document.extension}` : '')
-      const renamed = await documentSyncService.renameOnOneDrive(document.onedriveFileId, newFileName)
+      const renamed = await documentSyncService.renameOnOneDrive(
+        document.onedriveFileId,
+        newFileName
+      )
       if (!renamed) {
         appLogger.warn('Failed to rename document on OneDrive, but continuing with local update')
       }

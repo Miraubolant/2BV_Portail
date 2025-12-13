@@ -40,9 +40,7 @@ export default class TimelineController {
     }
 
     // Recuperer les IDs des documents de ce dossier
-    const documentIds = await Document.query()
-      .where('dossier_id', dossierId)
-      .select('id')
+    const documentIds = await Document.query().where('dossier_id', dossierId).select('id')
     const docIds = documentIds.map((d) => d.id)
 
     // Construire la requete pour les activity logs
@@ -64,7 +62,9 @@ export default class TimelineController {
           })
           // Activites sur les evenements lies au dossier (via metadata)
           .orWhere((q) => {
-            q.where('resource_type', 'evenement').whereRaw("metadata->>'dossierId' = ?", [dossierId])
+            q.where('resource_type', 'evenement').whereRaw("metadata->>'dossierId' = ?", [
+              dossierId,
+            ])
           })
           // Activites sur les notes du dossier (via metadata)
           .orWhere((q) => {

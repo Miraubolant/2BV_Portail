@@ -53,9 +53,7 @@ export default class SearchController {
     // Recherche dans les dossiers
     const dossiers = await Dossier.query()
       .where((builder) => {
-        builder
-          .whereILike('reference', searchTerm)
-          .orWhereILike('intitule', searchTerm)
+        builder.whereILike('reference', searchTerm).orWhereILike('intitule', searchTerm)
       })
       .preload('client')
       .limit(5)

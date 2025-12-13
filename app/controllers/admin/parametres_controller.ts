@@ -8,7 +8,7 @@ export default class ParametresController {
    */
   async index({ response }: HttpContext) {
     const parametres = await Parametre.query().orderBy('categorie', 'asc')
-    
+
     // Grouper par categorie
     const grouped: Record<string, any[]> = {}
     for (const param of parametres) {
@@ -35,13 +35,15 @@ export default class ParametresController {
       .where('categorie', params.categorie)
       .orderBy('cle', 'asc')
 
-    return response.ok(parametres.map(p => ({
-      id: p.id,
-      cle: p.cle,
-      valeur: p.typedValue,
-      type: p.type,
-      description: p.description,
-    })))
+    return response.ok(
+      parametres.map((p) => ({
+        id: p.id,
+        cle: p.cle,
+        valeur: p.typedValue,
+        type: p.type,
+        description: p.description,
+      }))
+    )
   }
 
   /**

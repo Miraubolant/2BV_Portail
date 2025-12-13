@@ -18,7 +18,7 @@ export default class AdminAuthMiddleware {
           return ctx.response.redirect('/admin/login')
         }
         return ctx.response.unauthorized({
-          message: 'Compte désactivé'
+          message: 'Compte désactivé',
         })
       }
 
@@ -28,7 +28,7 @@ export default class AdminAuthMiddleware {
         return ctx.response.redirect('/admin/login')
       }
       return ctx.response.unauthorized({
-        message: 'Non authentifié'
+        message: 'Non authentifié',
       })
     }
   }
