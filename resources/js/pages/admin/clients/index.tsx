@@ -306,7 +306,14 @@ const ClientsListPage = () => {
         header: 'Type',
         sortable: true,
         render: (row) => (
-          <Badge variant={row.type === 'particulier' ? 'default' : 'secondary'}>
+          <Badge
+            variant="outline"
+            className={
+              row.type === 'particulier'
+                ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800'
+                : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+            }
+          >
             {row.type === 'particulier' ? 'Particulier' : 'Institutionnel'}
           </Badge>
         ),
@@ -353,7 +360,14 @@ const ClientsListPage = () => {
             >
               <SelectTrigger className="h-8 w-full">
                 <SelectValue>
-                  <Badge variant={row.actif ? 'default' : 'destructive'}>
+                  <Badge
+                    variant="outline"
+                    className={
+                      row.actif
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                        : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+                    }
+                  >
                     {row.actif ? 'Actif' : 'Inactif'}
                   </Badge>
                 </SelectValue>

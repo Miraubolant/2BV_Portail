@@ -126,16 +126,16 @@ interface Dossier {
   documents?: DocumentType[]
 }
 
-const statutLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  nouveau: { label: 'Nouveau', variant: 'default' },
-  en_cours: { label: 'En cours', variant: 'secondary' },
-  en_attente: { label: 'En attente', variant: 'outline' },
-  audience_prevue: { label: 'Audience prevue', variant: 'secondary' },
-  en_delibere: { label: 'En delibere', variant: 'outline' },
-  cloture_gagne: { label: 'Gagne', variant: 'default' },
-  cloture_perdu: { label: 'Perdu', variant: 'destructive' },
-  cloture_transaction: { label: 'Transaction', variant: 'secondary' },
-  archive: { label: 'Archive', variant: 'outline' },
+const statutLabels: Record<string, { label: string; className: string }> = {
+  nouveau: { label: 'Nouveau', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800' },
+  en_cours: { label: 'En cours', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' },
+  en_attente: { label: 'En attente', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
+  audience_prevue: { label: 'Audience prevue', className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200 dark:border-violet-800' },
+  en_delibere: { label: 'En delibere', className: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800' },
+  cloture_gagne: { label: 'Gagne', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
+  cloture_perdu: { label: 'Perdu', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
+  cloture_transaction: { label: 'Transaction', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800' },
+  archive: { label: 'Archive', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400 border-slate-200 dark:border-slate-700' },
 }
 
 const typeDocumentLabels: Record<string, string> = {
@@ -729,7 +729,7 @@ const DossierShowPage = () => {
     )
   }
 
-  const statutConfig = statutLabels[dossier.statut] || { label: dossier.statut, variant: 'outline' }
+  const statutConfig = statutLabels[dossier.statut] || { label: dossier.statut, className: '' }
 
   return (
     <>
@@ -1120,7 +1120,7 @@ const DossierShowPage = () => {
                           <p className="text-xs uppercase tracking-wide text-muted-foreground">
                             Statut
                           </p>
-                          <Badge variant={statutConfig.variant} className="mt-1">
+                          <Badge variant="outline" className={`mt-1 ${statutConfig.className}`}>
                             {statutConfig.label}
                           </Badge>
                         </div>
