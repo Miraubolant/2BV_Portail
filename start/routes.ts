@@ -271,7 +271,6 @@ router
     router.get('accounts/:tokenId/calendars', [GoogleOAuthController, 'listAccountCalendars'])
     router.post('accounts/:tokenId/calendars/activate', [GoogleOAuthController, 'activateCalendar'])
     // Multi-calendar management
-    router.get('active-calendars', [GoogleOAuthController, 'listActiveCalendars'])
     router.post('calendars/:id/deactivate', [GoogleOAuthController, 'deactivateCalendar'])
     router.delete('calendars/:id', [GoogleOAuthController, 'removeCalendar'])
     // Multi-calendar sync
