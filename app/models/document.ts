@@ -49,6 +49,10 @@ export default class Document extends BaseModel {
   @column()
   declare uploadedByClient: boolean
 
+  // Location in OneDrive folder structure ('cabinet' or 'client')
+  @column()
+  declare dossierLocation: 'cabinet' | 'client'
+
   // Qui a uploade
   @column()
   declare uploadedById: string

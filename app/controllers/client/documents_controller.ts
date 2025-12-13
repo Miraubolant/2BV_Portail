@@ -91,6 +91,7 @@ export default class ClientDocumentsController {
   /**
    * POST /api/client/dossiers/:dossierId/documents/upload
    * Client upload un fichier (avec OneDrive)
+   * Client documents are ALWAYS stored in the CLIENT subfolder
    */
   async upload({ params, request, auth, response }: HttpContext) {
     const client = auth.use('client').user!
@@ -100,10 +101,10 @@ export default class ClientDocumentsController {
       return response.forbidden({ message: 'Vous n\'etes pas autorise a uploader des documents' })
     }
 
-    // Get the uploaded file
+    // Get the uploaded file - added ppt/pptx support
     const file = request.file('file', {
       size: '20mb', // Limite plus basse pour les clients
-      extnames: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'txt'],
+      extnames: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'txt'],
     })
 
     if (!file) {
@@ -125,7 +126,7 @@ export default class ClientDocumentsController {
     const nom = request.input('nom', file.clientName.replace(/\.[^/.]+$/, ''))
     const typeDocument = request.input('typeDocument', 'piece_client')
 
-    // Upload to OneDrive
+    // Upload to OneDrive - ALWAYS to CLIENT subfolder for client uploads
     const result = await documentSyncService.uploadDocument(
       params.dossierId,
       file,
@@ -138,7 +139,8 @@ export default class ClientDocumentsController {
       {
         id: client.id,
         type: 'client',
-      }
+      },
+      'client' // Force CLIENT location for client uploads
     )
 
     if (!result.success) {

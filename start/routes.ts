@@ -126,6 +126,7 @@ router.group(() => {
   router.get('documents/:id/thumbnail', [AdminDocumentsController, 'thumbnail'])
   router.put('documents/:id', [AdminDocumentsController, 'update'])
   router.delete('documents/:id', [AdminDocumentsController, 'destroy'])
+  router.post('documents/:id/move', [AdminDocumentsController, 'moveLocation'])
 
   // Evenements
   router.get('evenements', [AdminEvenementsController, 'index'])

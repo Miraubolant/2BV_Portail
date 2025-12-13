@@ -23,10 +23,17 @@ interface DownloadResult {
 
 /**
  * Service for syncing documents with OneDrive
+ * Documents are organized in CABINET (internal) or CLIENT (client-visible) subfolders
  */
 class DocumentSyncService {
   /**
    * Upload a document to OneDrive and create the database record
+   * @param dossierId - The dossier ID
+   * @param file - The uploaded file
+   * @param metadata - Document metadata
+   * @param uploader - Who is uploading (admin or client)
+   * @param location - Where to store: 'cabinet' (internal) or 'client' (client-visible)
+   *                   If not specified, defaults based on visibleClient flag
    */
   async uploadDocument(
     dossierId: string,
@@ -42,7 +49,8 @@ class DocumentSyncService {
     uploader: {
       id: string
       type: 'admin' | 'client'
-    }
+    },
+    location?: 'cabinet' | 'client'
   ): Promise<UploadResult> {
     // Check OneDrive connection
     const isReady = await oneDriveService.isReady()
@@ -56,8 +64,14 @@ class DocumentSyncService {
       return { success: false, error: 'Dossier not found' }
     }
 
-    // Ensure dossier has a OneDrive folder
-    const folderId = await dossierFolderService.ensureDossierFolder(dossierId)
+    // Determine the location based on visibility if not explicitly specified
+    // - If visibleClient is true OR uploader is client -> CLIENT folder
+    // - If visibleClient is false (internal document) -> CABINET folder
+    const targetLocation: 'cabinet' | 'client' = location
+      || (metadata.visibleClient === false ? 'cabinet' : 'client')
+
+    // Ensure dossier has the correct OneDrive subfolder
+    const folderId = await dossierFolderService.ensureDossierFolder(dossierId, targetLocation)
     if (!folderId) {
       return { success: false, error: 'Failed to create dossier folder on OneDrive' }
     }
@@ -100,6 +114,7 @@ class DocumentSyncService {
       uploadedByType: uploader.type,
       dateDocument: metadata.dateDocument || null,
       description: metadata.description || null,
+      dossierLocation: targetLocation,
       onedriveFileId: uploadResult.fileId,
       onedriveWebUrl: uploadResult.webUrl,
       onedriveDownloadUrl: uploadResult.downloadUrl,
@@ -194,8 +209,9 @@ class DocumentSyncService {
       return { success: false, error: 'OneDrive not connected' }
     }
 
-    // Ensure dossier folder exists
-    const folderId = await dossierFolderService.ensureDossierFolder(document.dossierId)
+    // Ensure dossier folder exists with the correct location
+    const targetLocation = document.dossierLocation || (document.visibleClient ? 'client' : 'cabinet')
+    const folderId = await dossierFolderService.ensureDossierFolder(document.dossierId, targetLocation)
     if (!folderId) {
       return { success: false, error: 'Failed to create dossier folder' }
     }
@@ -219,6 +235,57 @@ class DocumentSyncService {
     document.onedriveFileId = uploadResult.fileId!
     document.onedriveWebUrl = uploadResult.webUrl!
     document.onedriveDownloadUrl = uploadResult.downloadUrl!
+    document.dossierLocation = targetLocation
+    await document.save()
+
+    return { success: true }
+  }
+
+  /**
+   * Move a document to a different location (CABINET <-> CLIENT)
+   */
+  async moveDocumentLocation(
+    documentId: string,
+    newLocation: 'cabinet' | 'client'
+  ): Promise<{ success: boolean; error?: string }> {
+    const document = await Document.find(documentId)
+    if (!document) {
+      return { success: false, error: 'Document not found' }
+    }
+
+    if (!document.onedriveFileId) {
+      // Just update the location field if not on OneDrive
+      document.dossierLocation = newLocation
+      await document.save()
+      return { success: true }
+    }
+
+    const isReady = await oneDriveService.isReady()
+    if (!isReady) {
+      return { success: false, error: 'OneDrive not connected' }
+    }
+
+    // Get the target folder
+    const targetFolderId = await dossierFolderService.ensureDossierFolder(
+      document.dossierId,
+      newLocation
+    )
+
+    if (!targetFolderId) {
+      return { success: false, error: 'Failed to get target folder' }
+    }
+
+    // Move the file on OneDrive
+    const success = await oneDriveService.moveItem(document.onedriveFileId, targetFolderId)
+
+    if (!success) {
+      return { success: false, error: 'Failed to move file on OneDrive' }
+    }
+
+    // Update document record
+    document.dossierLocation = newLocation
+    // Also update visibleClient to match the new location
+    document.visibleClient = newLocation === 'client'
     await document.save()
 
     return { success: true }

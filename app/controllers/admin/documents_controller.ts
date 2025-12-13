@@ -99,15 +99,16 @@ export default class DocumentsController {
   /**
    * POST /api/admin/dossiers/:dossierId/documents/upload
    * Upload un fichier et l'ajouter au dossier (avec OneDrive)
+   * Documents are stored in CABINET (internal) or CLIENT (client-visible) subfolders
    */
   async upload(ctx: HttpContext) {
     const { params, request, auth, response } = ctx
     const admin = auth.use('admin').user!
 
-    // Get the uploaded file
+    // Get the uploaded file - added ppt/pptx support
     const file = request.file('file', {
       size: '50mb',
-      extnames: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv', 'zip', 'rar'],
+      extnames: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv', 'zip', 'rar'],
     })
 
     if (!file) {
@@ -126,13 +127,18 @@ export default class DocumentsController {
     const dateDocumentStr = request.input('dateDocument')
     const description = request.input('description')
 
+    // Determine folder location: CABINET for internal docs, CLIENT for client-visible docs
+    // Can be explicitly set via 'location' param, or derived from visibleClient
+    const locationParam = request.input('location') as 'cabinet' | 'client' | undefined
+    const location: 'cabinet' | 'client' = locationParam || (visibleClient ? 'client' : 'cabinet')
+
     // Verify dossier exists and load relations
     const dossier = await Dossier.query()
       .where('id', params.dossierId)
       .preload('client', (query) => query.preload('responsable'))
       .firstOrFail()
 
-    // Upload to OneDrive
+    // Upload to OneDrive (to CABINET or CLIENT subfolder)
     const result = await documentSyncService.uploadDocument(
       params.dossierId,
       file,
@@ -147,7 +153,8 @@ export default class DocumentsController {
       {
         id: admin.id,
         type: 'admin',
-      }
+      },
+      location
     )
 
     if (!result.success) {
@@ -301,5 +308,34 @@ export default class DocumentsController {
     }
 
     return response.ok({ url: result.url })
+  }
+
+  /**
+   * POST /api/admin/documents/:id/move
+   * Move a document between CABINET and CLIENT folders
+   */
+  async moveLocation({ params, request, response }: HttpContext) {
+    const newLocation = request.input('location') as 'cabinet' | 'client'
+
+    if (!newLocation || !['cabinet', 'client'].includes(newLocation)) {
+      return response.badRequest({ message: 'Location invalide. Utilisez "cabinet" ou "client".' })
+    }
+
+    const result = await documentSyncService.moveDocumentLocation(params.id, newLocation)
+
+    if (!result.success) {
+      return response.internalServerError({
+        message: 'Erreur lors du deplacement du document',
+        error: result.error,
+      })
+    }
+
+    // Reload the document to get updated data
+    const document = await Document.findOrFail(params.id)
+
+    return response.ok({
+      message: `Document deplace vers ${newLocation.toUpperCase()}`,
+      document,
+    })
   }
 }

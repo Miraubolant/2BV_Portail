@@ -54,6 +54,12 @@ export default class Dossier extends BaseModel {
   @column()
   declare onedriveFolderPath: string | null
 
+  @column()
+  declare onedriveCabinetFolderId: string | null
+
+  @column()
+  declare onedriveClientFolderId: string | null
+
   @column.dateTime()
   declare onedriveLastSync: DateTime | null
 
