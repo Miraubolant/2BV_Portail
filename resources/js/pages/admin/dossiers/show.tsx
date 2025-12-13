@@ -149,10 +149,15 @@ const typeDocumentLabels: Record<string, string> = {
 }
 
 // Utility functions
-const formatFileSize = (bytes: number | null) => {
-  if (!bytes) return '-'
+const formatFileSize = (bytes: number | string | null | undefined) => {
+  // Handle null, undefined, or non-numeric values
+  if (bytes === null || bytes === undefined) return '-'
+  // Convert string to number if needed (API might return string)
+  const numBytes = typeof bytes === 'string' ? parseFloat(bytes) : bytes
+  if (typeof numBytes !== 'number' || isNaN(numBytes) || numBytes <= 0) return '-'
+
   const units = ['o', 'Ko', 'Mo', 'Go']
-  let size = bytes
+  let size = numBytes
   let unitIndex = 0
   while (size >= 1024 && unitIndex < units.length - 1) {
     size /= 1024
