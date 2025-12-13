@@ -221,6 +221,10 @@ const DemandesRdvPage = () => {
 
   const handleRefuse = async () => {
     if (!selectedDemande) return
+    if (reponse.trim().length < 5) {
+      alert('Le motif du refus doit contenir au moins 5 caracteres')
+      return
+    }
     setProcessing(true)
     try {
       const response = await fetch(`${ADMIN_DEMANDES_RDV_API}/${selectedDemande.id}/refuser`, {
@@ -573,7 +577,7 @@ const DemandesRdvPage = () => {
               <p className="font-medium text-sm">{selectedDemande?.motif}</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reponseRefuse">Motif du refus (optionnel)</Label>
+              <Label htmlFor="reponseRefuse">Motif du refus *</Label>
               <Textarea
                 id="reponseRefuse"
                 value={reponse}
@@ -587,7 +591,7 @@ const DemandesRdvPage = () => {
             <Button variant="outline" onClick={closeDialog}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={handleRefuse} disabled={processing}>
+            <Button variant="destructive" onClick={handleRefuse} disabled={processing || reponse.trim().length < 5}>
               {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
               Refuser la demande
             </Button>
