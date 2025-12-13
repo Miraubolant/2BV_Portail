@@ -36,6 +36,7 @@ const AdminTimelineController = () => import('#controllers/admin/timeline_contro
 const AdminNotesController = () => import('#controllers/admin/notes_controller')
 const AdminTasksController = () => import('#controllers/admin/tasks_controller')
 const AdminIntegrationsController = () => import('#controllers/admin/integrations_controller')
+const ClientSettingsController = () => import('#controllers/client/settings_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -255,6 +256,14 @@ router.group(() => {
   router.post('demande-rdv', [ClientRdvController, 'store'])
   router.get('demandes-rdv/:id', [ClientRdvController, 'show'])
 
+  // Parametres client
+  router.get('settings', [ClientSettingsController, 'index'])
+  router.post('settings/change-password', [ClientSettingsController, 'changePassword'])
+  router.post('settings/enable-totp', [ClientSettingsController, 'enableTotp'])
+  router.post('settings/confirm-totp', [ClientSettingsController, 'confirmTotp'])
+  router.post('settings/disable-totp', [ClientSettingsController, 'disableTotp'])
+  router.put('settings/notifications', [ClientSettingsController, 'updateNotifications'])
+
 }).prefix('api/client').use([middleware.clientAuth(), middleware.totpVerified()])
 
 // ══════════════════════════════════════════════════════════════
@@ -299,4 +308,5 @@ router.group(() => {
   router.on('/espace-client/dossiers').renderInertia('client/dossiers/index').as('client.dossiers')
   router.on('/espace-client/dossiers/:id').renderInertia('client/dossiers/show').as('client.dossiers.show')
   router.on('/espace-client/demandes-rdv').renderInertia('client/demandes-rdv/index').as('client.demandes-rdv')
+  router.on('/espace-client/parametres').renderInertia('client/parametres/index').as('client.parametres')
 }).use([middleware.clientAuth(), middleware.totpVerified()])

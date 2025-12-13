@@ -42,6 +42,7 @@ export const ADMIN_MY_TASKS_API = API_BASE_URL + 'admin/tasks/my'
 export const CLIENT_DASHBOARD_API = API_BASE_URL + 'client/dashboard'
 export const CLIENT_DOSSIERS_API = API_BASE_URL + 'client/dossiers'
 export const CLIENT_DEMANDES_RDV_API = API_BASE_URL + 'client/demandes-rdv'
+export const CLIENT_SETTINGS_API = API_BASE_URL + 'client/settings'
 
 // Microsoft/OneDrive APIs
 const MICROSOFT_API = API_BASE_URL + 'admin/microsoft/'

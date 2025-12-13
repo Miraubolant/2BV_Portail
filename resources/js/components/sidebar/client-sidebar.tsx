@@ -7,6 +7,7 @@ import {
   LogOut,
   Scale,
   ChevronsUpDown,
+  Settings,
 } from 'lucide-react'
 
 import {
@@ -26,6 +27,7 @@ import {
   CLIENT_DASHBOARD,
   CLIENT_DOSSIERS,
   CLIENT_DEMANDES_RDV,
+  CLIENT_PARAMETRES,
 } from '@/app/routes'
 import { CLIENT_LOGOUT_API, CLIENT_ME_API } from '@/lib/constants'
 import { Link, usePage } from '@inertiajs/react'
@@ -54,6 +56,11 @@ const navItems = [
     title: 'Demandes de RDV',
     href: CLIENT_DEMANDES_RDV,
     icon: Clock,
+  },
+  {
+    title: 'Parametres',
+    href: CLIENT_PARAMETRES,
+    icon: Settings,
   },
 ]
 

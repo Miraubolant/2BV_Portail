@@ -21,6 +21,13 @@ interface DocumentNotificationData {
   portalUrl: string
 }
 
+interface WelcomeEmailData {
+  clientName: string
+  clientEmail: string
+  temporaryPassword: string
+  portalUrl: string
+}
+
 class EmailService {
   private resend: Resend | null = null
 
@@ -186,6 +193,61 @@ class EmailService {
       lien: `/admin/dossiers/${data.dossierReference}`,
       sendEmail: true,
       emailTo: adminEmail,
+    })
+  }
+
+  /**
+   * Send welcome email to new client with credentials
+   */
+  async sendWelcomeEmail(data: WelcomeEmailData): Promise<{ success: boolean; error?: string }> {
+    const config = await this.getEmailConfig()
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #f8fafc; border-radius: 8px; padding: 30px;">
+            <h1 style="color: #1e40af; margin-bottom: 20px; font-size: 24px;">Bienvenue sur votre espace client</h1>
+
+            <p>Bonjour ${data.clientName},</p>
+
+            <p>Un compte a ete cree pour vous sur le portail client de notre cabinet.</p>
+
+            <div style="background-color: #e0e7ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Vos identifiants de connexion :</strong></p>
+              <p style="margin: 5px 0;">Email : <strong>${data.clientEmail}</strong></p>
+              <p style="margin: 5px 0;">Mot de passe temporaire : <strong style="font-family: monospace; background: #fff; padding: 2px 6px; border-radius: 4px;">${data.temporaryPassword}</strong></p>
+            </div>
+
+            <p style="color: #dc2626; font-weight: 500;">
+              Important : Nous vous recommandons de changer votre mot de passe lors de votre premiere connexion.
+            </p>
+
+            <p style="margin-top: 20px;">
+              <a href="${data.portalUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Acceder a mon espace client
+              </a>
+            </p>
+
+            <p style="margin-top: 20px; color: #64748b; font-size: 14px;">
+              Si vous n'etes pas a l'origine de cette demande, veuillez ignorer cet email.
+            </p>
+          </div>
+          <p style="color: #64748b; font-size: 12px; margin-top: 20px; text-align: center;">
+            ${config.fromName}
+          </p>
+        </body>
+      </html>
+    `
+
+    return await this.send({
+      to: data.clientEmail,
+      subject: 'Bienvenue - Vos identifiants de connexion',
+      html,
     })
   }
 

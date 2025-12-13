@@ -226,13 +226,27 @@ class CalendarSyncService {
 
   /**
    * Extract dossier reference from event title
-   * Looks for patterns like: 2025-001-MIR, 2024-123-ABC
+   * Supported patterns:
+   * - DOS-YYYY-NNNN (e.g., DOS-2025-0001)
+   * - YYYY-NNN-CODE (e.g., 2025-001-MIR)
+   * - Custom format from parametres
    */
   private extractDossierReference(title: string): string | null {
-    // Pattern: YYYY-NNN-XXX (year-number-code)
-    const pattern = /\b(\d{4}-\d{3}-[A-Z]{2,4})\b/i
-    const match = title.match(pattern)
-    return match ? match[1].toUpperCase() : null
+    // Pattern 1: DOS-YYYY-NNNN format
+    const dosPattern = /\b(DOS-\d{4}-\d{4})\b/i
+    const dosMatch = title.match(dosPattern)
+    if (dosMatch) {
+      return dosMatch[1].toUpperCase()
+    }
+
+    // Pattern 2: YYYY-NNN-CODE format (old format)
+    const codePattern = /\b(\d{4}-\d{3,4}-[A-Z]{2,4})\b/i
+    const codeMatch = title.match(codePattern)
+    if (codeMatch) {
+      return codeMatch[1].toUpperCase()
+    }
+
+    return null
   }
 
   /**

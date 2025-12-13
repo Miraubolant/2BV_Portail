@@ -29,15 +29,22 @@ export default class ClientAuthController {
       client.lastLogin = DateTime.now()
       await client.save()
 
-      // Si 2FA non configure, demander setup (obligatoire pour clients)
+      // Si 2FA non configure, connexion directe (2FA optionnel)
       if (!client.totpEnabled) {
+        session.put('totp_verified', true) // Skip TOTP verification
         return response.ok({
-          requireTotpSetup: true,
-          message: 'Configuration 2FA requise'
+          message: 'Connexion reussie',
+          user: {
+            id: client.id,
+            email: client.email,
+            nom: client.nom,
+            prenom: client.prenom,
+            type: client.type,
+          }
         })
       }
 
-      // 2FA configure mais non verifie dans cette session
+      // 2FA configure - verification requise
       session.put('client_pending_totp', client.id)
       return response.ok({
         requireTotp: true,

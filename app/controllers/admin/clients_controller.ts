@@ -4,6 +4,9 @@ import { createClientValidator, updateClientValidator } from '#validators/client
 import transmit from '@adonisjs/transmit/services/main'
 import { randomBytes } from 'crypto'
 import { DateTime } from 'luxon'
+import emailService from '#services/email_service'
+import env from '#start/env'
+import logger from '@adonisjs/core/services/logger'
 
 export default class ClientsController {
   /**
@@ -98,11 +101,23 @@ export default class ClientsController {
       dateNaissance: dateNaissance ? DateTime.fromISO(dateNaissance) : null,
     })
 
-    // TODO: Envoyer email de bienvenue avec credentials
+    // Envoyer email de bienvenue avec credentials
+    const portalUrl = env.get('APP_URL', 'http://localhost:3000') + '/client/auth/login'
+    const emailResult = await emailService.sendWelcomeEmail({
+      clientName: `${client.prenom} ${client.nom}`,
+      clientEmail: client.email,
+      temporaryPassword: password,
+      portalUrl,
+    })
+
+    if (!emailResult.success) {
+      logger.warn({ error: emailResult.error }, `Failed to send welcome email to ${client.email}`)
+    }
 
     return response.created({
       client,
       generatedPassword: data.password ? undefined : password,
+      emailSent: emailResult.success,
     })
   }
 
@@ -176,11 +191,23 @@ export default class ClientsController {
     client.password = newPassword
     await client.save()
 
-    // TODO: Envoyer email avec nouveau mot de passe
+    // Envoyer email avec nouveau mot de passe
+    const portalUrl = env.get('APP_URL', 'http://localhost:3000') + '/client/auth/login'
+    const emailResult = await emailService.sendWelcomeEmail({
+      clientName: `${client.prenom} ${client.nom}`,
+      clientEmail: client.email,
+      temporaryPassword: newPassword,
+      portalUrl,
+    })
+
+    if (!emailResult.success) {
+      logger.warn({ error: emailResult.error }, `Failed to send password reset email to ${client.email}`)
+    }
 
     return response.ok({
       message: 'Mot de passe reinitialise',
       newPassword,
+      emailSent: emailResult.success,
     })
   }
 }
