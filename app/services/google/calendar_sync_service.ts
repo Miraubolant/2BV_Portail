@@ -583,8 +583,7 @@ class CalendarSyncService {
 
       // Process each active calendar
       for (const calendar of activeCalendars) {
-        await calendar.load('googleToken')
-        details.push(`--- Processing: ${calendar.calendarName} (${calendar.googleToken?.accountEmail || 'Unknown'}) ---`)
+        details.push(`--- Processing: ${calendar.calendarName} (${calendar.tokenAccountEmail || 'Unknown'}) ---`)
 
         const googleEvents = await googleCalendarService.listEventsFromCalendar(calendar.id, {
           timeMin,

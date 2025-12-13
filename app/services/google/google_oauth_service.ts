@@ -374,7 +374,7 @@ class GoogleOAuthService {
       calendarId: cal.calendarId,
       calendarName: cal.calendarName,
       calendarColor: cal.calendarColor,
-      accountEmail: cal.googleToken?.accountEmail ?? null,
+      accountEmail: cal.tokenAccountEmail ?? null,
       tokenId: cal.googleTokenId,
     }))
   }

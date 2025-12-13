@@ -1,8 +1,6 @@
 import { DateTime } from 'luxon'
-import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, beforeCreate, column } from '@adonisjs/lucid/orm'
 import { randomUUID } from 'node:crypto'
-import GoogleToken from './google_token.js'
 
 export default class GoogleCalendar extends BaseModel {
   @column({ isPrimary: true })
@@ -11,8 +9,8 @@ export default class GoogleCalendar extends BaseModel {
   @column()
   declare googleTokenId: string
 
-  @belongsTo(() => GoogleToken)
-  declare googleToken: BelongsTo<typeof GoogleToken>
+  // Populated by join query, not a DB column
+  declare tokenAccountEmail?: string | null
 
   @column()
   declare calendarId: string // Google Calendar ID
@@ -40,10 +38,16 @@ export default class GoogleCalendar extends BaseModel {
   }
 
   /**
-   * Find all active calendars
+   * Find all active calendars with their tokens
    */
   static async findAllActive(): Promise<GoogleCalendar[]> {
-    return await this.query().where('is_active', true).preload('googleToken')
+    // Join with google_tokens to get account info
+    const calendars = await this.query()
+      .where('is_active', true)
+      .join('google_tokens', 'google_calendars.google_token_id', 'google_tokens.id')
+      .select('google_calendars.*')
+      .select('google_tokens.account_email as tokenAccountEmail')
+    return calendars
   }
 
   /**

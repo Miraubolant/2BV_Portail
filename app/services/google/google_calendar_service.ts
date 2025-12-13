@@ -560,10 +560,7 @@ class GoogleCalendarService {
     googleCalendarDbId: string
   ): Promise<{ success: boolean; googleEventId?: string; error?: string }> {
     // Get the GoogleCalendar record to find the token and Google calendar ID
-    const googleCalendar = await GoogleCalendar.query()
-      .where('id', googleCalendarDbId)
-      .preload('googleToken')
-      .first()
+    const googleCalendar = await GoogleCalendar.find(googleCalendarDbId)
 
     if (!googleCalendar) {
       return { success: false, error: 'Calendar not found' }
@@ -611,10 +608,7 @@ class GoogleCalendarService {
       return { success: false, error: 'No Google event ID' }
     }
 
-    const googleCalendar = await GoogleCalendar.query()
-      .where('id', googleCalendarDbId)
-      .preload('googleToken')
-      .first()
+    const googleCalendar = await GoogleCalendar.find(googleCalendarDbId)
 
     if (!googleCalendar) {
       return { success: false, error: 'Calendar not found' }
@@ -682,10 +676,7 @@ class GoogleCalendarService {
     googleEventId: string,
     googleCalendarDbId: string
   ): Promise<{ success: boolean; error?: string }> {
-    const googleCalendar = await GoogleCalendar.query()
-      .where('id', googleCalendarDbId)
-      .preload('googleToken')
-      .first()
+    const googleCalendar = await GoogleCalendar.find(googleCalendarDbId)
 
     if (!googleCalendar) {
       return { success: false, error: 'Calendar not found' }
@@ -757,10 +748,7 @@ class GoogleCalendarService {
       maxResults?: number
     }
   ): Promise<GoogleCalendarEvent[]> {
-    const googleCalendar = await GoogleCalendar.query()
-      .where('id', googleCalendarDbId)
-      .preload('googleToken')
-      .first()
+    const googleCalendar = await GoogleCalendar.find(googleCalendarDbId)
 
     if (!googleCalendar) {
       return []
@@ -821,13 +809,12 @@ class GoogleCalendarService {
     }[] = []
 
     for (const calendar of activeCalendars) {
-      await calendar.load('googleToken')
       const events = await this.listEventsFromCalendar(calendar.id, options)
       results.push({
         calendarId: calendar.id,
         calendarName: calendar.calendarName,
         calendarColor: calendar.calendarColor,
-        accountEmail: calendar.googleToken?.accountEmail ?? null,
+        accountEmail: calendar.tokenAccountEmail ?? null,
         events,
       })
     }
