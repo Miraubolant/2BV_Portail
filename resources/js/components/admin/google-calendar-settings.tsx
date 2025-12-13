@@ -268,7 +268,7 @@ export function GoogleCalendarSettings() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardContent className="py-8">
           <div className="flex items-center justify-center">
             <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -279,7 +279,7 @@ export function GoogleCalendarSettings() {
   }
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -295,7 +295,7 @@ export function GoogleCalendarSettings() {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-1 flex flex-col">
         {error && (
           <Alert variant="destructive" className="py-2">
             <AlertTriangle className="h-4 w-4" />
@@ -320,7 +320,7 @@ export function GoogleCalendarSettings() {
         )}
 
         {status?.configured && !status?.connected && (
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1">
             <p className="text-sm text-muted-foreground">
               Connectez Google Calendar pour synchroniser les evenements.
             </p>
@@ -332,7 +332,7 @@ export function GoogleCalendarSettings() {
         )}
 
         {status?.connected && (
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1 flex flex-col">
             {/* Compte connecte */}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
@@ -345,8 +345,8 @@ export function GoogleCalendarSettings() {
             </div>
 
             {/* Selection du calendrier */}
-            <div className="space-y-2">
-              <Label className="text-xs">Calendrier</Label>
+            <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+              <Label className="text-xs font-medium">Calendrier actif</Label>
               {loadingCalendars ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <LoaderCircle className="h-3 w-3 animate-spin" />
@@ -386,12 +386,12 @@ export function GoogleCalendarSettings() {
             </div>
 
             {/* Mode de synchronisation */}
-            <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
               <div className="space-y-0.5">
-                <Label htmlFor="sync-mode" className="text-sm font-medium">
-                  Synchronisation auto
+                <Label htmlFor="sync-mode" className="text-xs font-medium">
+                  Synchronisation automatique
                 </Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground">
                   {status.syncMode === 'auto'
                     ? 'Synchronisation bidirectionnelle active'
                     : 'Synchronisation manuelle uniquement'}
@@ -405,16 +405,19 @@ export function GoogleCalendarSettings() {
               />
             </div>
 
-            {/* Actions */}
+            {/* Spacer pour aligner les boutons */}
+            <div className="flex-1" />
+
+            {/* Actions - 4 boutons pour aligner avec OneDrive */}
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleTest}
                 disabled={testing}
-                className="h-8 text-xs"
+                className="h-9 text-xs"
               >
-                {testing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1.5 h-3 w-3" />}
+                {testing ? <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
                 Tester
               </Button>
               <Button
@@ -422,9 +425,9 @@ export function GoogleCalendarSettings() {
                 size="sm"
                 onClick={handleSync}
                 disabled={syncing || !status.selectedCalendarId}
-                className="h-8 text-xs"
+                className="h-9 text-xs"
               >
-                {syncing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <FolderSync className="mr-1.5 h-3 w-3" />}
+                {syncing ? <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FolderSync className="mr-1.5 h-3.5 w-3.5" />}
                 Synchroniser
               </Button>
             </div>
@@ -433,11 +436,11 @@ export function GoogleCalendarSettings() {
             <Button
               variant="ghost"
               size="sm"
-              className={cn('w-full h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10')}
+              className={cn('w-full h-9 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10')}
               onClick={handleDisconnect}
               disabled={disconnecting}
             >
-              {disconnecting ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <Unlink className="mr-1.5 h-3 w-3" />}
+              {disconnecting ? <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Unlink className="mr-1.5 h-3.5 w-3.5" />}
               Deconnecter
             </Button>
           </div>
