@@ -1,6 +1,8 @@
 import googleConfig from '#config/google'
 import GoogleToken from '#models/google_token'
+import GoogleCalendar from '#models/google_calendar'
 import logger from '@adonisjs/core/services/logger'
+import { DateTime } from 'luxon'
 
 interface TokenResponse {
   access_token: string
@@ -15,6 +17,21 @@ interface UserProfile {
   email: string
   name: string
   picture?: string
+}
+
+interface ConnectedAccount {
+  id: string
+  accountEmail: string | null
+  accountName: string | null
+  syncMode: string
+  expiresAt: string | null
+  calendars: {
+    id: string
+    calendarId: string
+    calendarName: string
+    calendarColor: string | null
+    isActive: boolean
+  }[]
 }
 
 class GoogleOAuthService {
@@ -215,6 +232,151 @@ class GoogleOAuthService {
    */
   isConfigured(): boolean {
     return !!(googleConfig.clientId && googleConfig.clientSecret)
+  }
+
+  // ===== Multi-Account Support =====
+
+  /**
+   * Get all connected Google accounts with their calendars
+   */
+  async getAllConnectedAccounts(): Promise<ConnectedAccount[]> {
+    const tokens = await GoogleToken.findAllByService(googleConfig.serviceKey)
+
+    const accounts: ConnectedAccount[] = []
+    for (const token of tokens) {
+      const calendars = await GoogleCalendar.findByTokenId(token.id)
+      accounts.push({
+        id: token.id,
+        accountEmail: token.accountEmail,
+        accountName: token.accountName,
+        syncMode: token.syncMode || 'auto',
+        expiresAt: token.expiresAt?.toISO() ?? null,
+        calendars: calendars.map((cal) => ({
+          id: cal.id,
+          calendarId: cal.calendarId,
+          calendarName: cal.calendarName,
+          calendarColor: cal.calendarColor,
+          isActive: cal.isActive,
+        })),
+      })
+    }
+
+    return accounts
+  }
+
+  /**
+   * Add a new Google account (complete OAuth flow for new account)
+   */
+  async addAccount(code: string): Promise<GoogleToken> {
+    // Exchange code for tokens
+    const tokens = await this.exchangeCodeForTokens(code)
+
+    // Get user profile
+    const profile = await this.getUserProfile(tokens.access_token)
+
+    // Check if this email is already connected
+    const existingTokens = await GoogleToken.findAllByService(googleConfig.serviceKey)
+    const existingAccount = existingTokens.find((t) => t.accountEmail === profile.email)
+
+    if (existingAccount) {
+      // Update existing token instead of creating duplicate
+      existingAccount.accessToken = tokens.access_token
+      existingAccount.refreshToken = tokens.refresh_token || existingAccount.refreshToken
+      existingAccount.expiresAt = existingAccount.expiresAt.plus({ seconds: tokens.expires_in })
+      existingAccount.scopes = tokens.scope
+      await existingAccount.save()
+      return existingAccount
+    }
+
+    // Create new token for this account
+    const token = await GoogleToken.create({
+      service: googleConfig.serviceKey,
+      adminId: null, // Global account
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token || '',
+      expiresAt: DateTime.now().plus({ seconds: tokens.expires_in }),
+      accountEmail: profile.email,
+      accountName: profile.name,
+      scopes: tokens.scope,
+      syncMode: 'auto',
+    })
+
+    return token
+  }
+
+  /**
+   * Remove a Google account and its calendars
+   */
+  async removeAccount(tokenId: string): Promise<void> {
+    // Delete calendars first (cascade should handle this, but be explicit)
+    await GoogleCalendar.deleteByTokenId(tokenId)
+
+    // Delete the token
+    const token = await GoogleToken.find(tokenId)
+    if (token) {
+      await token.delete()
+    }
+  }
+
+  /**
+   * Get valid access token for a specific account
+   */
+  async getValidAccessTokenForAccount(tokenId: string): Promise<string | null> {
+    const token = await GoogleToken.find(tokenId)
+
+    if (!token) {
+      return null
+    }
+
+    // Check if token needs refresh (expires in less than 5 minutes)
+    if (token.willExpireSoon) {
+      try {
+        const refreshed = await this.refreshAccessToken(token.refreshToken)
+
+        // Update token in database
+        token.accessToken = refreshed.access_token
+        if (refreshed.refresh_token) {
+          token.refreshToken = refreshed.refresh_token
+        }
+        token.expiresAt = DateTime.now().plus({ seconds: refreshed.expires_in })
+        if (refreshed.scope) {
+          token.scopes = refreshed.scope
+        }
+        await token.save()
+
+        return refreshed.access_token
+      } catch (error) {
+        logger.error({ err: error }, 'Failed to refresh Google token for account')
+        return null
+      }
+    }
+
+    return token.accessToken
+  }
+
+  /**
+   * Get all active calendars across all accounts
+   */
+  async getAllActiveCalendars(): Promise<
+    {
+      id: string
+      calendarId: string
+      calendarName: string
+      calendarColor: string | null
+      accountEmail: string | null
+      tokenId: string
+    }[]
+  > {
+    const calendars = await GoogleCalendar.findAllActive()
+
+    return calendars.map((cal) => ({
+      id: cal.id,
+      calendarId: cal.calendarId,
+      calendarName: cal.calendarName,
+      calendarColor: cal.calendarColor,
+      accountEmail: cal.googleToken?.accountEmail ?? null,
+      tokenId: cal.googleTokenId,
+    }))
   }
 }
 

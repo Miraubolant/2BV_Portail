@@ -1,6 +1,7 @@
 import googleOAuthService from './google_oauth_service.js'
 import googleConfig from '#config/google'
 import GoogleToken from '#models/google_token'
+import GoogleCalendar from '#models/google_calendar'
 import Evenement from '#models/evenement'
 import logger from '@adonisjs/core/services/logger'
 
@@ -56,6 +57,20 @@ class GoogleCalendarService {
     const accessToken = await googleOAuthService.getValidAccessToken()
     if (!accessToken) {
       this.connectionHealthy = false
+      return null
+    }
+    return {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    }
+  }
+
+  /**
+   * Get authenticated headers for a specific account (token)
+   */
+  private async getHeadersForAccount(tokenId: string): Promise<Record<string, string> | null> {
+    const accessToken = await googleOAuthService.getValidAccessTokenForAccount(tokenId)
+    if (!accessToken) {
       return null
     }
     return {
@@ -475,6 +490,349 @@ class GoogleCalendarService {
       journeeEntiere: isAllDay,
       googleEventId: event.id,
     }
+  }
+
+  // ======================================================================
+  // MULTI-CALENDAR SUPPORT
+  // ======================================================================
+
+  /**
+   * List calendars for a specific Google account
+   */
+  async listCalendarsForAccount(tokenId: string): Promise<CalendarListEntry[]> {
+    const headers = await this.getHeadersForAccount(tokenId)
+    if (!headers) return []
+
+    try {
+      const response = await fetch(`${CALENDAR_API_BASE}/users/me/calendarList`, {
+        headers,
+      })
+
+      if (!response.ok) {
+        logger.error({ response: await response.text() }, 'Failed to list calendars for account')
+        return []
+      }
+
+      const data = (await response.json()) as { items?: CalendarListEntry[] }
+      return data.items || []
+    } catch (error) {
+      logger.error({ err: error }, 'Error listing calendars for account')
+      return []
+    }
+  }
+
+  /**
+   * Activate a calendar for sync (add to GoogleCalendar table)
+   */
+  async activateCalendar(
+    tokenId: string,
+    calendarId: string,
+    calendarName: string,
+    calendarColor?: string | null
+  ): Promise<GoogleCalendar> {
+    return await GoogleCalendar.upsert(tokenId, {
+      calendarId,
+      calendarName,
+      calendarColor,
+      isActive: true,
+    })
+  }
+
+  /**
+   * Deactivate a calendar (remove from active sync)
+   */
+  async deactivateCalendar(id: string): Promise<void> {
+    await GoogleCalendar.deactivate(id)
+  }
+
+  /**
+   * Get all active calendars across all accounts
+   */
+  async getActiveCalendars(): Promise<GoogleCalendar[]> {
+    return await GoogleCalendar.findAllActive()
+  }
+
+  /**
+   * Create an event on a specific calendar
+   */
+  async createEventOnCalendar(
+    evenement: Evenement,
+    googleCalendarDbId: string
+  ): Promise<{ success: boolean; googleEventId?: string; error?: string }> {
+    // Get the GoogleCalendar record to find the token and Google calendar ID
+    const googleCalendar = await GoogleCalendar.query()
+      .where('id', googleCalendarDbId)
+      .preload('googleToken')
+      .first()
+
+    if (!googleCalendar) {
+      return { success: false, error: 'Calendar not found' }
+    }
+
+    const headers = await this.getHeadersForAccount(googleCalendar.googleTokenId)
+    if (!headers) {
+      return { success: false, error: 'Not connected to Google account' }
+    }
+
+    const googleEvent = this.evenementToGoogleEvent(evenement)
+
+    try {
+      const response = await fetch(
+        `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(googleCalendar.calendarId)}/events`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(googleEvent),
+        }
+      )
+
+      if (!response.ok) {
+        const error = await response.text()
+        logger.error({ response: error }, 'Failed to create Google event on calendar')
+        return { success: false, error }
+      }
+
+      const created = (await response.json()) as { id: string }
+      return { success: true, googleEventId: created.id }
+    } catch (error) {
+      logger.error({ err: error }, 'Error creating Google event on calendar')
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  /**
+   * Update an event on a specific calendar
+   */
+  async updateEventOnCalendar(
+    evenement: Evenement,
+    googleCalendarDbId: string
+  ): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
+    if (!evenement.googleEventId) {
+      return { success: false, error: 'No Google event ID' }
+    }
+
+    const googleCalendar = await GoogleCalendar.query()
+      .where('id', googleCalendarDbId)
+      .preload('googleToken')
+      .first()
+
+    if (!googleCalendar) {
+      return { success: false, error: 'Calendar not found' }
+    }
+
+    const headers = await this.getHeadersForAccount(googleCalendar.googleTokenId)
+    if (!headers) {
+      return { success: false, error: 'Not connected to Google account' }
+    }
+
+    // Fetch existing event to check type
+    const existingEvent = await this.getEventFromCalendar(
+      evenement.googleEventId,
+      googleCalendar.calendarId,
+      googleCalendar.googleTokenId
+    )
+    if (
+      existingEvent &&
+      existingEvent.eventType &&
+      RESTRICTED_EVENT_TYPES.includes(existingEvent.eventType)
+    ) {
+      logger.info(
+        { eventType: existingEvent.eventType, title: evenement.titre },
+        'Skipping restricted event type'
+      )
+      return { success: true, skipped: true }
+    }
+
+    const googleEvent = this.evenementToGoogleEvent(evenement)
+
+    try {
+      const response = await fetch(
+        `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(googleCalendar.calendarId)}/events/${encodeURIComponent(evenement.googleEventId)}`,
+        {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(googleEvent),
+        }
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        if (
+          errorText.includes('eventTypeRestriction') ||
+          errorText.includes('Event type cannot be changed')
+        ) {
+          logger.info({ title: evenement.titre }, 'Skipping event due to type restriction')
+          return { success: true, skipped: true }
+        }
+        logger.error({ response: errorText }, 'Failed to update Google event on calendar')
+        return { success: false, error: errorText }
+      }
+
+      return { success: true }
+    } catch (error) {
+      logger.error({ err: error }, 'Error updating Google event on calendar')
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  /**
+   * Delete an event from a specific calendar
+   */
+  async deleteEventFromCalendar(
+    googleEventId: string,
+    googleCalendarDbId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const googleCalendar = await GoogleCalendar.query()
+      .where('id', googleCalendarDbId)
+      .preload('googleToken')
+      .first()
+
+    if (!googleCalendar) {
+      return { success: false, error: 'Calendar not found' }
+    }
+
+    const headers = await this.getHeadersForAccount(googleCalendar.googleTokenId)
+    if (!headers) {
+      return { success: false, error: 'Not connected to Google account' }
+    }
+
+    try {
+      const response = await fetch(
+        `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(googleCalendar.calendarId)}/events/${encodeURIComponent(googleEventId)}`,
+        {
+          method: 'DELETE',
+          headers,
+        }
+      )
+
+      if (!response.ok && response.status !== 204 && response.status !== 410) {
+        const error = await response.text()
+        logger.error({ response: error }, 'Failed to delete Google event from calendar')
+        return { success: false, error }
+      }
+
+      return { success: true }
+    } catch (error) {
+      logger.error({ err: error }, 'Error deleting Google event from calendar')
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  /**
+   * Get an event from a specific calendar
+   */
+  private async getEventFromCalendar(
+    googleEventId: string,
+    googleCalendarId: string,
+    tokenId: string
+  ): Promise<GoogleCalendarEvent | null> {
+    const headers = await this.getHeadersForAccount(tokenId)
+    if (!headers) return null
+
+    try {
+      const response = await fetch(
+        `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(googleCalendarId)}/events/${encodeURIComponent(googleEventId)}`,
+        { headers }
+      )
+
+      if (!response.ok) {
+        return null
+      }
+
+      return (await response.json()) as GoogleCalendarEvent
+    } catch (error) {
+      logger.error({ err: error }, 'Error getting Google event from calendar')
+      return null
+    }
+  }
+
+  /**
+   * List events from a specific calendar (by DB id)
+   */
+  async listEventsFromCalendar(
+    googleCalendarDbId: string,
+    options?: {
+      timeMin?: string
+      timeMax?: string
+      maxResults?: number
+    }
+  ): Promise<GoogleCalendarEvent[]> {
+    const googleCalendar = await GoogleCalendar.query()
+      .where('id', googleCalendarDbId)
+      .preload('googleToken')
+      .first()
+
+    if (!googleCalendar) {
+      return []
+    }
+
+    const headers = await this.getHeadersForAccount(googleCalendar.googleTokenId)
+    if (!headers) return []
+
+    const params = new URLSearchParams()
+    if (options?.timeMin) params.append('timeMin', options.timeMin)
+    if (options?.timeMax) params.append('timeMax', options.timeMax)
+    if (options?.maxResults) params.append('maxResults', options.maxResults.toString())
+    params.append('singleEvents', 'true')
+    params.append('orderBy', 'startTime')
+
+    try {
+      const response = await fetch(
+        `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(googleCalendar.calendarId)}/events?${params.toString()}`,
+        { headers }
+      )
+
+      if (!response.ok) {
+        logger.error({ response: await response.text() }, 'Failed to list events from calendar')
+        return []
+      }
+
+      const data = (await response.json()) as { items?: GoogleCalendarEvent[] }
+      return data.items || []
+    } catch (error) {
+      logger.error({ err: error }, 'Error listing events from calendar')
+      return []
+    }
+  }
+
+  /**
+   * List events from all active calendars
+   */
+  async listEventsFromAllActiveCalendars(options?: {
+    timeMin?: string
+    timeMax?: string
+    maxResults?: number
+  }): Promise<
+    {
+      calendarId: string
+      calendarName: string
+      calendarColor: string | null
+      accountEmail: string | null
+      events: GoogleCalendarEvent[]
+    }[]
+  > {
+    const activeCalendars = await this.getActiveCalendars()
+    const results: {
+      calendarId: string
+      calendarName: string
+      calendarColor: string | null
+      accountEmail: string | null
+      events: GoogleCalendarEvent[]
+    }[] = []
+
+    for (const calendar of activeCalendars) {
+      await calendar.load('googleToken')
+      const events = await this.listEventsFromCalendar(calendar.id, options)
+      results.push({
+        calendarId: calendar.id,
+        calendarName: calendar.calendarName,
+        calendarColor: calendar.calendarColor,
+        accountEmail: calendar.googleToken?.accountEmail ?? null,
+        events,
+      })
+    }
+
+    return results
   }
 }
 

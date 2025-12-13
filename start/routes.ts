@@ -213,10 +213,17 @@ router
 // Callback route (public - called by Microsoft)
 router.get('/api/admin/microsoft/callback', [MicrosoftOAuthController, 'callback'])
 
-// Protected Microsoft routes (Super Admin only)
+// Status route (accessible to all admins)
 router
   .group(() => {
     router.get('status', [MicrosoftOAuthController, 'status'])
+  })
+  .prefix('api/admin/microsoft')
+  .use(middleware.adminAuth())
+
+// Protected Microsoft routes (Super Admin only)
+router
+  .group(() => {
     router.get('authorize', [MicrosoftOAuthController, 'authorize'])
     router.post('disconnect', [MicrosoftOAuthController, 'disconnect'])
     router.get('test', [MicrosoftOAuthController, 'test'])
@@ -236,20 +243,40 @@ router
 // Callback route (public - called by Google)
 router.get('/api/admin/google/callback', [GoogleOAuthController, 'callback'])
 
-// Protected Google routes (Super Admin only)
+// Status and read-only routes (accessible to all admins)
 router
   .group(() => {
     router.get('status', [GoogleOAuthController, 'status'])
+    router.get('active-calendars', [GoogleOAuthController, 'listActiveCalendars'])
+  })
+  .prefix('api/admin/google')
+  .use(middleware.adminAuth())
+
+// Protected Google routes (Super Admin only)
+router
+  .group(() => {
     router.get('authorize', [GoogleOAuthController, 'authorize'])
     router.post('disconnect', [GoogleOAuthController, 'disconnect'])
     router.get('test', [GoogleOAuthController, 'test'])
-    // Calendar selection
+    // Calendar selection (legacy)
     router.get('calendars', [GoogleOAuthController, 'listCalendars'])
     router.post('select-calendar', [GoogleOAuthController, 'selectCalendar'])
     // Sync routes
     router.post('sync', [GoogleOAuthController, 'syncAll'])
     router.get('sync-history', [GoogleOAuthController, 'syncHistory'])
     router.post('sync-mode', [GoogleOAuthController, 'updateSyncMode'])
+    // Multi-account management
+    router.get('accounts', [GoogleOAuthController, 'listAccounts'])
+    router.delete('accounts/:tokenId', [GoogleOAuthController, 'removeAccount'])
+    router.get('accounts/:tokenId/calendars', [GoogleOAuthController, 'listAccountCalendars'])
+    router.post('accounts/:tokenId/calendars/activate', [GoogleOAuthController, 'activateCalendar'])
+    // Multi-calendar management
+    router.get('active-calendars', [GoogleOAuthController, 'listActiveCalendars'])
+    router.post('calendars/:id/deactivate', [GoogleOAuthController, 'deactivateCalendar'])
+    router.delete('calendars/:id', [GoogleOAuthController, 'removeCalendar'])
+    // Multi-calendar sync
+    router.post('sync-multi', [GoogleOAuthController, 'syncAllMultiCalendar'])
+    router.post('pull-all', [GoogleOAuthController, 'pullFromAllCalendars'])
   })
   .prefix('api/admin/google')
   .use([middleware.adminAuth(), middleware.superAdmin()])

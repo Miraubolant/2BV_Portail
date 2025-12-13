@@ -67,6 +67,11 @@ export const GOOGLE_SELECT_CALENDAR_API = GOOGLE_API + 'select-calendar'
 export const GOOGLE_SYNC_API = GOOGLE_API + 'sync'
 export const GOOGLE_SYNC_HISTORY_API = GOOGLE_API + 'sync-history'
 export const GOOGLE_SYNC_MODE_API = GOOGLE_API + 'sync-mode'
+// Multi-account/calendar APIs
+export const GOOGLE_ACCOUNTS_API = GOOGLE_API + 'accounts'
+export const GOOGLE_ACTIVE_CALENDARS_API = GOOGLE_API + 'active-calendars'
+export const GOOGLE_SYNC_MULTI_API = GOOGLE_API + 'sync-multi'
+export const GOOGLE_PULL_ALL_API = GOOGLE_API + 'pull-all'
 
 // Integrations APIs (unified health & monitoring)
 const INTEGRATIONS_API = API_BASE_URL + 'admin/integrations/'

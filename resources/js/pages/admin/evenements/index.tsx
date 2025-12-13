@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ADMIN_EVENEMENTS_API, ADMIN_DOSSIERS_API, ADMIN_RESPONSABLES_API, formatDateTime } from '@/lib/constants'
+import { ADMIN_EVENEMENTS_API, ADMIN_DOSSIERS_API, ADMIN_RESPONSABLES_API, GOOGLE_ACTIVE_CALENDARS_API, formatDateTime } from '@/lib/constants'
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import {
@@ -101,7 +101,17 @@ interface Evenement {
   rappelEnvoye: boolean
   syncGoogle: boolean
   googleEventId: string | null
+  googleCalendarId: string | null
   dossier: DossierRef | null
+}
+
+interface ActiveCalendar {
+  id: string
+  calendarId: string
+  calendarName: string
+  calendarColor: string | null
+  accountEmail: string | null
+  tokenId: string
 }
 
 const typeLabels: Record<string, { label: string; color: string; badgeVariant: string }> = {
@@ -128,15 +138,17 @@ interface FormData {
   adresse: string
   salle: string
   syncGoogle: boolean
+  googleCalendarId: string
 }
 
 interface EventFormFieldsProps {
   formData: FormData
   setFormData: React.Dispatch<React.SetStateAction<FormData>>
   dossiers: DossierRef[]
+  activeCalendars: ActiveCalendar[]
 }
 
-const EventFormFields = memo(function EventFormFields({ formData, setFormData, dossiers }: EventFormFieldsProps) {
+const EventFormFields = memo(function EventFormFields({ formData, setFormData, dossiers, activeCalendars }: EventFormFieldsProps) {
   const [dossierSearch, setDossierSearch] = useState('')
 
   const filteredDossiers = dossiers.filter((dossier) => {
@@ -374,19 +386,52 @@ const EventFormFields = memo(function EventFormFields({ formData, setFormData, d
           />
         </div>
 
-        <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-blue-600" />
-            <div>
-              <p className="text-sm font-medium">Google Calendar</p>
-              <p className="text-xs text-muted-foreground">Synchroniser avec votre agenda Google</p>
+        <div className="space-y-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium">Google Calendar</p>
+                <p className="text-xs text-muted-foreground">Synchroniser avec votre agenda Google</p>
+              </div>
             </div>
+            <Checkbox
+              id="syncGoogle"
+              checked={formData.syncGoogle}
+              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, syncGoogle: checked as boolean }))}
+            />
           </div>
-          <Checkbox
-            id="syncGoogle"
-            checked={formData.syncGoogle}
-            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, syncGoogle: checked as boolean }))}
-          />
+          {formData.syncGoogle && activeCalendars.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-blue-100 dark:border-blue-900">
+              <Label htmlFor="googleCalendarId" className="text-xs">Calendrier cible</Label>
+              <Select
+                value={formData.googleCalendarId || ''}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, googleCalendarId: value }))}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Selectionner un calendrier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeCalendars.map((cal) => (
+                    <SelectItem key={cal.id} value={cal.id}>
+                      <div className="flex items-center gap-2">
+                        {cal.calendarColor && (
+                          <div
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: cal.calendarColor }}
+                          />
+                        )}
+                        <span>{cal.calendarName}</span>
+                        {cal.accountEmail && (
+                          <span className="text-xs text-muted-foreground">({cal.accountEmail})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -415,8 +460,10 @@ const EvenementsPage = () => {
   const [filterDossier, setFilterDossier] = useState<string>('all')
   const [filterClient, setFilterClient] = useState<string>('all')
   const [filterResponsable, setFilterResponsable] = useState<string>('all')
+  const [filterCalendar, setFilterCalendar] = useState<string>('all')
   const [showUnassigned, setShowUnassigned] = useState(false)
   const [responsables, setResponsables] = useState<ResponsableOption[]>([])
+  const [activeCalendars, setActiveCalendars] = useState<ActiveCalendar[]>([])
 
   // Get unique clients from dossiers
   const clients = dossiers.reduce((acc, dossier) => {
@@ -440,6 +487,7 @@ const EvenementsPage = () => {
     adresse: '',
     salle: '',
     syncGoogle: false,
+    googleCalendarId: '',
   })
 
   const resetForm = (date?: Date) => {
@@ -459,6 +507,7 @@ const EvenementsPage = () => {
       adresse: '',
       salle: '',
       syncGoogle: true,
+      googleCalendarId: activeCalendars.length > 0 ? activeCalendars[0].id : '',
     })
   }
 
@@ -487,6 +536,20 @@ const EvenementsPage = () => {
       }
     } catch (error) {
       console.error('Error fetching responsables:', error)
+    }
+  }
+
+  const fetchActiveCalendars = async () => {
+    try {
+      const response = await fetch(GOOGLE_ACTIVE_CALENDARS_API, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setActiveCalendars(result.calendars || [])
+      }
+    } catch (error) {
+      console.error('Error fetching active calendars:', error)
     }
   }
 
@@ -536,6 +599,7 @@ const EvenementsPage = () => {
   useEffect(() => {
     fetchDossiers()
     fetchResponsables()
+    fetchActiveCalendars()
   }, [])
 
   // S'abonner aux creations depuis le modal unifie
@@ -576,6 +640,13 @@ const EvenementsPage = () => {
     if (filterType !== 'all' && event.type !== filterType) return false
     if (filterDossier !== 'all' && event.dossier?.id !== filterDossier) return false
     if (filterClient !== 'all' && event.dossier?.client?.id !== filterClient) return false
+    if (filterCalendar !== 'all') {
+      if (filterCalendar === 'local') {
+        if (event.googleCalendarId !== null) return false
+      } else {
+        if (event.googleCalendarId !== filterCalendar) return false
+      }
+    }
     if (showUnassigned && event.dossier !== null) return false
     return true
   })
@@ -618,6 +689,7 @@ const EvenementsPage = () => {
         adresse: formData.adresse || null,
         salle: formData.salle || null,
         syncGoogle: formData.syncGoogle,
+        googleCalendarId: formData.syncGoogle && formData.googleCalendarId ? formData.googleCalendarId : null,
       }
 
       const response = await fetch(ADMIN_EVENEMENTS_API, {
@@ -671,6 +743,7 @@ const EvenementsPage = () => {
         adresse: formData.adresse || null,
         salle: formData.salle || null,
         syncGoogle: formData.syncGoogle,
+        googleCalendarId: formData.syncGoogle && formData.googleCalendarId ? formData.googleCalendarId : null,
       }
 
       const response = await fetch(`${ADMIN_EVENEMENTS_API}/${selectedEvent.id}`, {
@@ -738,6 +811,7 @@ const EvenementsPage = () => {
       adresse: event.adresse || '',
       salle: event.salle || '',
       syncGoogle: event.syncGoogle,
+      googleCalendarId: event.googleCalendarId || '',
     })
     setShowEditModal(true)
   }
@@ -974,6 +1048,30 @@ const EvenementsPage = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {activeCalendars.length > 0 && (
+                    <Select value={filterCalendar} onValueChange={setFilterCalendar}>
+                      <SelectTrigger className="w-[120px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
+                        <SelectValue placeholder="Calendrier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les calendriers</SelectItem>
+                        <SelectItem value="local">Local (non sync)</SelectItem>
+                        {activeCalendars.map((cal) => (
+                          <SelectItem key={cal.id} value={cal.id}>
+                            <div className="flex items-center gap-2">
+                              {cal.calendarColor && (
+                                <div
+                                  className="h-2.5 w-2.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: cal.calendarColor }}
+                                />
+                              )}
+                              <span className="truncate">{cal.calendarName}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="showUnassigned"
@@ -984,7 +1082,7 @@ const EvenementsPage = () => {
                       Sans dossier
                     </Label>
                   </div>
-                  {(filterType !== 'all' || filterDossier !== 'all' || filterClient !== 'all' || filterResponsable !== 'all' || showUnassigned) && (
+                  {(filterType !== 'all' || filterDossier !== 'all' || filterClient !== 'all' || filterResponsable !== 'all' || filterCalendar !== 'all' || showUnassigned) && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -994,6 +1092,7 @@ const EvenementsPage = () => {
                         setFilterDossier('all')
                         setFilterClient('all')
                         setFilterResponsable('all')
+                        setFilterCalendar('all')
                         setShowUnassigned(false)
                       }}
                       title="Effacer les filtres"
@@ -1341,7 +1440,7 @@ const EvenementsPage = () => {
             <DialogDescription>Creer un nouvel evenement dans le calendrier</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
-            <EventFormFields formData={formData} setFormData={setFormData} dossiers={dossiers} />
+            <EventFormFields formData={formData} setFormData={setFormData} dossiers={dossiers} activeCalendars={activeCalendars} />
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
                 Annuler
@@ -1362,7 +1461,7 @@ const EvenementsPage = () => {
             <DialogDescription>Modifiez les informations de l'evenement</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEdit} className="space-y-4">
-            <EventFormFields formData={formData} setFormData={setFormData} dossiers={dossiers} />
+            <EventFormFields formData={formData} setFormData={setFormData} dossiers={dossiers} activeCalendars={activeCalendars} />
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
                 Annuler

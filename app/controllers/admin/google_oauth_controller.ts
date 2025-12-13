@@ -3,6 +3,7 @@ import googleOAuthService from '#services/google/google_oauth_service'
 import googleCalendarService from '#services/google/google_calendar_service'
 import calendarSyncService from '#services/google/calendar_sync_service'
 import GoogleToken from '#models/google_token'
+import GoogleCalendar from '#models/google_calendar'
 import googleConfig from '#config/google'
 import logger from '@adonisjs/core/services/logger'
 
@@ -240,6 +241,199 @@ export default class GoogleOAuthController {
       logger.error({ err: error }, 'Error updating sync mode')
       return response.internalServerError({
         message: 'Failed to update sync mode',
+      })
+    }
+  }
+
+  // ======================================================================
+  // MULTI-ACCOUNT / MULTI-CALENDAR ENDPOINTS
+  // ======================================================================
+
+  /**
+   * GET /api/admin/google/accounts
+   * List all connected Google accounts
+   */
+  async listAccounts({ response }: HttpContext) {
+    try {
+      const accounts = await googleOAuthService.getAllConnectedAccounts()
+      return response.ok({ accounts })
+    } catch (error) {
+      logger.error({ err: error }, 'Error listing Google accounts')
+      return response.internalServerError({
+        message: 'Failed to list accounts',
+      })
+    }
+  }
+
+  /**
+   * DELETE /api/admin/google/accounts/:tokenId
+   * Remove a Google account
+   */
+  async removeAccount({ params, response }: HttpContext) {
+    const { tokenId } = params
+
+    try {
+      await googleOAuthService.removeAccount(tokenId)
+      return response.ok({ message: 'Account removed successfully' })
+    } catch (error) {
+      logger.error({ err: error }, 'Error removing Google account')
+      return response.internalServerError({
+        message: 'Failed to remove account',
+      })
+    }
+  }
+
+  /**
+   * GET /api/admin/google/accounts/:tokenId/calendars
+   * List calendars for a specific account
+   */
+  async listAccountCalendars({ params, response }: HttpContext) {
+    const { tokenId } = params
+
+    try {
+      const calendars = await googleCalendarService.listCalendarsForAccount(tokenId)
+      return response.ok({ calendars })
+    } catch (error) {
+      logger.error({ err: error }, 'Error listing calendars for account')
+      return response.internalServerError({
+        message: 'Failed to list calendars',
+      })
+    }
+  }
+
+  /**
+   * POST /api/admin/google/accounts/:tokenId/calendars/activate
+   * Activate a calendar for sync
+   */
+  async activateCalendar({ params, request, response }: HttpContext) {
+    const { tokenId } = params
+    const { calendarId, calendarName, calendarColor } = request.only([
+      'calendarId',
+      'calendarName',
+      'calendarColor',
+    ])
+
+    if (!calendarId || !calendarName) {
+      return response.badRequest({
+        message: 'Calendar ID and name are required',
+      })
+    }
+
+    try {
+      const calendar = await googleCalendarService.activateCalendar(
+        tokenId,
+        calendarId,
+        calendarName,
+        calendarColor
+      )
+      return response.ok({
+        message: 'Calendar activated',
+        calendar: {
+          id: calendar.id,
+          calendarId: calendar.calendarId,
+          calendarName: calendar.calendarName,
+          calendarColor: calendar.calendarColor,
+          isActive: calendar.isActive,
+        },
+      })
+    } catch (error) {
+      logger.error({ err: error }, 'Error activating calendar')
+      return response.internalServerError({
+        message: 'Failed to activate calendar',
+      })
+    }
+  }
+
+  /**
+   * POST /api/admin/google/calendars/:id/deactivate
+   * Deactivate a calendar from sync
+   */
+  async deactivateCalendar({ params, response }: HttpContext) {
+    const { id } = params
+
+    try {
+      await googleCalendarService.deactivateCalendar(id)
+      return response.ok({ message: 'Calendar deactivated' })
+    } catch (error) {
+      logger.error({ err: error }, 'Error deactivating calendar')
+      return response.internalServerError({
+        message: 'Failed to deactivate calendar',
+      })
+    }
+  }
+
+  /**
+   * DELETE /api/admin/google/calendars/:id
+   * Remove a calendar entirely
+   */
+  async removeCalendar({ params, response }: HttpContext) {
+    const { id } = params
+
+    try {
+      const calendar = await GoogleCalendar.find(id)
+      if (calendar) {
+        await calendar.delete()
+      }
+      return response.ok({ message: 'Calendar removed' })
+    } catch (error) {
+      logger.error({ err: error }, 'Error removing calendar')
+      return response.internalServerError({
+        message: 'Failed to remove calendar',
+      })
+    }
+  }
+
+  /**
+   * GET /api/admin/google/active-calendars
+   * Get all active calendars across all accounts
+   */
+  async listActiveCalendars({ response }: HttpContext) {
+    try {
+      const calendars = await googleOAuthService.getAllActiveCalendars()
+      return response.ok({ calendars })
+    } catch (error) {
+      logger.error({ err: error }, 'Error listing active calendars')
+      return response.internalServerError({
+        message: 'Failed to list active calendars',
+      })
+    }
+  }
+
+  /**
+   * POST /api/admin/google/sync-multi
+   * Trigger full sync for multi-calendar mode
+   */
+  async syncAllMultiCalendar({ auth, request, response }: HttpContext) {
+    const admin = auth.use('admin').user!
+    const pullFromGoogle = request.input('pullFromGoogle', false)
+
+    try {
+      const result = await calendarSyncService.fullSyncMultiCalendar(admin.id, { pullFromGoogle })
+      return response.ok(result)
+    } catch (error) {
+      logger.error({ err: error }, 'Error syncing calendars')
+      return response.internalServerError({
+        success: false,
+        message: error instanceof Error ? error.message : 'Sync failed',
+      })
+    }
+  }
+
+  /**
+   * POST /api/admin/google/pull-all
+   * Pull events from all active calendars
+   */
+  async pullFromAllCalendars({ auth, response }: HttpContext) {
+    const admin = auth.use('admin').user!
+
+    try {
+      const result = await calendarSyncService.pullFromAllActiveCalendars(admin.id)
+      return response.ok(result)
+    } catch (error) {
+      logger.error({ err: error }, 'Error pulling from calendars')
+      return response.internalServerError({
+        success: false,
+        message: error instanceof Error ? error.message : 'Pull failed',
       })
     }
   }

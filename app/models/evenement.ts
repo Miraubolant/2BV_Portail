@@ -3,6 +3,7 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Dossier from '#models/dossier'
 import Admin from '#models/admin'
+import GoogleCalendar from '#models/google_calendar'
 
 export default class Evenement extends BaseModel {
   static table = 'evenements'
@@ -47,6 +48,9 @@ export default class Evenement extends BaseModel {
   @column()
   declare googleEventId: string | null
 
+  @column()
+  declare googleCalendarId: string | null
+
   @column.dateTime()
   declare googleLastSync: DateTime | null
 
@@ -78,6 +82,11 @@ export default class Evenement extends BaseModel {
 
   @belongsTo(() => Admin, { foreignKey: 'createdById' })
   declare createdBy: BelongsTo<typeof Admin>
+
+  @belongsTo(() => GoogleCalendar, {
+    foreignKey: 'googleCalendarId',
+  })
+  declare googleCalendar: BelongsTo<typeof GoogleCalendar>
 
   // Computed
   get isPast(): boolean {

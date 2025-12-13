@@ -3,15 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Calendar,
   CheckCircle2,
@@ -22,15 +21,18 @@ import {
   AlertTriangle,
   FolderSync,
   User,
+  ChevronDown,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import {
   GOOGLE_STATUS_API,
   GOOGLE_AUTHORIZE_API,
   GOOGLE_DISCONNECT_API,
   GOOGLE_TEST_API,
-  GOOGLE_CALENDARS_API,
-  GOOGLE_SELECT_CALENDAR_API,
-  GOOGLE_SYNC_API,
+  GOOGLE_ACCOUNTS_API,
+  GOOGLE_SYNC_MULTI_API,
+  GOOGLE_PULL_ALL_API,
   GOOGLE_SYNC_MODE_API,
 } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -48,24 +50,41 @@ interface GoogleCalendarStatus {
 
 interface CalendarEntry {
   id: string
+  calendarId: string
+  calendarName: string
+  calendarColor: string | null
+  isActive: boolean
+}
+
+interface GoogleApiCalendar {
+  id: string
   summary: string
-  description?: string
-  primary?: boolean
   backgroundColor?: string
+  primary?: boolean
+}
+
+interface ConnectedAccount {
+  id: string
+  accountEmail: string | null
+  accountName: string | null
+  syncMode: string
+  calendars: CalendarEntry[]
 }
 
 export function GoogleCalendarSettings() {
   const [status, setStatus] = useState<GoogleCalendarStatus | null>(null)
-  const [calendars, setCalendars] = useState<CalendarEntry[]>([])
+  const [accounts, setAccounts] = useState<ConnectedAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
-  const [disconnecting, setDisconnecting] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [loadingCalendars, setLoadingCalendars] = useState(false)
-  const [selectingCalendar, setSelectingCalendar] = useState(false)
   const [updatingSyncMode, setUpdatingSyncMode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
+  const [loadingCalendars, setLoadingCalendars] = useState<string | null>(null)
+  const [availableCalendars, setAvailableCalendars] = useState<Record<string, GoogleApiCalendar[]>>({})
+  const [togglingCalendar, setTogglingCalendar] = useState<string | null>(null)
+  const [removingAccount, setRemovingAccount] = useState<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -83,13 +102,8 @@ export function GoogleCalendarSettings() {
 
   useEffect(() => {
     fetchStatus()
+    fetchAccounts()
   }, [])
-
-  useEffect(() => {
-    if (status?.connected && calendars.length === 0) {
-      fetchCalendars()
-    }
-  }, [status?.connected])
 
   const fetchStatus = async () => {
     try {
@@ -105,18 +119,34 @@ export function GoogleCalendarSettings() {
     }
   }
 
-  const fetchCalendars = async () => {
-    setLoadingCalendars(true)
+  const fetchAccounts = async () => {
     try {
-      const response = await fetch(GOOGLE_CALENDARS_API, { credentials: 'include' })
+      const response = await fetch(GOOGLE_ACCOUNTS_API, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
-        setCalendars(data.calendars || [])
+        setAccounts(data.accounts || [])
+        // Auto-expand first account if there's only one
+        if (data.accounts?.length === 1) {
+          setExpandedAccounts(new Set([data.accounts[0].id]))
+        }
+      }
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
+  }
+
+  const fetchCalendarsForAccount = async (tokenId: string) => {
+    setLoadingCalendars(tokenId)
+    try {
+      const response = await fetch(`${GOOGLE_ACCOUNTS_API}/${tokenId}/calendars`, { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableCalendars((prev) => ({ ...prev, [tokenId]: data.calendars || [] }))
       }
     } catch (err) {
       console.error('Erreur:', err)
     } finally {
-      setLoadingCalendars(false)
+      setLoadingCalendars(null)
     }
   }
 
@@ -132,6 +162,90 @@ export function GoogleCalendarSettings() {
       }
     } catch {
       setError('Erreur de connexion')
+    }
+  }
+
+  const handleRemoveAccount = async (tokenId: string) => {
+    if (!confirm('Supprimer ce compte Google et tous ses calendriers ?')) return
+
+    setRemovingAccount(tokenId)
+    setError(null)
+    try {
+      const response = await fetch(`${GOOGLE_ACCOUNTS_API}/${tokenId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        setAccounts((prev) => prev.filter((a) => a.id !== tokenId))
+        setSuccess('Compte supprime')
+        fetchStatus() // Refresh status
+      } else {
+        setError('Erreur de suppression')
+      }
+    } catch {
+      setError('Erreur de suppression')
+    } finally {
+      setRemovingAccount(null)
+    }
+  }
+
+  const handleToggleCalendar = async (tokenId: string, calendar: GoogleApiCalendar, isActive: boolean) => {
+    const calKey = `${tokenId}-${calendar.id}`
+    setTogglingCalendar(calKey)
+    setError(null)
+
+    try {
+      if (isActive) {
+        // Activate calendar
+        const response = await fetch(`${GOOGLE_ACCOUNTS_API}/${tokenId}/calendars/activate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            calendarId: calendar.id,
+            calendarName: calendar.summary,
+            calendarColor: calendar.backgroundColor,
+          }),
+        })
+        if (response.ok) {
+          const data = await response.json()
+          // Update local state
+          setAccounts((prev) =>
+            prev.map((a) =>
+              a.id === tokenId
+                ? { ...a, calendars: [...a.calendars.filter((c) => c.calendarId !== calendar.id), data.calendar] }
+                : a
+            )
+          )
+        } else {
+          setError('Erreur d\'activation')
+        }
+      } else {
+        // Deactivate calendar
+        const account = accounts.find((a) => a.id === tokenId)
+        const existingCal = account?.calendars.find((c) => c.calendarId === calendar.id)
+        if (existingCal) {
+          const response = await fetch(`${GOOGLE_ACCOUNTS_API.replace('/accounts', '')}/calendars/${existingCal.id}/deactivate`, {
+            method: 'POST',
+            credentials: 'include',
+          })
+          if (response.ok) {
+            setAccounts((prev) =>
+              prev.map((a) =>
+                a.id === tokenId
+                  ? { ...a, calendars: a.calendars.map((c) => c.id === existingCal.id ? { ...c, isActive: false } : c) }
+                  : a
+              )
+            )
+          } else {
+            setError('Erreur de desactivation')
+          }
+        }
+      }
+    } catch {
+      setError('Erreur de mise a jour')
+    } finally {
+      setTogglingCalendar(null)
     }
   }
 
@@ -155,9 +269,8 @@ export function GoogleCalendarSettings() {
   }
 
   const handleDisconnect = async () => {
-    if (!confirm('Deconnecter Google Calendar ?')) return
+    if (!confirm('Deconnecter tous les comptes Google Calendar ?')) return
 
-    setDisconnecting(true)
     setError(null)
     try {
       const response = await fetch(GOOGLE_DISCONNECT_API, {
@@ -166,52 +279,13 @@ export function GoogleCalendarSettings() {
       })
       if (response.ok) {
         setStatus({ configured: status?.configured || false, connected: false })
-        setCalendars([])
+        setAccounts([])
         setSuccess('Google Calendar deconnecte')
       } else {
         setError('Erreur de deconnexion')
       }
     } catch {
       setError('Erreur de deconnexion')
-    } finally {
-      setDisconnecting(false)
-    }
-  }
-
-  const handleSelectCalendar = async (calendarId: string) => {
-    const calendar = calendars.find((c) => c.id === calendarId)
-    if (!calendar) return
-
-    setSelectingCalendar(true)
-    setError(null)
-    try {
-      const response = await fetch(GOOGLE_SELECT_CALENDAR_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          calendarId: calendar.id,
-          calendarName: calendar.summary,
-        }),
-      })
-      if (response.ok) {
-        setStatus((prev) =>
-          prev
-            ? {
-                ...prev,
-                selectedCalendarId: calendar.id,
-                selectedCalendarName: calendar.summary,
-              }
-            : null
-        )
-        setSuccess(`Calendrier selectionne`)
-      } else {
-        setError('Erreur de selection')
-      }
-    } catch {
-      setError('Erreur de selection')
-    } finally {
-      setSelectingCalendar(false)
     }
   }
 
@@ -220,7 +294,11 @@ export function GoogleCalendarSettings() {
     setError(null)
     setSuccess(null)
     try {
-      const response = await fetch(GOOGLE_SYNC_API, {
+      // Use multi-calendar sync if we have active calendars
+      const hasActiveCalendars = accounts.some((a) => a.calendars.some((c) => c.isActive))
+      const url = hasActiveCalendars ? GOOGLE_SYNC_MULTI_API : GOOGLE_PULL_ALL_API
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -266,6 +344,27 @@ export function GoogleCalendarSettings() {
     }
   }
 
+  const toggleAccountExpanded = (accountId: string) => {
+    const newExpanded = new Set(expandedAccounts)
+    if (newExpanded.has(accountId)) {
+      newExpanded.delete(accountId)
+    } else {
+      newExpanded.add(accountId)
+      // Fetch calendars if not already loaded
+      if (!availableCalendars[accountId]) {
+        fetchCalendarsForAccount(accountId)
+      }
+    }
+    setExpandedAccounts(newExpanded)
+  }
+
+  const isCalendarActive = (tokenId: string, googleCalendarId: string) => {
+    const account = accounts.find((a) => a.id === tokenId)
+    return account?.calendars.some((c) => c.calendarId === googleCalendarId && c.isActive) || false
+  }
+
+  const totalActiveCalendars = accounts.reduce((sum, a) => sum + a.calendars.filter((c) => c.isActive).length, 0)
+
   if (loading) {
     return (
       <Card className="h-full">
@@ -286,7 +385,11 @@ export function GoogleCalendarSettings() {
             <Calendar className="h-5 w-5 text-orange-500" />
             <CardTitle className="text-base">Google Calendar</CardTitle>
           </div>
-          {status?.connected ? (
+          {accounts.length > 0 ? (
+            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
+              {accounts.length} compte{accounts.length > 1 ? 's' : ''}
+            </Badge>
+          ) : status?.connected ? (
             <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
               Connecte
             </Badge>
@@ -319,7 +422,7 @@ export function GoogleCalendarSettings() {
           </Alert>
         )}
 
-        {status?.configured && !status?.connected && (
+        {status?.configured && accounts.length === 0 && !status?.connected && (
           <div className="space-y-3 flex-1">
             <p className="text-sm text-muted-foreground">
               Connectez Google Calendar pour synchroniser les evenements.
@@ -331,58 +434,137 @@ export function GoogleCalendarSettings() {
           </div>
         )}
 
-        {status?.connected && (
+        {(accounts.length > 0 || status?.connected) && (
           <div className="space-y-4 flex-1 flex flex-col">
-            {/* Compte connecte */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-                <User className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            {/* Liste des comptes connectes */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Comptes connectes</Label>
+                {totalActiveCalendars > 0 && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {totalActiveCalendars} calendrier{totalActiveCalendars > 1 ? 's' : ''} actif{totalActiveCalendars > 1 ? 's' : ''}
+                  </Badge>
+                )}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-sm truncate">{status.accountName || 'Compte Google'}</p>
-                <p className="text-xs text-muted-foreground truncate">{status.accountEmail}</p>
-              </div>
-            </div>
 
-            {/* Selection du calendrier */}
-            <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
-              <Label className="text-xs font-medium">Calendrier actif</Label>
-              {loadingCalendars ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <LoaderCircle className="h-3 w-3 animate-spin" />
-                  Chargement...
-                </div>
-              ) : (
-                <Select
-                  value={status.selectedCalendarId || ''}
-                  onValueChange={handleSelectCalendar}
-                  disabled={selectingCalendar}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Selectionner un calendrier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {calendars.map((cal) => (
-                      <SelectItem key={cal.id} value={cal.id}>
-                        <div className="flex items-center gap-2">
-                          {cal.backgroundColor && (
-                            <div
-                              className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: cal.backgroundColor }}
-                            />
-                          )}
-                          <span className="truncate">{cal.summary}</span>
-                          {cal.primary && (
-                            <Badge variant="outline" className="text-[10px] px-1 py-0">
-                              Principal
-                            </Badge>
+              <div className="space-y-2">
+                {accounts.map((account) => (
+                  <Collapsible
+                    key={account.id}
+                    open={expandedAccounts.has(account.id)}
+                    onOpenChange={() => toggleAccountExpanded(account.id)}
+                  >
+                    <div className="rounded-lg border bg-muted/30">
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                            <User className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{account.accountName || 'Compte Google'}</p>
+                            <p className="text-xs text-muted-foreground truncate">{account.accountEmail}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {account.calendars.filter((c) => c.isActive).length > 0 && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {account.calendars.filter((c) => c.isActive).length} actif
+                              </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveAccount(account.id)
+                              }}
+                              disabled={removingAccount === account.id}
+                            >
+                              {removingAccount === account.id ? (
+                                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                            <ChevronDown className={cn(
+                              'h-4 w-4 text-muted-foreground transition-transform',
+                              expandedAccounts.has(account.id) && 'rotate-180'
+                            )} />
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-3 pb-3 pt-1 border-t">
+                          {loadingCalendars === account.id ? (
+                            <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+                              <LoaderCircle className="h-3 w-3 animate-spin" />
+                              Chargement des calendriers...
+                            </div>
+                          ) : (
+                            <div className="space-y-2 pt-2">
+                              {(availableCalendars[account.id] || []).map((cal) => {
+                                const isActive = isCalendarActive(account.id, cal.id)
+                                const calKey = `${account.id}-${cal.id}`
+                                return (
+                                  <div
+                                    key={cal.id}
+                                    className="flex items-center gap-3 py-1.5"
+                                  >
+                                    <Checkbox
+                                      id={calKey}
+                                      checked={isActive}
+                                      disabled={togglingCalendar === calKey}
+                                      onCheckedChange={(checked) =>
+                                        handleToggleCalendar(account.id, cal, checked as boolean)
+                                      }
+                                    />
+                                    <label
+                                      htmlFor={calKey}
+                                      className="flex items-center gap-2 text-sm cursor-pointer flex-1 min-w-0"
+                                    >
+                                      {cal.backgroundColor && (
+                                        <div
+                                          className="h-3 w-3 rounded-full shrink-0"
+                                          style={{ backgroundColor: cal.backgroundColor }}
+                                        />
+                                      )}
+                                      <span className="truncate">{cal.summary}</span>
+                                      {cal.primary && (
+                                        <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0">
+                                          Principal
+                                        </Badge>
+                                      )}
+                                    </label>
+                                    {togglingCalendar === calKey && (
+                                      <LoaderCircle className="h-3 w-3 animate-spin text-muted-foreground" />
+                                    )}
+                                  </div>
+                                )
+                              })}
+                              {(availableCalendars[account.id] || []).length === 0 && (
+                                <p className="text-xs text-muted-foreground py-2">
+                                  Aucun calendrier disponible
+                                </p>
+                              )}
+                            </div>
                           )}
                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                ))}
+              </div>
+
+              {/* Bouton ajouter un compte */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConnect}
+                className="w-full h-9 text-xs"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Ajouter un compte Google
+              </Button>
             </div>
 
             {/* Mode de synchronisation */}
@@ -392,14 +574,14 @@ export function GoogleCalendarSettings() {
                   Synchronisation automatique
                 </Label>
                 <p className="text-[11px] text-muted-foreground">
-                  {status.syncMode === 'auto'
+                  {status?.syncMode === 'auto'
                     ? 'Synchronisation bidirectionnelle active'
                     : 'Synchronisation manuelle uniquement'}
                 </p>
               </div>
               <Switch
                 id="sync-mode"
-                checked={status.syncMode === 'auto'}
+                checked={status?.syncMode === 'auto'}
                 onCheckedChange={handleSyncModeChange}
                 disabled={updatingSyncMode}
               />
@@ -408,7 +590,7 @@ export function GoogleCalendarSettings() {
             {/* Spacer pour aligner les boutons */}
             <div className="flex-1" />
 
-            {/* Actions - 4 boutons pour aligner avec OneDrive */}
+            {/* Actions */}
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
@@ -424,7 +606,7 @@ export function GoogleCalendarSettings() {
                 variant="outline"
                 size="sm"
                 onClick={handleSync}
-                disabled={syncing || !status.selectedCalendarId}
+                disabled={syncing || totalActiveCalendars === 0}
                 className="h-9 text-xs"
               >
                 {syncing ? <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FolderSync className="mr-1.5 h-3.5 w-3.5" />}
@@ -438,10 +620,9 @@ export function GoogleCalendarSettings() {
               size="sm"
               className={cn('w-full h-9 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10')}
               onClick={handleDisconnect}
-              disabled={disconnecting}
             >
-              {disconnecting ? <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Unlink className="mr-1.5 h-3.5 w-3.5" />}
-              Deconnecter
+              <Unlink className="mr-1.5 h-3.5 w-3.5" />
+              Tout deconnecter
             </Button>
           </div>
         )}

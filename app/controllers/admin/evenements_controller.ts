@@ -33,6 +33,7 @@ const createEvenementValidator = vine.compile(
     adresse: vine.string().optional().nullable(),
     salle: vine.string().optional().nullable(),
     syncGoogle: vine.boolean().optional(),
+    googleCalendarId: vine.string().uuid().optional().nullable(),
   })
 )
 
@@ -50,6 +51,7 @@ const updateEvenementValidator = vine.compile(
     salle: vine.string().optional().nullable(),
     statut: vine.enum(EVENEMENT_STATUTS).optional(),
     syncGoogle: vine.boolean().optional(),
+    googleCalendarId: vine.string().uuid().optional().nullable(),
   })
 )
 
@@ -138,13 +140,14 @@ export default class EvenementsController {
     const data = await request.validateUsing(createEvenementValidator)
     const admin = auth.use('admin').user!
 
-    // Extraire les dates
-    const { dateDebut, dateFin, ...restData } = data
+    // Extraire les dates et googleCalendarId
+    const { dateDebut, dateFin, googleCalendarId, ...restData } = data
 
     const evenement = await Evenement.create({
       ...restData,
       dateDebut: DateTime.fromISO(dateDebut),
       dateFin: DateTime.fromISO(dateFin),
+      googleCalendarId: googleCalendarId || null,
       createdById: admin.id,
     })
 
@@ -184,8 +187,8 @@ export default class EvenementsController {
     const data = await request.validateUsing(updateEvenementValidator)
     const admin = auth.use('admin').user!
 
-    // Extraire les dates et dossierId
-    const { dateDebut, dateFin, dossierId, ...restData } = data
+    // Extraire les dates, dossierId et googleCalendarId
+    const { dateDebut, dateFin, dossierId, googleCalendarId, ...restData } = data
 
     if (dateDebut) evenement.dateDebut = DateTime.fromISO(dateDebut)
     if (dateFin) evenement.dateFin = DateTime.fromISO(dateFin)
@@ -193,6 +196,11 @@ export default class EvenementsController {
     // Handle dossierId update (can be null to unassign, or a valid UUID to assign)
     if (dossierId !== undefined) {
       evenement.dossierId = dossierId || null
+    }
+
+    // Handle googleCalendarId update (can be null to unassign, or a valid UUID to assign)
+    if (googleCalendarId !== undefined) {
+      evenement.googleCalendarId = googleCalendarId || null
     }
 
     evenement.merge(restData)
@@ -243,9 +251,11 @@ export default class EvenementsController {
 
     // Delete from Google Calendar if synced (async, don't block response)
     if (evenement.googleEventId) {
-      calendarSyncService.deleteEventFromGoogle(evenement.googleEventId).catch((err) => {
-        logger.error({ err }, 'Failed to delete event from Google')
-      })
+      calendarSyncService
+        .deleteEventFromGoogle(evenement.googleEventId, evenement.googleCalendarId)
+        .catch((err) => {
+          logger.error({ err }, 'Failed to delete event from Google')
+        })
     }
 
     await evenement.delete()

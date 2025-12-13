@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, beforeCreate, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { randomUUID } from 'node:crypto'
 import Admin from './admin.js'
+import GoogleCalendar from './google_calendar.js'
 
 export default class GoogleToken extends BaseModel {
   @column({ isPrimary: true })
@@ -16,6 +17,9 @@ export default class GoogleToken extends BaseModel {
 
   @belongsTo(() => Admin)
   declare admin: BelongsTo<typeof Admin>
+
+  @hasMany(() => GoogleCalendar)
+  declare calendars: HasMany<typeof GoogleCalendar>
 
   @column({ serializeAs: null })
   declare accessToken: string
