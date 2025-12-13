@@ -28,13 +28,12 @@ export default class DashboardController {
       .where('statut', 'en_attente')
       .count('* as total')
 
-    // Evenements a venir (7 prochains jours)
+    // 5 prochains evenements a venir
     const evenementsAVenir = await (Evenement.query() as any)
       .where('date_debut', '>=', DateTime.now().toSQL())
-      .where('date_debut', '<=', DateTime.now().plus({ days: 7 }).toSQL())
       .preload('dossier', (query: any) => query.preload('client'))
       .orderBy('date_debut', 'asc')
-      .limit(10)
+      .limit(5)
 
     // Derniers dossiers crees
     const derniersDossiers = await Dossier.query()
@@ -56,13 +55,15 @@ export default class DashboardController {
         dateDebut: e.dateDebut,
         dateFin: e.dateFin,
         lieu: e.lieu,
-        dossier: {
-          reference: e.dossier.reference,
-          client: {
-            nom: e.dossier.client.nom,
-            prenom: e.dossier.client.prenom,
-          },
-        },
+        dossier: e.dossier
+          ? {
+              reference: e.dossier.reference,
+              client: {
+                nom: e.dossier.client.nom,
+                prenom: e.dossier.client.prenom,
+              },
+            }
+          : null,
       })),
       derniersDossiers: derniersDossiers.map((d) => ({
         id: d.id,

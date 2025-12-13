@@ -38,7 +38,7 @@ interface Evenement {
       nom: string
       prenom: string
     }
-  }
+  } | null
 }
 
 interface Dossier {
@@ -170,7 +170,7 @@ const AdminDashboardPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Evenements a venir</CardTitle>
-                  <CardDescription>Les 7 prochains jours</CardDescription>
+                  <CardDescription>Les 5 prochains evenements</CardDescription>
                 </div>
                 <Button variant="outline" size="sm" asChild>
                   <Link href={ADMIN_EVENEMENTS}>
@@ -182,24 +182,35 @@ const AdminDashboardPage = () => {
             </CardHeader>
             <CardContent>
               {data?.evenementsAVenir && data.evenementsAVenir.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {data.evenementsAVenir.map((event) => (
                     <div
                       key={event.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
                     >
                       <div className="space-y-1">
-                        <p className="font-medium">{event.titre}</p>
+                        <p className="font-semibold text-foreground">{event.titre}</p>
                         <p className="text-sm text-muted-foreground">
                           {formatDateTime(event.dateDebut)}
                           {event.lieu && ` - ${event.lieu}`}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {event.dossier.reference} - {event.dossier.client.prenom}{' '}
-                          {event.dossier.client.nom}
-                        </p>
+                        {event.dossier ? (
+                          <p className="text-xs text-muted-foreground">
+                            {event.dossier.reference} - {event.dossier.client.prenom}{' '}
+                            {event.dossier.client.nom}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            Evenement general
+                          </p>
+                        )}
                       </div>
-                      <Badge variant="outline">{event.type}</Badge>
+                      <Badge
+                        variant="outline"
+                        className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200 dark:border-violet-800"
+                      >
+                        {event.type}
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -229,16 +240,16 @@ const AdminDashboardPage = () => {
             </CardHeader>
             <CardContent>
               {data?.derniersDossiers && data.derniersDossiers.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {data.derniersDossiers.map((dossier) => (
                     <div
                       key={dossier.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
                     >
                       <div className="space-y-1">
                         <Link
                           href={`/admin/dossiers/${dossier.id}`}
-                          className="font-medium hover:underline"
+                          className="font-semibold text-foreground hover:underline"
                         >
                           {dossier.reference}
                         </Link>
@@ -248,9 +259,14 @@ const AdminDashboardPage = () => {
                         </p>
                       </div>
                       <Badge
-                        variant={dossier.statut === 'nouveau' ? 'default' : 'secondary'}
+                        variant="outline"
+                        className={
+                          dossier.statut === 'nouveau'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                        }
                       >
-                        {dossier.statut}
+                        {dossier.statut === 'nouveau' ? 'Nouveau' : dossier.statut.replace('_', ' ')}
                       </Badge>
                     </div>
                   ))}

@@ -128,14 +128,14 @@ export function DataTable<T>({
           <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
+                <TableRow className="hover:bg-transparent bg-muted/50">
                   {columns.map((column) => (
                     <TableHead
                       key={column.key}
                       style={{ width: column.width }}
                       className={cn(
-                        'whitespace-nowrap',
-                        column.sortable && 'cursor-pointer select-none'
+                        'whitespace-nowrap font-semibold text-foreground',
+                        column.sortable && 'cursor-pointer select-none hover:bg-muted/80 transition-colors'
                       )}
                       onClick={() => column.sortable && handleSort(column.key)}
                     >
