@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon'
-import { BaseModel, beforeCreate, column } from '@adonisjs/lucid/orm'
+import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { randomUUID } from 'crypto'
+import Admin from './admin.js'
 
 export default class GoogleToken extends BaseModel {
   @column({ isPrimary: true })
@@ -8,6 +10,12 @@ export default class GoogleToken extends BaseModel {
 
   @column()
   declare service: string
+
+  @column()
+  declare adminId: string | null
+
+  @belongsTo(() => Admin)
+  declare admin: BelongsTo<typeof Admin>
 
   @column({ serializeAs: null })
   declare accessToken: string
@@ -60,14 +68,28 @@ export default class GoogleToken extends BaseModel {
   }
 
   /**
-   * Find token by service key
+   * Find token by service key (global/cabinet level)
    */
   static async findByService(service: string): Promise<GoogleToken | null> {
-    return await this.query().where('service', service).first()
+    return await this.query().where('service', service).whereNull('admin_id').first()
   }
 
   /**
-   * Save or update token for a service
+   * Find token by service and admin (per-admin token)
+   */
+  static async findByServiceAndAdmin(service: string, adminId: string): Promise<GoogleToken | null> {
+    return await this.query().where('service', service).where('admin_id', adminId).first()
+  }
+
+  /**
+   * Find all tokens for a service (global + per-admin)
+   */
+  static async findAllByService(service: string): Promise<GoogleToken[]> {
+    return await this.query().where('service', service).preload('admin')
+  }
+
+  /**
+   * Save or update token for a service (supports per-admin)
    */
   static async saveToken(
     service: string,
@@ -80,9 +102,13 @@ export default class GoogleToken extends BaseModel {
       scopes?: string | null
       selectedCalendarId?: string | null
       selectedCalendarName?: string | null
+      adminId?: string | null
     }
   ): Promise<GoogleToken> {
-    const existing = await this.findByService(service)
+    const adminId = data.adminId || null
+    const existing = adminId
+      ? await this.findByServiceAndAdmin(service, adminId)
+      : await this.findByService(service)
     const expiresAt = DateTime.now().plus({ seconds: data.expiresIn })
 
     if (existing) {
@@ -101,6 +127,7 @@ export default class GoogleToken extends BaseModel {
 
     return await this.create({
       service,
+      adminId,
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       expiresAt,
@@ -113,10 +140,17 @@ export default class GoogleToken extends BaseModel {
   }
 
   /**
-   * Delete token for a service
+   * Delete token for a service (global)
    */
   static async deleteByService(service: string): Promise<void> {
-    await this.query().where('service', service).delete()
+    await this.query().where('service', service).whereNull('admin_id').delete()
+  }
+
+  /**
+   * Delete token for a service and admin
+   */
+  static async deleteByServiceAndAdmin(service: string, adminId: string): Promise<void> {
+    await this.query().where('service', service).where('admin_id', adminId).delete()
   }
 
   /**
@@ -125,9 +159,16 @@ export default class GoogleToken extends BaseModel {
   static async updateSelectedCalendar(
     service: string,
     calendarId: string,
-    calendarName: string
+    calendarName: string,
+    adminId?: string | null
   ): Promise<void> {
-    await this.query().where('service', service).update({
+    let query = this.query().where('service', service)
+    if (adminId) {
+      query = query.where('admin_id', adminId)
+    } else {
+      query = query.whereNull('admin_id')
+    }
+    await query.update({
       selectedCalendarId: calendarId,
       selectedCalendarName: calendarName,
     })
@@ -136,8 +177,14 @@ export default class GoogleToken extends BaseModel {
   /**
    * Update sync mode for a service
    */
-  static async updateSyncMode(service: string, mode: 'auto' | 'manual'): Promise<void> {
-    await this.query().where('service', service).update({
+  static async updateSyncMode(service: string, mode: 'auto' | 'manual', adminId?: string | null): Promise<void> {
+    let query = this.query().where('service', service)
+    if (adminId) {
+      query = query.where('admin_id', adminId)
+    } else {
+      query = query.whereNull('admin_id')
+    }
+    await query.update({
       syncMode: mode,
     })
   }
@@ -145,8 +192,10 @@ export default class GoogleToken extends BaseModel {
   /**
    * Get sync mode for a service (defaults to 'auto')
    */
-  static async getSyncMode(service: string): Promise<'auto' | 'manual'> {
-    const token = await this.findByService(service)
+  static async getSyncMode(service: string, adminId?: string | null): Promise<'auto' | 'manual'> {
+    const token = adminId
+      ? await this.findByServiceAndAdmin(service, adminId)
+      : await this.findByService(service)
     return (token?.syncMode as 'auto' | 'manual') || 'auto'
   }
 }
