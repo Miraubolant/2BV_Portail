@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { CLIENT_DASHBOARD } from '@/app/routes'
 import { usePage } from '@inertiajs/react'
+import { ModeToggle } from '@/features/theme/mode-toggle'
 
 interface ClientLayoutProps {
   children: React.ReactNode
@@ -29,7 +30,7 @@ export function ClientLayout({ children, title, breadcrumbs }: ClientLayoutProps
     <SidebarProvider>
       <ClientSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b px-4 backdrop-blur">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
@@ -59,6 +60,11 @@ export function ClientLayout({ children, title, breadcrumbs }: ClientLayoutProps
               )}
             </BreadcrumbList>
           </Breadcrumb>
+
+          {/* Theme toggle - right side */}
+          <div className="ml-auto flex items-center gap-2">
+            <ModeToggle />
+          </div>
         </header>
         <main className="flex-1 p-6">
           {children}

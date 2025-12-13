@@ -13,6 +13,7 @@ import {
 import { ADMIN_DASHBOARD, ADMIN_CLIENTS, ADMIN_DOSSIERS, ADMIN_EVENEMENTS, ADMIN_ADMINS, ADMIN_PARAMETRES, ADMIN_DEMANDES_RDV } from '@/app/routes'
 import { GlobalSearch } from '@/components/admin/global-search'
 import { NotificationsDropdown } from '@/components/admin/notifications-dropdown'
+import { ModeToggle } from '@/features/theme/mode-toggle'
 import { usePage } from '@inertiajs/react'
 import { UnifiedModalProvider } from '@/contexts/unified-modal-context'
 import { BreadcrumbProvider, useBreadcrumb } from '@/contexts/breadcrumb-context'
@@ -88,7 +89,7 @@ function AdminLayoutContent({ children, title, breadcrumbs }: AdminLayoutProps) 
         <AdminSidebar />
         <SidebarInset>
           <Toaster />
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b px-4 backdrop-blur">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumb className="hidden md:flex">
@@ -124,8 +125,9 @@ function AdminLayoutContent({ children, title, breadcrumbs }: AdminLayoutProps) 
               <GlobalSearch />
             </div>
 
-            {/* Notifications - right side */}
+            {/* Actions - right side */}
             <div className="flex items-center gap-2">
+              <ModeToggle />
               <NotificationsDropdown />
             </div>
           </header>
