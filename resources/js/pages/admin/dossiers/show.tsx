@@ -365,7 +365,8 @@ const DossierShowPage = () => {
   const [uploadForm, setUploadForm] = useState({
     nom: '',
     typeDocument: 'autre',
-    visibleClient: true,
+    location: 'cabinet' as 'cabinet' | 'client',
+    visibleClient: false,
     sensible: false,
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -520,6 +521,7 @@ const DossierShowPage = () => {
       formDataObj.append('file', uploadFile)
       formDataObj.append('nom', uploadForm.nom)
       formDataObj.append('typeDocument', uploadForm.typeDocument)
+      formDataObj.append('location', uploadForm.location)
       formDataObj.append('visibleClient', String(uploadForm.visibleClient))
       formDataObj.append('sensible', String(uploadForm.sensible))
 
@@ -541,7 +543,7 @@ const DossierShowPage = () => {
         })
         setUploadModalOpen(false)
         setUploadFile(null)
-        setUploadForm({ nom: '', typeDocument: 'autre', visibleClient: true, sensible: false })
+        setUploadForm({ nom: '', typeDocument: 'autre', location: 'cabinet', visibleClient: false, sensible: false })
       } else {
         const error = await response.json()
         alert(error.message || "Erreur lors de l'upload")
@@ -1474,16 +1476,64 @@ const DossierShowPage = () => {
                   </Select>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Visible par le client</Label>
-                    <p className="text-xs text-muted-foreground">Le client peut voir ce document</p>
+                {/* Destination folder selector */}
+                <div className="space-y-2">
+                  <Label>Dossier de destination</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setUploadForm((prev) => ({ ...prev, location: 'cabinet', visibleClient: false }))}
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                        uploadForm.location === 'cabinet'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                          : 'border-muted hover:border-blue-300'
+                      }`}
+                    >
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                        uploadForm.location === 'cabinet' ? 'bg-blue-500 text-white' : 'bg-blue-100 dark:bg-blue-900'
+                      }`}>
+                        <Building2 className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-sm">CABINET</p>
+                        <p className="text-[10px] text-muted-foreground">Document interne</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadForm((prev) => ({ ...prev, location: 'client', visibleClient: true }))}
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                        uploadForm.location === 'client'
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
+                          : 'border-muted hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                        uploadForm.location === 'client' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 dark:bg-emerald-900'
+                      }`}>
+                        <UserCircle className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-sm">CLIENT</p>
+                        <p className="text-[10px] text-muted-foreground">Visible par le client</p>
+                      </div>
+                    </button>
                   </div>
-                  <Switch
-                    checked={uploadForm.visibleClient}
-                    onCheckedChange={(v) => setUploadForm((prev) => ({ ...prev, visibleClient: v }))}
-                  />
                 </div>
+
+                {/* Only show visibility toggle for CABINET documents */}
+                {uploadForm.location === 'cabinet' && (
+                  <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+                    <div className="space-y-0.5">
+                      <Label>Rendre visible au client</Label>
+                      <p className="text-xs text-muted-foreground">Le client pourra voir ce document interne</p>
+                    </div>
+                    <Switch
+                      checked={uploadForm.visibleClient}
+                      onCheckedChange={(v) => setUploadForm((prev) => ({ ...prev, visibleClient: v }))}
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
