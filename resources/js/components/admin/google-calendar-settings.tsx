@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
   Collapsible,
@@ -33,7 +32,6 @@ import {
   GOOGLE_ACCOUNTS_API,
   GOOGLE_SYNC_MULTI_API,
   GOOGLE_PULL_ALL_API,
-  GOOGLE_SYNC_MODE_API,
 } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -77,7 +75,6 @@ export function GoogleCalendarSettings() {
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [updatingSyncMode, setUpdatingSyncMode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
@@ -320,30 +317,6 @@ export function GoogleCalendarSettings() {
     }
   }
 
-  const handleSyncModeChange = async (isAuto: boolean) => {
-    setUpdatingSyncMode(true)
-    setError(null)
-    try {
-      const response = await fetch(GOOGLE_SYNC_MODE_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ mode: isAuto ? 'auto' : 'manual' }),
-      })
-      const data = await response.json()
-      if (response.ok) {
-        setStatus((prev) => (prev ? { ...prev, syncMode: data.syncMode } : null))
-        setSuccess(isAuto ? 'Mode automatique active' : 'Mode manuel active')
-      } else {
-        setError(data.message || 'Erreur de configuration')
-      }
-    } catch {
-      setError('Erreur de configuration')
-    } finally {
-      setUpdatingSyncMode(false)
-    }
-  }
-
   const toggleAccountExpanded = (accountId: string) => {
     const newExpanded = new Set(expandedAccounts)
     if (newExpanded.has(accountId)) {
@@ -565,26 +538,6 @@ export function GoogleCalendarSettings() {
                 <Plus className="mr-1.5 h-3.5 w-3.5" />
                 Ajouter un compte Google
               </Button>
-            </div>
-
-            {/* Mode de synchronisation */}
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-              <div className="space-y-0.5">
-                <Label htmlFor="sync-mode" className="text-xs font-medium">
-                  Synchronisation automatique
-                </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  {status?.syncMode === 'auto'
-                    ? 'Synchronisation bidirectionnelle active'
-                    : 'Synchronisation manuelle uniquement'}
-                </p>
-              </div>
-              <Switch
-                id="sync-mode"
-                checked={status?.syncMode === 'auto'}
-                onCheckedChange={handleSyncModeChange}
-                disabled={updatingSyncMode}
-              />
             </div>
 
             {/* Spacer pour aligner les boutons */}
