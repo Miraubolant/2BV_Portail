@@ -32,8 +32,8 @@ Portail client sécurisé pour cabinet d'avocats avec gestion des dossiers, docu
 - **Notes & Tâches** - Notes internes et gestion des tâches par dossier
 - **Événements** - Calendrier des audiences, rendez-vous, échéances
   - Vue calendrier et vue liste
-  - Filtres par type, dossier, client
-  - Synchronisation avec Google Calendar
+  - Filtres par type, dossier, client, calendrier Google
+  - Synchronisation avec Google Calendar (choix du calendrier cible)
 - **Demandes RDV** - Traitement des demandes clients (accepter/refuser)
 - **Favoris** - Accès rapide aux dossiers fréquemment consultés
 - **Recherche globale** - Recherche unifiée clients/dossiers
@@ -48,9 +48,13 @@ Portail client sécurisé pour cabinet d'avocats avec gestion des dossiers, docu
   - Documents internes vs visibles client
   - Health check et monitoring
 - **Google Calendar** - Synchronisation bidirectionnelle des evenements
+  - **Multi-comptes** : connexion de plusieurs comptes Google
+  - **Multi-calendriers** : selection de plusieurs calendriers par compte
   - Mode automatique ou manuel
   - Detection automatique de reference dossier dans les titres
   - Import/Export bidirectionnel
+  - Filtre par calendrier sur la page evenements
+  - Selection du calendrier cible lors de la creation d'evenement
 
 ### Portail Client
 - **Tableau de bord** - Vue d'ensemble des dossiers et notifications
@@ -237,6 +241,7 @@ scripts/
 | `AdminFavori` | Favoris des admins |
 | `MicrosoftToken` | Tokens OAuth OneDrive |
 | `GoogleToken` | Tokens OAuth Google Calendar |
+| `GoogleCalendar` | Calendriers Google selectionnes par compte |
 | `SyncLog` | Historique des synchronisations |
 | `Parametre` | Paramètres de configuration |
 
@@ -289,8 +294,19 @@ GET /api/health       # Status de l'application
 - `GET /integrations/health` - Status global des integrations
 - `GET /integrations/sync-history` - Historique des synchronisations
 - `POST /integrations/health-check` - Declencher verification sante
+
+**Google Calendar (Multi-comptes)**
 - `GET /google/status` - Statut connexion Google
-- `POST /google/sync` - Synchroniser le calendrier
+- `GET /google/accounts` - Liste des comptes Google connectes
+- `POST /google/accounts` - Ajouter un compte Google (OAuth)
+- `DELETE /google/accounts/:tokenId` - Supprimer un compte Google
+- `GET /google/accounts/:tokenId/calendars` - Calendriers d'un compte
+- `GET /google/active-calendars` - Tous les calendriers actifs
+- `POST /google/calendars/:id/activate` - Activer un calendrier
+- `POST /google/calendars/:id/deactivate` - Desactiver un calendrier
+- `POST /google/sync` - Synchroniser les calendriers
+
+**Microsoft OneDrive**
 - `GET /microsoft/status` - Statut connexion OneDrive
 - `POST /microsoft/sync` - Synchroniser les documents
 
