@@ -51,6 +51,7 @@ interface IntegrationConnectionStatus {
     connected: boolean
     accountEmail?: string | null
     accountName?: string | null
+    selectedCalendarName?: string | null
   }
 }
 
@@ -172,6 +173,7 @@ const ParametresPage = () => {
           connected: googleData?.connected ?? false,
           accountEmail: googleData?.accountEmail,
           accountName: googleData?.accountName,
+          selectedCalendarName: googleData?.selectedCalendarName,
         },
       })
     } catch (error) {
@@ -566,10 +568,19 @@ const ParametresPage = () => {
                             <Badge variant="secondary" className="text-[10px]">Non connecte</Badge>
                           )}
                         </div>
-                        {integrationStatus.onedrive.connected && integrationStatus.onedrive.accountEmail && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {integrationStatus.onedrive.accountEmail}
-                          </p>
+                        {integrationStatus.onedrive.connected && (
+                          <div className="space-y-0.5">
+                            {integrationStatus.onedrive.accountName && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {integrationStatus.onedrive.accountName}
+                              </p>
+                            )}
+                            {integrationStatus.onedrive.accountEmail && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {integrationStatus.onedrive.accountEmail}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -590,10 +601,19 @@ const ParametresPage = () => {
                             <Badge variant="secondary" className="text-[10px]">Non connecte</Badge>
                           )}
                         </div>
-                        {integrationStatus.googleCalendar.connected && integrationStatus.googleCalendar.accountEmail && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {integrationStatus.googleCalendar.accountEmail}
-                          </p>
+                        {integrationStatus.googleCalendar.connected && (
+                          <div className="space-y-0.5">
+                            {integrationStatus.googleCalendar.accountEmail && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {integrationStatus.googleCalendar.accountEmail}
+                              </p>
+                            )}
+                            {integrationStatus.googleCalendar.selectedCalendarName && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                Agenda : {integrationStatus.googleCalendar.selectedCalendarName}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
