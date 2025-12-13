@@ -49,12 +49,16 @@ export interface FileDownloadResult {
 }
 
 class OneDriveService {
+  private connectionHealthy: boolean = true
+  private lastHealthCheck: Date | null = null
+
   /**
    * Get authenticated headers for API calls
    */
   private async getHeaders(): Promise<Headers | null> {
     const accessToken = await microsoftOAuthService.getValidAccessToken()
     if (!accessToken) {
+      this.connectionHealthy = false
       return null
     }
 
@@ -69,7 +73,60 @@ class OneDriveService {
    */
   async isReady(): Promise<boolean> {
     const accessToken = await microsoftOAuthService.getValidAccessToken()
-    return accessToken !== null
+    if (!accessToken) {
+      this.connectionHealthy = false
+      return false
+    }
+    this.connectionHealthy = true
+    return true
+  }
+
+  /**
+   * Get connection health status
+   */
+  getHealthStatus(): { healthy: boolean; lastCheck: Date | null } {
+    return {
+      healthy: this.connectionHealthy,
+      lastCheck: this.lastHealthCheck,
+    }
+  }
+
+  /**
+   * Perform a health check on the OneDrive connection
+   */
+  async checkHealth(): Promise<{ healthy: boolean; error?: string; quota?: { used: number; total: number } }> {
+    const headers = await this.getHeaders()
+    if (!headers) {
+      this.connectionHealthy = false
+      this.lastHealthCheck = new Date()
+      return { healthy: false, error: 'Not authenticated' }
+    }
+
+    try {
+      const response = await fetch(`${GRAPH_API_BASE}/me/drive`, { headers })
+
+      if (!response.ok) {
+        this.connectionHealthy = false
+        this.lastHealthCheck = new Date()
+        return { healthy: false, error: `HTTP ${response.status}` }
+      }
+
+      const data = await response.json() as { quota?: { used?: number; total?: number } }
+      this.connectionHealthy = true
+      this.lastHealthCheck = new Date()
+
+      return {
+        healthy: true,
+        quota: data.quota ? {
+          used: data.quota.used || 0,
+          total: data.quota.total || 0,
+        } : undefined,
+      }
+    } catch (error) {
+      this.connectionHealthy = false
+      this.lastHealthCheck = new Date()
+      return { healthy: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   }
 
   /**

@@ -42,9 +42,15 @@ Portail client sécurisé pour cabinet d'avocats avec gestion des dossiers, docu
 - **Paramètres** - Configuration système (super admin uniquement)
 - **Administrateurs** - Gestion des comptes admin (super admin uniquement)
 
-### Intégrations
+### Integrations
 - **OneDrive** - Synchronisation des documents vers Microsoft OneDrive
-- **Google Calendar** - Synchronisation bidirectionnelle des événements
+  - Structure automatique CABINET/CLIENT par dossier
+  - Documents internes vs visibles client
+  - Health check et monitoring
+- **Google Calendar** - Synchronisation bidirectionnelle des evenements
+  - Mode automatique ou manuel
+  - Detection automatique de reference dossier dans les titres
+  - Import/Export bidirectionnel
 
 ### Portail Client
 - **Tableau de bord** - Vue d'ensemble des dossiers et notifications
@@ -279,7 +285,10 @@ GET /api/health       # Status de l'application
 - `GET /search` - Recherche globale
 - `GET /notifications` - Notifications
 
-### Intégrations
+### Integrations (`/api/admin/`)
+- `GET /integrations/health` - Status global des integrations
+- `GET /integrations/sync-history` - Historique des synchronisations
+- `POST /integrations/health-check` - Declencher verification sante
 - `GET /google/status` - Statut connexion Google
 - `POST /google/sync` - Synchroniser le calendrier
 - `GET /microsoft/status` - Statut connexion OneDrive

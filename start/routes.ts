@@ -35,6 +35,7 @@ const AdminNotificationsController = () => import('#controllers/admin/notificati
 const AdminTimelineController = () => import('#controllers/admin/timeline_controller')
 const AdminNotesController = () => import('#controllers/admin/notes_controller')
 const AdminTasksController = () => import('#controllers/admin/tasks_controller')
+const AdminIntegrationsController = () => import('#controllers/admin/integrations_controller')
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
@@ -161,6 +162,12 @@ router.group(() => {
   router.post('notifications/:id/read', [AdminNotificationsController, 'markAsRead'])
   router.post('notifications/read-all', [AdminNotificationsController, 'markAllAsRead'])
   router.delete('notifications/:id', [AdminNotificationsController, 'destroy'])
+
+  // Integrations health & monitoring
+  router.get('integrations/health', [AdminIntegrationsController, 'health'])
+  router.get('integrations/sync-history', [AdminIntegrationsController, 'syncHistory'])
+  router.get('integrations/statistics', [AdminIntegrationsController, 'statistics'])
+  router.post('integrations/health-check', [AdminIntegrationsController, 'performHealthCheck'])
 
 }).prefix('api/admin').use(middleware.adminAuth())
 

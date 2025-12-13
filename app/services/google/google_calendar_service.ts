@@ -46,12 +46,16 @@ export interface CalendarListEntry {
 }
 
 class GoogleCalendarService {
+  private connectionHealthy: boolean = true
+  private lastHealthCheck: Date | null = null
+
   /**
    * Get authenticated headers for API calls
    */
   private async getHeaders(): Promise<Record<string, string> | null> {
     const accessToken = await googleOAuthService.getValidAccessToken()
     if (!accessToken) {
+      this.connectionHealthy = false
       return null
     }
     return {
@@ -65,7 +69,59 @@ class GoogleCalendarService {
    */
   async isReady(): Promise<boolean> {
     const accessToken = await googleOAuthService.getValidAccessToken()
-    return accessToken !== null
+    if (!accessToken) {
+      this.connectionHealthy = false
+      return false
+    }
+    this.connectionHealthy = true
+    return true
+  }
+
+  /**
+   * Get connection health status
+   */
+  getHealthStatus(): { healthy: boolean; lastCheck: Date | null } {
+    return {
+      healthy: this.connectionHealthy,
+      lastCheck: this.lastHealthCheck,
+    }
+  }
+
+  /**
+   * Perform a health check on the Google Calendar connection
+   */
+  async checkHealth(): Promise<{ healthy: boolean; error?: string; calendarsCount?: number }> {
+    const headers = await this.getHeaders()
+    if (!headers) {
+      this.connectionHealthy = false
+      this.lastHealthCheck = new Date()
+      return { healthy: false, error: 'Not authenticated' }
+    }
+
+    try {
+      const response = await fetch(`${CALENDAR_API_BASE}/users/me/calendarList?maxResults=10`, {
+        headers,
+      })
+
+      if (!response.ok) {
+        this.connectionHealthy = false
+        this.lastHealthCheck = new Date()
+        return { healthy: false, error: `HTTP ${response.status}` }
+      }
+
+      const data = await response.json() as { items?: unknown[] }
+      this.connectionHealthy = true
+      this.lastHealthCheck = new Date()
+
+      return {
+        healthy: true,
+        calendarsCount: data.items?.length || 0,
+      }
+    } catch (error) {
+      this.connectionHealthy = false
+      this.lastHealthCheck = new Date()
+      return { healthy: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   }
 
   /**

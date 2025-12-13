@@ -23,10 +23,17 @@ import {
   Filter,
   Settings,
   Check,
+  Cloud,
+  History,
+  Plug,
+  User,
+  Shield,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { OneDriveSettings } from '@/components/admin/onedrive-settings'
 import { GoogleCalendarSettings } from '@/components/admin/google-calendar-settings'
+import { IntegrationStatus } from '@/components/admin/integration-status'
+import { SyncHistory } from '@/components/admin/sync-history'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 
@@ -80,8 +87,18 @@ const ParametresPage = () => {
   })
   const [newDossierType, setNewDossierType] = useState('')
   const [newEvenementType, setNewEvenementType] = useState('')
+  const [activeTab, setActiveTab] = useState('compte')
 
   const isSuperAdmin = userRole === 'super_admin'
+
+  // Parse URL params for tab
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
+    if (tab && ['compte', 'cabinet', 'integrations'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [])
 
   // Check if there are unsaved changes
   const hasUnsavedChanges = useCallback(() => {
@@ -334,21 +351,19 @@ const ParametresPage = () => {
       <Head title="Parametres" />
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Settings className="h-8 w-8" />
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Settings className="h-6 w-6" />
               Parametres
             </h1>
-            <p className="text-muted-foreground">
-              {isSuperAdmin ? 'Configuration du cabinet et preferences personnelles' : 'Mes preferences'}
+            <p className="text-sm text-muted-foreground mt-1">
+              {isSuperAdmin ? 'Configuration du cabinet et de votre compte' : 'Preferences de votre compte'}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            {saveError && (
-              <span className="text-sm text-destructive">{saveError}</span>
-            )}
-            <Button onClick={handleSaveAll} disabled={saving}>
+          {(activeTab === 'compte' || activeTab === 'cabinet') && (
+            <Button onClick={handleSaveAll} disabled={saving} size="sm">
               {saveSuccess ? (
                 <>
                   <Check className="mr-2 h-4 w-4" />
@@ -366,29 +381,42 @@ const ParametresPage = () => {
                 </>
               )}
             </Button>
-          </div>
+          )}
         </div>
 
-        <Tabs defaultValue="preferences">
-          <TabsList className="grid w-full grid-cols-1 lg:w-auto lg:grid-cols-none lg:flex">
-            <TabsTrigger value="preferences" className="gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Preferences</span>
+        {saveError && (
+          <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+            {saveError}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-none sm:flex h-auto p-1">
+            <TabsTrigger value="compte" className="gap-2 text-xs sm:text-sm py-2">
+              <User className="h-4 w-4" />
+              <span>Mon compte</span>
             </TabsTrigger>
             {isSuperAdmin && (
-              <TabsTrigger value="integrations" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">Integrations</span>
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="cabinet" className="gap-2 text-xs sm:text-sm py-2">
+                  <Building className="h-4 w-4" />
+                  <span>Cabinet</span>
+                </TabsTrigger>
+                <TabsTrigger value="integrations" className="gap-2 text-xs sm:text-sm py-2">
+                  <Plug className="h-4 w-4" />
+                  <span>Integrations</span>
+                </TabsTrigger>
+              </>
             )}
           </TabsList>
 
-          {/* Preferences Tab - Notifications + Display + Types */}
-          <TabsContent value="preferences" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Left Column - Personal Settings */}
+          {/* Mon compte Tab */}
+          <TabsContent value="compte" className="space-y-4 mt-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* Notifications */}
               <Card>
-                <CardHeader className="pb-4">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Bell className="h-4 w-4" />
                     Notifications
@@ -399,7 +427,7 @@ const ParametresPage = () => {
                     <div className="space-y-0.5">
                       <Label className="text-sm">Email nouveaux documents</Label>
                       <p className="text-xs text-muted-foreground">
-                        Quand un client ajoute un document
+                        Recevoir un email quand un client ajoute un document
                       </p>
                     </div>
                     <Switch
@@ -429,15 +457,15 @@ const ParametresPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Right Column - Display Settings */}
+              {/* Affichage */}
               <Card>
-                <CardHeader className="pb-4">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Filter className="h-4 w-4" />
                     Affichage
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label className="text-sm">Filtrer par responsable</Label>
@@ -456,16 +484,192 @@ const ParametresPage = () => {
               </Card>
             </div>
 
-            {/* Types Section - Only for Super Admin */}
-            {isSuperAdmin && (
+            {/* Securite */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Securite
+                </CardTitle>
+                <CardDescription>Modifier votre mot de passe</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {passwordError && (
+                  <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive mb-4">
+                    {passwordError}
+                  </div>
+                )}
+                {passwordSuccess && (
+                  <div className="rounded-md bg-green-500/15 p-3 text-sm text-green-600 mb-4">
+                    Mot de passe modifie avec succes
+                  </div>
+                )}
+                <form onSubmit={(e) => { e.preventDefault(); handleChangePassword(); }}>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword" className="text-sm">Mot de passe actuel</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) =>
+                          setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword" className="text-sm">Nouveau mot de passe</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) =>
+                          setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                        }
+                        className="h-9"
+                      />
+                      <p className="text-xs text-muted-foreground">Minimum 8 caracteres</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword" className="text-sm">Confirmer</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) =>
+                          setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={savingPassword} size="sm" className="mt-4">
+                    {savingPassword ? 'Modification...' : 'Modifier le mot de passe'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Cabinet Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="cabinet" className="space-y-4 mt-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Infos Cabinet */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      Informations du cabinet
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="cabinet_nom" className="text-sm">Nom</Label>
+                        <Input
+                          id="cabinet_nom"
+                          value={parametres.cabinet_nom || ''}
+                          onChange={(e) => handleChange('cabinet_nom', e.target.value)}
+                          placeholder="Cabinet d'Avocats"
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cabinet_email" className="text-sm">Email</Label>
+                        <Input
+                          id="cabinet_email"
+                          type="email"
+                          value={parametres.cabinet_email || ''}
+                          onChange={(e) => handleChange('cabinet_email', e.target.value)}
+                          placeholder="contact@cabinet.fr"
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="cabinet_telephone" className="text-sm">Telephone</Label>
+                        <Input
+                          id="cabinet_telephone"
+                          value={parametres.cabinet_telephone || ''}
+                          onChange={(e) => handleChange('cabinet_telephone', e.target.value)}
+                          placeholder="01 23 45 67 89"
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cabinet_fax" className="text-sm">Fax</Label>
+                        <Input
+                          id="cabinet_fax"
+                          value={parametres.cabinet_fax || ''}
+                          onChange={(e) => handleChange('cabinet_fax', e.target.value)}
+                          placeholder="01 23 45 67 90"
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cabinet_adresse" className="text-sm">Adresse</Label>
+                      <Textarea
+                        id="cabinet_adresse"
+                        value={parametres.cabinet_adresse || ''}
+                        onChange={(e) => handleChange('cabinet_adresse', e.target.value)}
+                        placeholder="123 rue du Barreau&#10;75001 Paris"
+                        rows={2}
+                        className="resize-none"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Config Email */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Configuration email
+                    </CardTitle>
+                    <CardDescription>
+                      Expediteur des emails automatiques
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email_from_address" className="text-sm">Email expediteur</Label>
+                      <Input
+                        id="email_from_address"
+                        type="email"
+                        value={parametres.email_from_address || ''}
+                        onChange={(e) => handleChange('email_from_address', e.target.value)}
+                        placeholder="noreply@cabinet.fr"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email_from_name" className="text-sm">Nom expediteur</Label>
+                      <Input
+                        id="email_from_name"
+                        value={parametres.email_from_name || ''}
+                        onChange={(e) => handleChange('email_from_name', e.target.value)}
+                        placeholder="Cabinet d'Avocats"
+                        className="h-9"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Types personnalises */}
               <Card>
-                <CardHeader className="pb-4">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <FolderKanban className="h-4 w-4" />
                     Types personnalises
                   </CardTitle>
                   <CardDescription>
-                    Definissez les types disponibles pour le cabinet
+                    Definissez les types disponibles pour les dossiers et evenements
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -556,189 +760,23 @@ const ParametresPage = () => {
                   </div>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Security Section */}
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Securite
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {passwordError && (
-                  <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive mb-4">
-                    {passwordError}
-                  </div>
-                )}
-                {passwordSuccess && (
-                  <div className="rounded-md bg-green-500/15 p-3 text-sm text-green-600 mb-4">
-                    Mot de passe modifie avec succes
-                  </div>
-                )}
-                <form onSubmit={(e) => { e.preventDefault(); handleChangePassword(); }} className="space-y-4">
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword" className="text-sm">Mot de passe actuel</Label>
-                      <Input
-                        id="currentPassword"
-                        type="password"
-                        value={passwordForm.currentPassword}
-                        onChange={(e) =>
-                          setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
-                        }
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword" className="text-sm">Nouveau mot de passe</Label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        value={passwordForm.newPassword}
-                        onChange={(e) =>
-                          setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
-                        }
-                        className="h-9"
-                      />
-                      <p className="text-xs text-muted-foreground">Minimum 8 caracteres</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-sm">Confirmer</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={passwordForm.confirmPassword}
-                        onChange={(e) =>
-                          setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
-                        }
-                        className="h-9"
-                      />
-                    </div>
-                  </div>
-                  <Button type="submit" disabled={savingPassword} size="sm">
-                    {savingPassword ? 'Modification...' : 'Modifier le mot de passe'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Cabinet Section - Super Admin Only */}
-            {isSuperAdmin && (
-              <div className="grid gap-6 lg:grid-cols-2">
-                <Card>
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Building className="h-4 w-4" />
-                      Informations du cabinet
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="cabinet_nom" className="text-sm">Nom</Label>
-                        <Input
-                          id="cabinet_nom"
-                          value={parametres.cabinet_nom || ''}
-                          onChange={(e) => handleChange('cabinet_nom', e.target.value)}
-                          placeholder="Cabinet d'Avocats"
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cabinet_email" className="text-sm">Email</Label>
-                        <Input
-                          id="cabinet_email"
-                          type="email"
-                          value={parametres.cabinet_email || ''}
-                          onChange={(e) => handleChange('cabinet_email', e.target.value)}
-                          placeholder="contact@cabinet.fr"
-                          className="h-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="cabinet_telephone" className="text-sm">Telephone</Label>
-                        <Input
-                          id="cabinet_telephone"
-                          value={parametres.cabinet_telephone || ''}
-                          onChange={(e) => handleChange('cabinet_telephone', e.target.value)}
-                          placeholder="01 23 45 67 89"
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cabinet_fax" className="text-sm">Fax</Label>
-                        <Input
-                          id="cabinet_fax"
-                          value={parametres.cabinet_fax || ''}
-                          onChange={(e) => handleChange('cabinet_fax', e.target.value)}
-                          placeholder="01 23 45 67 90"
-                          className="h-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cabinet_adresse" className="text-sm">Adresse</Label>
-                      <Textarea
-                        id="cabinet_adresse"
-                        value={parametres.cabinet_adresse || ''}
-                        onChange={(e) => handleChange('cabinet_adresse', e.target.value)}
-                        placeholder="123 rue du Barreau&#10;75001 Paris"
-                        rows={2}
-                        className="resize-none"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Configuration email
-                    </CardTitle>
-                    <CardDescription>
-                      Expediteur des emails automatiques
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email_from_address" className="text-sm">Email expediteur</Label>
-                      <Input
-                        id="email_from_address"
-                        type="email"
-                        value={parametres.email_from_address || ''}
-                        onChange={(e) => handleChange('email_from_address', e.target.value)}
-                        placeholder="noreply@cabinet.fr"
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email_from_name" className="text-sm">Nom expediteur</Label>
-                      <Input
-                        id="email_from_name"
-                        value={parametres.email_from_name || ''}
-                        onChange={(e) => handleChange('email_from_name', e.target.value)}
-                        placeholder="Cabinet d'Avocats"
-                        className="h-9"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* Integrations Tab - Super Admin Only */}
           {isSuperAdmin && (
-            <TabsContent value="integrations" className="space-y-6">
-              <div className="grid gap-6 lg:grid-cols-2">
+            <TabsContent value="integrations" className="space-y-4 mt-4">
+              {/* Status Overview */}
+              <IntegrationStatus />
+
+              {/* Integration Cards */}
+              <div className="grid gap-4 lg:grid-cols-2">
                 <OneDriveSettings />
                 <GoogleCalendarSettings />
               </div>
+
+              {/* Sync History */}
+              <SyncHistory limit={15} />
             </TabsContent>
           )}
         </Tabs>

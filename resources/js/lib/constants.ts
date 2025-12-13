@@ -66,6 +66,13 @@ export const GOOGLE_SYNC_API = GOOGLE_API + 'sync'
 export const GOOGLE_SYNC_HISTORY_API = GOOGLE_API + 'sync-history'
 export const GOOGLE_SYNC_MODE_API = GOOGLE_API + 'sync-mode'
 
+// Integrations APIs (unified health & monitoring)
+const INTEGRATIONS_API = API_BASE_URL + 'admin/integrations/'
+export const INTEGRATIONS_HEALTH_API = INTEGRATIONS_API + 'health'
+export const INTEGRATIONS_SYNC_HISTORY_API = INTEGRATIONS_API + 'sync-history'
+export const INTEGRATIONS_STATISTICS_API = INTEGRATIONS_API + 'statistics'
+export const INTEGRATIONS_HEALTH_CHECK_API = INTEGRATIONS_API + 'health-check'
+
 // Currency formatter
 export const EUR = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
