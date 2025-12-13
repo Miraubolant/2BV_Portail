@@ -1,24 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Progress } from '@/components/ui/progress'
 import {
   Cloud,
   Calendar,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
+  AlertCircle,
   RefreshCw,
   LoaderCircle,
-  Activity,
-  Clock,
-  Wifi,
-  WifiOff,
 } from 'lucide-react'
 import { INTEGRATIONS_HEALTH_API, INTEGRATIONS_HEALTH_CHECK_API } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 interface IntegrationInfo {
   name: string
@@ -55,7 +48,6 @@ export function IntegrationStatus({ onRefresh }: Props) {
   const [report, setReport] = useState<HealthReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const fetchHealth = useCallback(async (forceRefresh = false) => {
     try {
@@ -64,11 +56,9 @@ export function IntegrationStatus({ onRefresh }: Props) {
       if (response.ok) {
         const data = await response.json()
         setReport(data)
-        setError(null)
       }
     } catch (err) {
-      console.error('Error fetching integration health:', err)
-      setError('Unable to load integration status')
+      console.error('Erreur lors du chargement:', err)
     } finally {
       setLoading(false)
     }
@@ -84,7 +74,7 @@ export function IntegrationStatus({ onRefresh }: Props) {
       await fetchHealth(true)
       onRefresh?.()
     } catch (err) {
-      console.error('Error performing health check:', err)
+      console.error('Erreur lors de la verification:', err)
     } finally {
       setChecking(false)
     }
@@ -92,190 +82,158 @@ export function IntegrationStatus({ onRefresh }: Props) {
 
   useEffect(() => {
     fetchHealth()
-    // Auto-refresh every 2 minutes
     const interval = setInterval(() => fetchHealth(), 120000)
     return () => clearInterval(interval)
   }, [fetchHealth])
 
-  const formatBytes = (bytes: number) => {
-    const units = ['o', 'Ko', 'Mo', 'Go', 'To']
-    let size = bytes
-    let unitIndex = 0
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024
-      unitIndex++
-    }
-    return `${size.toFixed(1)} ${units[unitIndex]}`
-  }
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Jamais'
-    const date = new Date(dateStr)
-    return new Intl.DateTimeFormat('fr-FR', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }).format(date)
-  }
-
-  const getStatusIcon = (integration: IntegrationInfo) => {
-    if (!integration.configured) return <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-    if (!integration.connected) return <WifiOff className="h-4 w-4 text-muted-foreground" />
-    if (!integration.healthy) return <XCircle className="h-4 w-4 text-destructive" />
-    return <CheckCircle2 className="h-4 w-4 text-green-500" />
-  }
-
-  const getStatusBadge = (integration: IntegrationInfo) => {
+  const getStatusConfig = (integration: IntegrationInfo) => {
     if (!integration.configured) {
-      return <Badge variant="outline" className="text-muted-foreground">Non configure</Badge>
+      return {
+        icon: AlertCircle,
+        color: 'text-slate-400',
+        bg: 'bg-slate-100 dark:bg-slate-800/50',
+        label: 'Non configure',
+        labelClass: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+      }
     }
     if (!integration.connected) {
-      return <Badge variant="secondary">Non connecte</Badge>
+      return {
+        icon: XCircle,
+        color: 'text-amber-500',
+        bg: 'bg-amber-50 dark:bg-amber-900/20',
+        label: 'Deconnecte',
+        labelClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+      }
     }
     if (!integration.healthy) {
-      return <Badge variant="destructive">Erreur</Badge>
+      return {
+        icon: XCircle,
+        color: 'text-red-500',
+        bg: 'bg-red-50 dark:bg-red-900/20',
+        label: 'Erreur',
+        labelClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      }
     }
-    return <Badge className="bg-green-500 hover:bg-green-600">Operationnel</Badge>
-  }
-
-  const getIcon = (type: 'onedrive' | 'google_calendar') => {
-    if (type === 'onedrive') return <Cloud className="h-5 w-5" />
-    return <Calendar className="h-5 w-5" />
+    return {
+      icon: CheckCircle2,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      label: 'Connecte',
+      labelClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    }
   }
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-8">
-          <div className="flex items-center justify-center">
-            <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-8">
+        <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            <CardTitle className="text-lg">Etat des integrations</CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            {report?.overallHealthy ? (
-              <Badge className="bg-green-500 hover:bg-green-600 gap-1">
-                <Wifi className="h-3 w-3" />
-                Tout operationnel
-              </Badge>
-            ) : (
-              <Badge variant="destructive" className="gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                Attention requise
-              </Badge>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={performHealthCheck}
-              disabled={checking}
-            >
-              <RefreshCw className={cn('h-4 w-4', checking && 'animate-spin')} />
-            </Button>
-          </div>
+    <div className="space-y-4">
+      {/* Header avec badge global */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold">Etat des services</h3>
+          {report?.overallHealthy ? (
+            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
+              Tout operationnel
+            </Badge>
+          ) : (
+            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
+              Attention requise
+            </Badge>
+          )}
         </div>
-        {report?.timestamp && (
-          <CardDescription className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Derniere verification: {formatDate(report.timestamp)}
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {report?.integrations.map((integration) => (
-          <div
-            key={integration.type}
-            className={cn(
-              'rounded-lg border p-3 transition-colors',
-              integration.healthy && integration.connected
-                ? 'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20'
-                : integration.error
-                  ? 'border-destructive/50 bg-destructive/5'
-                  : 'bg-muted/30'
-            )}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {getIcon(integration.type)}
-                <span className="font-medium text-sm">{integration.name}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={performHealthCheck}
+          disabled={checking}
+          className="h-8 px-2"
+        >
+          <RefreshCw className={cn('h-4 w-4', checking && 'animate-spin')} />
+        </Button>
+      </div>
+
+      {/* Cards des integrations */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {report?.integrations.map((integration) => {
+          const config = getStatusConfig(integration)
+          const Icon = integration.type === 'onedrive' ? Cloud : Calendar
+          const StatusIcon = config.icon
+
+          return (
+            <div
+              key={integration.type}
+              className={cn(
+                'rounded-xl border p-4 transition-all',
+                config.bg
+              )}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white dark:bg-slate-900 shadow-sm">
+                    <Icon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{integration.name}</p>
+                    {integration.connected && integration.accountEmail && (
+                      <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                        {integration.accountEmail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusIcon className={cn('h-4 w-4', config.color)} />
+                  <Badge variant="outline" className={cn('text-xs border-0', config.labelClass)}>
+                    {config.label}
+                  </Badge>
+                </div>
               </div>
-              {getStatusBadge(integration)}
-            </div>
 
-            {integration.connected && (
-              <div className="space-y-2 text-xs text-muted-foreground">
-                {integration.accountEmail && (
-                  <p>{integration.accountName || integration.accountEmail}</p>
-                )}
-
-                {/* OneDrive quota */}
-                {integration.type === 'onedrive' && integration.details?.quotaTotal && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span>Stockage</span>
-                      <span>
-                        {formatBytes(integration.details.quotaUsed || 0)} / {formatBytes(integration.details.quotaTotal)}
+              {/* Infos supplementaires */}
+              {integration.connected && integration.details && (
+                <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
+                  {integration.type === 'onedrive' && integration.details.quotaTotal && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Stockage</span>
+                        <span className="font-medium">
+                          {Math.round((integration.details.quotaUsed || 0) / 1073741824 * 10) / 10} Go
+                          {' / '}
+                          {Math.round((integration.details.quotaTotal || 0) / 1073741824)} Go
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all"
+                          style={{ width: `${Math.min(integration.details.quotaPercentage || 0, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {integration.type === 'google_calendar' && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Calendrier</span>
+                      <span className="font-medium truncate max-w-[120px]">
+                        {integration.details.selectedCalendarName || 'Non selectionne'}
                       </span>
                     </div>
-                    <Progress
-                      value={integration.details.quotaPercentage || 0}
-                      className="h-1.5"
-                    />
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
 
-                {/* Google Calendar info */}
-                {integration.type === 'google_calendar' && integration.details && (
-                  <div className="space-y-1">
-                    {integration.details.selectedCalendarName && (
-                      <p>Calendrier: <span className="text-foreground">{integration.details.selectedCalendarName}</span></p>
-                    )}
-                    <p>
-                      Mode: <span className="text-foreground">
-                        {integration.details.syncMode === 'auto' ? 'Automatique' : 'Manuel'}
-                      </span>
-                    </p>
-                  </div>
-                )}
-
-                {integration.error && (
-                  <p className="text-destructive">{integration.error}</p>
-                )}
-              </div>
-            )}
-
-            {!integration.configured && (
-              <p className="text-xs text-muted-foreground">
-                Configurez les variables d'environnement pour activer cette integration
-              </p>
-            )}
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+              {integration.error && (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">{integration.error}</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }

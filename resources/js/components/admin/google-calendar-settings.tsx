@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -11,16 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import {
   Calendar,
   CheckCircle2,
-  XCircle,
   ExternalLink,
   RefreshCw,
   Unlink,
   LoaderCircle,
   AlertTriangle,
   FolderSync,
+  User,
 } from 'lucide-react'
 import {
   GOOGLE_STATUS_API,
@@ -32,7 +33,7 @@ import {
   GOOGLE_SYNC_API,
   GOOGLE_SYNC_MODE_API,
 } from '@/lib/constants'
-import { Switch } from '@/components/ui/switch'
+import { cn } from '@/lib/utils'
 
 interface GoogleCalendarStatus {
   configured: boolean
@@ -66,15 +67,13 @@ export function GoogleCalendarSettings() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  // Check for URL params (after OAuth callback)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const googleSuccess = params.get('google_success')
     const googleError = params.get('google_error')
 
     if (googleSuccess) {
-      setSuccess('Google Calendar connecte avec succes!')
-      // Clean up URL
+      setSuccess('Connexion Google Calendar reussie')
       window.history.replaceState({}, '', window.location.pathname + '?tab=integrations')
     } else if (googleError) {
       setError(decodeURIComponent(googleError))
@@ -94,15 +93,13 @@ export function GoogleCalendarSettings() {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch(GOOGLE_STATUS_API, {
-        credentials: 'include',
-      })
+      const response = await fetch(GOOGLE_STATUS_API, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
         setStatus(data)
       }
     } catch (err) {
-      console.error('Error fetching Google Calendar status:', err)
+      console.error('Erreur:', err)
     } finally {
       setLoading(false)
     }
@@ -111,15 +108,13 @@ export function GoogleCalendarSettings() {
   const fetchCalendars = async () => {
     setLoadingCalendars(true)
     try {
-      const response = await fetch(GOOGLE_CALENDARS_API, {
-        credentials: 'include',
-      })
+      const response = await fetch(GOOGLE_CALENDARS_API, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
         setCalendars(data.calendars || [])
       }
     } catch (err) {
-      console.error('Error fetching calendars:', err)
+      console.error('Erreur:', err)
     } finally {
       setLoadingCalendars(false)
     }
@@ -128,18 +123,15 @@ export function GoogleCalendarSettings() {
   const handleConnect = async () => {
     try {
       setError(null)
-      const response = await fetch(GOOGLE_AUTHORIZE_API, {
-        credentials: 'include',
-      })
+      const response = await fetch(GOOGLE_AUTHORIZE_API, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
-        // Redirect to Google OAuth
         window.location.href = data.authUrl
       } else {
-        setError("Impossible d'initier la connexion Google")
+        setError('Impossible de se connecter a Google')
       }
-    } catch (err) {
-      setError('Erreur lors de la connexion')
+    } catch {
+      setError('Erreur de connexion')
     }
   }
 
@@ -148,17 +140,14 @@ export function GoogleCalendarSettings() {
     setError(null)
     setSuccess(null)
     try {
-      const response = await fetch(GOOGLE_TEST_API, {
-        credentials: 'include',
-      })
+      const response = await fetch(GOOGLE_TEST_API, { credentials: 'include' })
       const data = await response.json()
-
       if (data.success) {
-        setSuccess(`Connexion Google Calendar fonctionnelle! (${data.calendarsCount} calendriers trouves)`)
+        setSuccess(`Connexion operationnelle (${data.calendarsCount} calendrier(s))`)
       } else {
-        setError(data.message || 'Test echoue')
+        setError(data.message || 'Echec du test')
       }
-    } catch (err) {
+    } catch {
       setError('Erreur lors du test')
     } finally {
       setTesting(false)
@@ -166,9 +155,7 @@ export function GoogleCalendarSettings() {
   }
 
   const handleDisconnect = async () => {
-    if (!confirm('Etes-vous sur de vouloir deconnecter Google Calendar?')) {
-      return
-    }
+    if (!confirm('Deconnecter Google Calendar ?')) return
 
     setDisconnecting(true)
     setError(null)
@@ -182,10 +169,10 @@ export function GoogleCalendarSettings() {
         setCalendars([])
         setSuccess('Google Calendar deconnecte')
       } else {
-        setError('Erreur lors de la deconnexion')
+        setError('Erreur de deconnexion')
       }
-    } catch (err) {
-      setError('Erreur lors de la deconnexion')
+    } catch {
+      setError('Erreur de deconnexion')
     } finally {
       setDisconnecting(false)
     }
@@ -217,12 +204,12 @@ export function GoogleCalendarSettings() {
               }
             : null
         )
-        setSuccess(`Calendrier "${calendar.summary}" selectionne`)
+        setSuccess(`Calendrier selectionne`)
       } else {
-        setError('Erreur lors de la selection du calendrier')
+        setError('Erreur de selection')
       }
-    } catch (err) {
-      setError('Erreur lors de la selection du calendrier')
+    } catch {
+      setError('Erreur de selection')
     } finally {
       setSelectingCalendar(false)
     }
@@ -237,18 +224,18 @@ export function GoogleCalendarSettings() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ pullFromGoogle: true }), // Import events from Google
+        body: JSON.stringify({ pullFromGoogle: true }),
       })
       const data = await response.json()
-
       if (data.success) {
-        setSuccess(
-          `Synchronisation terminee: ${data.created} crees, ${data.updated} mis a jour`
-        )
+        const parts = []
+        if (data.created > 0) parts.push(`${data.created} cree(s)`)
+        if (data.updated > 0) parts.push(`${data.updated} mis a jour`)
+        setSuccess(parts.length > 0 ? `Synchronisation: ${parts.join(', ')}` : 'Synchronisation terminee')
       } else {
-        setError(data.message || 'Erreur lors de la synchronisation')
+        setError(data.message || 'Echec de la synchronisation')
       }
-    } catch (err) {
+    } catch {
       setError('Erreur lors de la synchronisation')
     } finally {
       setSyncing(false)
@@ -266,22 +253,14 @@ export function GoogleCalendarSettings() {
         body: JSON.stringify({ mode: isAuto ? 'auto' : 'manual' }),
       })
       const data = await response.json()
-
       if (response.ok) {
-        setStatus((prev) =>
-          prev
-            ? {
-                ...prev,
-                syncMode: data.syncMode,
-              }
-            : null
-        )
-        setSuccess(isAuto ? 'Synchronisation automatique activee' : 'Synchronisation manuelle activee')
+        setStatus((prev) => (prev ? { ...prev, syncMode: data.syncMode } : null))
+        setSuccess(isAuto ? 'Mode automatique active' : 'Mode manuel active')
       } else {
-        setError(data.message || 'Erreur lors du changement de mode')
+        setError(data.message || 'Erreur de configuration')
       }
-    } catch (err) {
-      setError('Erreur lors du changement de mode')
+    } catch {
+      setError('Erreur de configuration')
     } finally {
       setUpdatingSyncMode(false)
     }
@@ -290,14 +269,8 @@ export function GoogleCalendarSettings() {
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Google Calendar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
+        <CardContent className="py-8">
+          <div className="flex items-center justify-center">
             <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         </CardContent>
@@ -307,58 +280,51 @@ export function GoogleCalendarSettings() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            <CardTitle>Google Calendar</CardTitle>
+            <Calendar className="h-5 w-5 text-orange-500" />
+            <CardTitle className="text-base">Google Calendar</CardTitle>
           </div>
           {status?.connected ? (
-            <Badge variant="default" className="bg-green-500">
-              <CheckCircle2 className="mr-1 h-3 w-3" />
+            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
               Connecte
             </Badge>
           ) : (
-            <Badge variant="secondary">
-              <XCircle className="mr-1 h-3 w-3" />
-              Non connecte
-            </Badge>
+            <Badge variant="secondary">Non connecte</Badge>
           )}
         </div>
-        <CardDescription>Synchronisation des evenements avec Google Calendar</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="py-2">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="text-sm">{error}</AlertDescription>
           </Alert>
         )}
 
         {success && (
-          <Alert className="border-green-500 bg-green-50 text-green-700">
+          <Alert className="py-2 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />
-            <AlertDescription>{success}</AlertDescription>
+            <AlertDescription className="text-sm">{success}</AlertDescription>
           </Alert>
         )}
 
         {!status?.configured && (
-          <Alert>
+          <Alert className="py-2">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Google Calendar n'est pas configure. Ajoutez GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET
-              dans votre fichier .env
+            <AlertDescription className="text-sm">
+              Ajoutez GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET dans .env
             </AlertDescription>
           </Alert>
         )}
 
         {status?.configured && !status?.connected && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connectez votre compte Google pour synchroniser automatiquement les evenements avec
-              Google Calendar.
+              Connectez Google Calendar pour synchroniser les evenements.
             </p>
-            <Button onClick={handleConnect}>
+            <Button onClick={handleConnect} size="sm">
               <ExternalLink className="mr-2 h-4 w-4" />
               Connecter Google Calendar
             </Button>
@@ -367,25 +333,24 @@ export function GoogleCalendarSettings() {
 
         {status?.connected && (
           <div className="space-y-4">
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">{status.accountName || 'Compte Google'}</p>
-                  <p className="text-sm text-muted-foreground">{status.accountEmail}</p>
-                </div>
+            {/* Compte connecte */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                <User className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-sm truncate">{status.accountName || 'Compte Google'}</p>
+                <p className="text-xs text-muted-foreground truncate">{status.accountEmail}</p>
               </div>
             </div>
 
-            {/* Calendar Selection */}
+            {/* Selection du calendrier */}
             <div className="space-y-2">
-              <Label>Calendrier de synchronisation</Label>
+              <Label className="text-xs">Calendrier</Label>
               {loadingCalendars ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Chargement des calendriers...
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <LoaderCircle className="h-3 w-3 animate-spin" />
+                  Chargement...
                 </div>
               ) : (
                 <Select
@@ -393,7 +358,7 @@ export function GoogleCalendarSettings() {
                   onValueChange={handleSelectCalendar}
                   disabled={selectingCalendar}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder="Selectionner un calendrier" />
                   </SelectTrigger>
                   <SelectContent>
@@ -402,13 +367,13 @@ export function GoogleCalendarSettings() {
                         <div className="flex items-center gap-2">
                           {cal.backgroundColor && (
                             <div
-                              className="h-3 w-3 rounded-full"
+                              className="h-2.5 w-2.5 rounded-full"
                               style={{ backgroundColor: cal.backgroundColor }}
                             />
                           )}
-                          {cal.summary}
+                          <span className="truncate">{cal.summary}</span>
                           {cal.primary && (
-                            <Badge variant="outline" className="ml-2 text-xs">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0">
                               Principal
                             </Badge>
                           )}
@@ -418,87 +383,63 @@ export function GoogleCalendarSettings() {
                   </SelectContent>
                 </Select>
               )}
-              {status.selectedCalendarName && (
+            </div>
+
+            {/* Mode de synchronisation */}
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="space-y-0.5">
+                <Label htmlFor="sync-mode" className="text-sm font-medium">
+                  Synchronisation auto
+                </Label>
                 <p className="text-xs text-muted-foreground">
-                  Calendrier actuel: <strong>{status.selectedCalendarName}</strong>
+                  {status.syncMode === 'auto'
+                    ? 'Synchronisation bidirectionnelle active'
+                    : 'Synchronisation manuelle uniquement'}
                 </p>
-              )}
+              </div>
+              <Switch
+                id="sync-mode"
+                checked={status.syncMode === 'auto'}
+                onCheckedChange={handleSyncModeChange}
+                disabled={updatingSyncMode}
+              />
             </div>
 
-            {/* Sync Mode Toggle */}
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="sync-mode">Synchronisation automatique</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Synchronisation bidirectionnelle avec Google Calendar
-                  </p>
-                </div>
-                <Switch
-                  id="sync-mode"
-                  checked={status.syncMode === 'auto'}
-                  onCheckedChange={handleSyncModeChange}
-                  disabled={updatingSyncMode}
-                />
-              </div>
-              <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 space-y-1">
-                {status.syncMode === 'auto' ? (
-                  <>
-                    <p className="font-medium text-foreground">Mode automatique active:</p>
-                    <ul className="list-disc list-inside space-y-0.5">
-                      <li>Les evenements du portail sont envoyes vers Google Calendar</li>
-                      <li>Les evenements de Google Calendar sont importes automatiquement</li>
-                      <li>Si un evenement contient une reference dossier (ex: 2025-001-MIR), il sera associe au dossier correspondant</li>
-                    </ul>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-medium text-foreground">Mode manuel active:</p>
-                    <ul className="list-disc list-inside space-y-0.5">
-                      <li>Aucune synchronisation automatique</li>
-                      <li>Cochez "Synchroniser avec Google Calendar" lors de la creation d'un evenement pour le synchroniser individuellement</li>
-                      <li>Utilisez le bouton "Synchroniser" ci-dessous pour une synchronisation manuelle</li>
-                    </ul>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={handleTest} disabled={testing}>
-                {testing ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Tester la connexion
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTest}
+                disabled={testing}
+                className="h-8 text-xs"
+              >
+                {testing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1.5 h-3 w-3" />}
+                Tester
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={handleSync}
                 disabled={syncing || !status.selectedCalendarId}
+                className="h-8 text-xs"
               >
-                {syncing ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FolderSync className="mr-2 h-4 w-4" />
-                )}
-                Synchroniser maintenant
-              </Button>
-              <Button
-                variant="outline"
-                className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-              >
-                {disconnecting ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Unlink className="mr-2 h-4 w-4" />
-                )}
-                Deconnecter
+                {syncing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <FolderSync className="mr-1.5 h-3 w-3" />}
+                Synchroniser
               </Button>
             </div>
+
+            {/* Deconnecter */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('w-full h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10')}
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+            >
+              {disconnecting ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <Unlink className="mr-1.5 h-3 w-3" />}
+              Deconnecter
+            </Button>
           </div>
         )}
       </CardContent>

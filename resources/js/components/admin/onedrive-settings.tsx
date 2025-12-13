@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Cloud,
   CheckCircle2,
-  XCircle,
   ExternalLink,
   RefreshCw,
   Unlink,
   LoaderCircle,
-  HardDrive,
   AlertTriangle,
   FolderSync,
   FolderPlus,
   FolderDown,
+  HardDrive,
 } from 'lucide-react'
 import {
   MICROSOFT_STATUS_API,
@@ -26,6 +25,7 @@ import {
   MICROSOFT_SYNC_API,
   MICROSOFT_REVERSE_SYNC_API,
 } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 
 interface OneDriveStatus {
   configured: boolean
@@ -56,15 +56,13 @@ export function OneDriveSettings() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  // Check for URL params (after OAuth callback)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const oneDriveSuccess = params.get('onedrive_success')
     const oneDriveError = params.get('onedrive_error')
 
     if (oneDriveSuccess) {
-      setSuccess('OneDrive connecte avec succes!')
-      // Clean up URL
+      setSuccess('Connexion OneDrive reussie')
       window.history.replaceState({}, '', window.location.pathname)
     } else if (oneDriveError) {
       setError(decodeURIComponent(oneDriveError))
@@ -78,15 +76,13 @@ export function OneDriveSettings() {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch(MICROSOFT_STATUS_API, {
-        credentials: 'include',
-      })
+      const response = await fetch(MICROSOFT_STATUS_API, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
         setStatus(data)
       }
     } catch (err) {
-      console.error('Error fetching OneDrive status:', err)
+      console.error('Erreur:', err)
     } finally {
       setLoading(false)
     }
@@ -95,18 +91,15 @@ export function OneDriveSettings() {
   const handleConnect = async () => {
     try {
       setError(null)
-      const response = await fetch(MICROSOFT_AUTHORIZE_API, {
-        credentials: 'include',
-      })
+      const response = await fetch(MICROSOFT_AUTHORIZE_API, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
-        // Redirect to Microsoft OAuth
         window.location.href = data.authUrl
       } else {
-        setError('Impossible d\'initier la connexion OneDrive')
+        setError('Impossible de se connecter a OneDrive')
       }
-    } catch (err) {
-      setError('Erreur lors de la connexion')
+    } catch {
+      setError('Erreur de connexion')
     }
   }
 
@@ -115,18 +108,15 @@ export function OneDriveSettings() {
     setError(null)
     setSuccess(null)
     try {
-      const response = await fetch(MICROSOFT_TEST_API, {
-        credentials: 'include',
-      })
+      const response = await fetch(MICROSOFT_TEST_API, { credentials: 'include' })
       const data = await response.json()
-
       if (data.success) {
-        setSuccess('Connexion OneDrive fonctionnelle!')
+        setSuccess('Connexion OneDrive operationnelle')
         setDriveInfo(data.driveInfo)
       } else {
-        setError(data.message || 'Test echoue')
+        setError(data.message || 'Echec du test')
       }
-    } catch (err) {
+    } catch {
       setError('Erreur lors du test')
     } finally {
       setTesting(false)
@@ -134,9 +124,7 @@ export function OneDriveSettings() {
   }
 
   const handleDisconnect = async () => {
-    if (!confirm('Etes-vous sur de vouloir deconnecter OneDrive?')) {
-      return
-    }
+    if (!confirm('Deconnecter OneDrive ?')) return
 
     setDisconnecting(true)
     setError(null)
@@ -150,10 +138,10 @@ export function OneDriveSettings() {
         setDriveInfo(null)
         setSuccess('OneDrive deconnecte')
       } else {
-        setError('Erreur lors de la deconnexion')
+        setError('Erreur de deconnexion')
       }
-    } catch (err) {
-      setError('Erreur lors de la deconnexion')
+    } catch {
+      setError('Erreur de deconnexion')
     } finally {
       setDisconnecting(false)
     }
@@ -169,13 +157,12 @@ export function OneDriveSettings() {
         credentials: 'include',
       })
       const data = await response.json()
-
       if (data.success) {
-        setSuccess(`Initialisation terminee: ${data.created} dossiers crees`)
+        setSuccess(`Structure initialisee: ${data.created} dossier(s) cree(s)`)
       } else {
-        setError(data.message || 'Erreur lors de l\'initialisation')
+        setError(data.message || 'Echec de l\'initialisation')
       }
-    } catch (err) {
+    } catch {
       setError('Erreur lors de l\'initialisation')
     } finally {
       setInitializing(false)
@@ -192,13 +179,16 @@ export function OneDriveSettings() {
         credentials: 'include',
       })
       const data = await response.json()
-
       if (data.success) {
-        setSuccess(`Synchronisation terminee: ${data.created} crees, ${data.updated} mis a jour, ${data.deleted} supprimes`)
+        const parts = []
+        if (data.created > 0) parts.push(`${data.created} cree(s)`)
+        if (data.updated > 0) parts.push(`${data.updated} mis a jour`)
+        if (data.deleted > 0) parts.push(`${data.deleted} supprime(s)`)
+        setSuccess(parts.length > 0 ? `Synchronisation: ${parts.join(', ')}` : 'Synchronisation terminee')
       } else {
-        setError(data.message || 'Erreur lors de la synchronisation')
+        setError(data.message || 'Echec de la synchronisation')
       }
-    } catch (err) {
+    } catch {
       setError('Erreur lors de la synchronisation')
     } finally {
       setSyncing(false)
@@ -215,48 +205,31 @@ export function OneDriveSettings() {
         credentials: 'include',
       })
       const data = await response.json()
-
       if (data.success) {
-        let message = `Import OneDrive termine: ${data.created} fichiers importes`
-        if (data.linkedDossiers > 0) {
-          message += `, ${data.linkedDossiers} dossiers lies`
-        }
-        if (data.unmatchedClients?.length > 0 || data.unmatchedDossiers?.length > 0) {
-          message += ` (${data.unmatchedClients?.length || 0} clients et ${data.unmatchedDossiers?.length || 0} dossiers non reconnus)`
-        }
-        setSuccess(message)
+        let msg = `Import: ${data.created} fichier(s)`
+        if (data.linkedDossiers > 0) msg += `, ${data.linkedDossiers} dossier(s) lie(s)`
+        setSuccess(msg)
       } else {
-        setError(data.message || 'Erreur lors de l\'import')
+        setError(data.message || 'Echec de l\'import')
       }
-    } catch (err) {
-      setError('Erreur lors de l\'import OneDrive')
+    } catch {
+      setError('Erreur lors de l\'import')
     } finally {
       setReverseSyncing(false)
     }
   }
 
   const formatBytes = (bytes: number) => {
-    const units = ['o', 'Ko', 'Mo', 'Go', 'To']
-    let size = bytes
-    let unitIndex = 0
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024
-      unitIndex++
-    }
-    return `${size.toFixed(1)} ${units[unitIndex]}`
+    if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} Go`
+    if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} Mo`
+    return `${(bytes / 1024).toFixed(1)} Ko`
   }
 
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cloud className="h-5 w-5" />
-            OneDrive / Microsoft
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
+        <CardContent className="py-8">
+          <div className="flex items-center justify-center">
             <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         </CardContent>
@@ -266,60 +239,51 @@ export function OneDriveSettings() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Cloud className="h-5 w-5" />
-            <CardTitle>OneDrive / Microsoft</CardTitle>
+            <Cloud className="h-5 w-5 text-blue-500" />
+            <CardTitle className="text-base">OneDrive</CardTitle>
           </div>
           {status?.connected ? (
-            <Badge variant="default" className="bg-green-500">
-              <CheckCircle2 className="mr-1 h-3 w-3" />
+            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
               Connecte
             </Badge>
           ) : (
-            <Badge variant="secondary">
-              <XCircle className="mr-1 h-3 w-3" />
-              Non connecte
-            </Badge>
+            <Badge variant="secondary">Non connecte</Badge>
           )}
         </div>
-        <CardDescription>
-          Synchronisation automatique des documents avec OneDrive
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="py-2">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="text-sm">{error}</AlertDescription>
           </Alert>
         )}
 
         {success && (
-          <Alert className="border-green-500 bg-green-50 text-green-700">
+          <Alert className="py-2 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />
-            <AlertDescription>{success}</AlertDescription>
+            <AlertDescription className="text-sm">{success}</AlertDescription>
           </Alert>
         )}
 
         {!status?.configured && (
-          <Alert>
+          <Alert className="py-2">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              OneDrive n'est pas configure. Ajoutez MICROSOFT_CLIENT_ID et MICROSOFT_CLIENT_SECRET
-              dans votre fichier .env
+            <AlertDescription className="text-sm">
+              Ajoutez MICROSOFT_CLIENT_ID et MICROSOFT_CLIENT_SECRET dans .env
             </AlertDescription>
           </Alert>
         )}
 
         {status?.configured && !status?.connected && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connectez votre compte Microsoft pour synchroniser automatiquement les documents
-              avec OneDrive.
+              Connectez OneDrive pour synchroniser les documents.
             </p>
-            <Button onClick={handleConnect}>
+            <Button onClick={handleConnect} size="sm">
               <ExternalLink className="mr-2 h-4 w-4" />
               Connecter OneDrive
             </Button>
@@ -328,96 +292,90 @@ export function OneDriveSettings() {
 
         {status?.connected && (
           <div className="space-y-4">
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <HardDrive className="h-5 w-5 text-primary" />
+            {/* Compte connecte */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                <HardDrive className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-sm truncate">{status.accountName || 'Compte Microsoft'}</p>
+                <p className="text-xs text-muted-foreground truncate">{status.accountEmail}</p>
+              </div>
+            </div>
+
+            {/* Quota */}
+            {driveInfo && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Espace utilise</span>
+                  <span className="font-medium">
+                    {formatBytes(driveInfo.quota.used)} / {formatBytes(driveInfo.quota.total)}
+                  </span>
                 </div>
-                <div>
-                  <p className="font-medium">{status.accountName || 'Compte Microsoft'}</p>
-                  <p className="text-sm text-muted-foreground">{status.accountEmail}</p>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${(driveInfo.quota.used / driveInfo.quota.total) * 100}%` }}
+                  />
                 </div>
               </div>
+            )}
 
-              {driveInfo && (
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Espace utilise</span>
-                    <span>{formatBytes(driveInfo.quota.used)} / {formatBytes(driveInfo.quota.total)}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{
-                        width: `${(driveInfo.quota.used / driveInfo.quota.total) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatBytes(driveInfo.quota.remaining)} disponible
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm">
-              <p className="font-medium mb-2">Structure des dossiers OneDrive:</p>
-              <code className="text-xs bg-muted px-2 py-1 rounded block">
-                /Portail Cabinet/Clients/[Nom Client]/[Ref Dossier] - [Intitule]/
-              </code>
-              <p className="text-muted-foreground mt-2">
-                Les documents sont automatiquement uploades dans le dossier du dossier correspondant.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
-                {testing ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Tester la connexion
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleInitialize} disabled={initializing}>
-                {initializing ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FolderPlus className="mr-2 h-4 w-4" />
-                )}
-                Initialiser les dossiers
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
-                {syncing ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FolderSync className="mr-2 h-4 w-4" />
-                )}
-                Synchroniser
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleReverseSync} disabled={reverseSyncing}>
-                {reverseSyncing ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FolderDown className="mr-2 h-4 w-4" />
-                )}
-                Importer depuis OneDrive
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTest}
+                disabled={testing}
+                className="h-8 text-xs"
+              >
+                {testing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1.5 h-3 w-3" />}
+                Tester
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
+                onClick={handleInitialize}
+                disabled={initializing}
+                className="h-8 text-xs"
               >
-                {disconnecting ? (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Unlink className="mr-2 h-4 w-4" />
-                )}
-                Deconnecter
+                {initializing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <FolderPlus className="mr-1.5 h-3 w-3" />}
+                Initialiser
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSync}
+                disabled={syncing}
+                className="h-8 text-xs"
+              >
+                {syncing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <FolderSync className="mr-1.5 h-3 w-3" />}
+                Synchroniser
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReverseSync}
+                disabled={reverseSyncing}
+                className="h-8 text-xs"
+              >
+                {reverseSyncing ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <FolderDown className="mr-1.5 h-3 w-3" />}
+                Importer
               </Button>
             </div>
+
+            {/* Deconnecter */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('w-full h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10')}
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+            >
+              {disconnecting ? <LoaderCircle className="mr-1.5 h-3 w-3 animate-spin" /> : <Unlink className="mr-1.5 h-3 w-3" />}
+              Deconnecter
+            </Button>
           </div>
         )}
       </CardContent>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -65,7 +65,7 @@ export function SyncHistory({ limit = 20, compact = false }: Props) {
         setHistory(data.history || [])
       }
     } catch (err) {
-      console.error('Error fetching sync history:', err)
+      console.error('Erreur:', err)
     } finally {
       setLoading(false)
     }
@@ -100,42 +100,45 @@ export function SyncHistory({ limit = 20, compact = false }: Props) {
     return `${(ms / 60000).toFixed(1)}min`
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'success':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
+        return {
+          icon: CheckCircle2,
+          color: 'text-emerald-500',
+          bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+          border: 'border-emerald-200 dark:border-emerald-800',
+          badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+          label: 'Succes',
+        }
       case 'partial':
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+        return {
+          icon: AlertTriangle,
+          color: 'text-amber-500',
+          bg: 'bg-amber-50 dark:bg-amber-900/20',
+          border: 'border-amber-200 dark:border-amber-800',
+          badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+          label: 'Partiel',
+        }
       case 'error':
-        return <XCircle className="h-4 w-4 text-destructive" />
+        return {
+          icon: XCircle,
+          color: 'text-red-500',
+          bg: 'bg-red-50 dark:bg-red-900/20',
+          border: 'border-red-200 dark:border-red-800',
+          badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+          label: 'Erreur',
+        }
       default:
-        return null
+        return {
+          icon: Clock,
+          color: 'text-slate-500',
+          bg: 'bg-slate-50 dark:bg-slate-900/20',
+          border: 'border-slate-200 dark:border-slate-800',
+          badge: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400',
+          label: 'Inconnu',
+        }
     }
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <Badge className="bg-green-500 hover:bg-green-600 text-xs">Succes</Badge>
-      case 'partial':
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-xs">Partiel</Badge>
-      case 'error':
-        return <Badge variant="destructive" className="text-xs">Erreur</Badge>
-      default:
-        return null
-    }
-  }
-
-  const getTypeIcon = (type: string) => {
-    return type === 'onedrive' ? (
-      <Cloud className="h-3.5 w-3.5" />
-    ) : (
-      <Calendar className="h-3.5 w-3.5" />
-    )
-  }
-
-  const getTypeName = (type: string) => {
-    return type === 'onedrive' ? 'OneDrive' : 'Google Calendar'
   }
 
   if (loading) {
@@ -155,12 +158,15 @@ export function SyncHistory({ limit = 20, compact = false }: Props) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            <CardTitle className="text-lg">Historique des synchronisations</CardTitle>
+            <History className="h-5 w-5 text-slate-500" />
+            <CardTitle className="text-base">Historique</CardTitle>
+            <Badge variant="secondary" className="text-xs">
+              {history.length}
+            </Badge>
           </div>
           <div className="flex items-center gap-2">
             <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-              <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectTrigger className="w-[130px] h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -174,9 +180,6 @@ export function SyncHistory({ limit = 20, compact = false }: Props) {
             </Button>
           </div>
         </div>
-        <CardDescription>
-          {history.length} synchronisation{history.length > 1 ? 's' : ''} recente{history.length > 1 ? 's' : ''}
-        </CardDescription>
       </CardHeader>
       <CardContent>
         {history.length === 0 ? (
@@ -184,100 +187,107 @@ export function SyncHistory({ limit = 20, compact = false }: Props) {
             Aucune synchronisation recente
           </div>
         ) : (
-          <ScrollArea className={cn(compact ? 'h-[300px]' : 'h-[400px]')}>
+          <ScrollArea className={cn(compact ? 'h-[280px]' : 'h-[360px]')}>
             <div className="space-y-2 pr-4">
-              {history.map((entry) => (
-                <div
-                  key={entry.id}
-                  className={cn(
-                    'rounded-lg border p-3 transition-colors',
-                    entry.status === 'error' && 'border-destructive/30 bg-destructive/5',
-                    entry.status === 'partial' && 'border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-950/20',
-                    entry.status === 'success' && 'bg-muted/30'
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {getStatusIcon(entry.status)}
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {getTypeIcon(entry.type)}
-                        <span>{getTypeName(entry.type)}</span>
-                        <span className="text-muted-foreground/50">|</span>
-                        <span>{entry.mode === 'auto' ? 'Auto' : 'Manuel'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {getStatusBadge(entry.status)}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
-                      >
-                        {expandedId === entry.id ? (
-                          <ChevronUp className="h-3 w-3" />
-                        ) : (
-                          <ChevronDown className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+              {history.map((entry) => {
+                const config = getStatusConfig(entry.status)
+                const StatusIcon = config.icon
+                const TypeIcon = entry.type === 'onedrive' ? Cloud : Calendar
 
-                  <p className="text-sm mt-2 truncate">{entry.message}</p>
-
-                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(entry.createdAt)}
-                    </span>
-                    <span>{formatDuration(entry.duration)}</span>
-                    {entry.itemsProcessed > 0 && (
-                      <span>{entry.itemsProcessed} element{entry.itemsProcessed > 1 ? 's' : ''}</span>
+                return (
+                  <div
+                    key={entry.id}
+                    className={cn(
+                      'rounded-lg border p-3 transition-colors',
+                      config.bg,
+                      config.border
                     )}
-                  </div>
-
-                  {expandedId === entry.id && (
-                    <div className="mt-3 pt-3 border-t text-xs space-y-2">
-                      <div className="grid grid-cols-4 gap-2">
-                        <div className="text-center p-2 rounded bg-muted">
-                          <p className="font-medium text-green-600">{entry.itemsCreated}</p>
-                          <p className="text-muted-foreground">Crees</p>
-                        </div>
-                        <div className="text-center p-2 rounded bg-muted">
-                          <p className="font-medium text-blue-600">{entry.itemsUpdated}</p>
-                          <p className="text-muted-foreground">Modifies</p>
-                        </div>
-                        <div className="text-center p-2 rounded bg-muted">
-                          <p className="font-medium text-yellow-600">{entry.itemsDeleted}</p>
-                          <p className="text-muted-foreground">Supprimes</p>
-                        </div>
-                        <div className="text-center p-2 rounded bg-muted">
-                          <p className="font-medium text-destructive">{entry.itemsError}</p>
-                          <p className="text-muted-foreground">Erreurs</p>
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <StatusIcon className={cn('h-4 w-4 shrink-0', config.color)} />
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <TypeIcon className="h-3.5 w-3.5" />
+                          <span>{entry.type === 'onedrive' ? 'OneDrive' : 'Google Calendar'}</span>
+                          <span className="text-muted-foreground/50">-</span>
+                          <span>{entry.mode === 'auto' ? 'Auto' : 'Manuel'}</span>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge className={cn('text-[10px] border-0', config.badge)}>
+                          {config.label}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+                        >
+                          {expandedId === entry.id ? (
+                            <ChevronUp className="h-3 w-3" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
 
-                      {entry.details?.logs && entry.details.logs.length > 0 && (
-                        <div className="mt-2">
-                          <p className="font-medium mb-1">Details:</p>
-                          <ScrollArea className="h-[100px]">
-                            <div className="space-y-0.5 text-muted-foreground">
-                              {entry.details.logs.slice(0, 20).map((log, i) => (
-                                <p key={i} className="font-mono">{log}</p>
-                              ))}
-                              {entry.details.logs.length > 20 && (
-                                <p className="text-muted-foreground/70">
-                                  ... et {entry.details.logs.length - 20} autres
-                                </p>
-                              )}
-                            </div>
-                          </ScrollArea>
-                        </div>
+                    <p className="text-sm mt-2 truncate">{entry.message}</p>
+
+                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(entry.createdAt)}
+                      </span>
+                      <span>{formatDuration(entry.duration)}</span>
+                      {entry.itemsProcessed > 0 && (
+                        <span>{entry.itemsProcessed} element{entry.itemsProcessed > 1 ? 's' : ''}</span>
                       )}
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {expandedId === entry.id && (
+                      <div className="mt-3 pt-3 border-t border-current/10 text-xs space-y-2">
+                        <div className="grid grid-cols-4 gap-2">
+                          <div className="text-center p-2 rounded bg-white/50 dark:bg-slate-900/50">
+                            <p className="font-semibold text-emerald-600 dark:text-emerald-400">{entry.itemsCreated}</p>
+                            <p className="text-muted-foreground text-[10px]">Crees</p>
+                          </div>
+                          <div className="text-center p-2 rounded bg-white/50 dark:bg-slate-900/50">
+                            <p className="font-semibold text-blue-600 dark:text-blue-400">{entry.itemsUpdated}</p>
+                            <p className="text-muted-foreground text-[10px]">Modifies</p>
+                          </div>
+                          <div className="text-center p-2 rounded bg-white/50 dark:bg-slate-900/50">
+                            <p className="font-semibold text-amber-600 dark:text-amber-400">{entry.itemsDeleted}</p>
+                            <p className="text-muted-foreground text-[10px]">Supprimes</p>
+                          </div>
+                          <div className="text-center p-2 rounded bg-white/50 dark:bg-slate-900/50">
+                            <p className="font-semibold text-red-600 dark:text-red-400">{entry.itemsError}</p>
+                            <p className="text-muted-foreground text-[10px]">Erreurs</p>
+                          </div>
+                        </div>
+
+                        {entry.details?.logs && entry.details.logs.length > 0 && (
+                          <div className="mt-2">
+                            <p className="font-medium mb-1 text-muted-foreground">Details:</p>
+                            <ScrollArea className="h-[80px]">
+                              <div className="space-y-0.5 text-muted-foreground font-mono text-[10px]">
+                                {entry.details.logs.slice(0, 20).map((log, i) => (
+                                  <p key={i}>{log}</p>
+                                ))}
+                                {entry.details.logs.length > 20 && (
+                                  <p className="text-muted-foreground/70">
+                                    ... et {entry.details.logs.length - 20} autres
+                                  </p>
+                                )}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </ScrollArea>
         )}
