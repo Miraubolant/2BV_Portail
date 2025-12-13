@@ -381,21 +381,6 @@ const ClientsListPage = () => {
         ),
       },
       {
-        key: 'permissions',
-        header: 'Permissions',
-        sortable: false,
-        render: (row) => (
-          <div className="flex gap-1">
-            {row.peutUploader && (
-              <Badge variant="outline" className="text-xs">Upload</Badge>
-            )}
-            {row.peutDemanderRdv && (
-              <Badge variant="outline" className="text-xs">RDV</Badge>
-            )}
-          </div>
-        ),
-      },
-      {
         key: 'createdAt',
         header: 'Date creation',
         sortable: true,
