@@ -4,6 +4,7 @@ import Dossier from '#models/dossier'
 import Notification from '#models/notification'
 import EmailService from '#services/email_service'
 import documentSyncService from '#services/microsoft/document_sync_service'
+import ActivityLogger from '#services/activity_logger'
 import vine from '@vinejs/vine'
 import logger from '@adonisjs/core/services/logger'
 
@@ -93,7 +94,8 @@ export default class ClientDocumentsController {
    * Client upload un fichier (avec OneDrive)
    * Client documents are ALWAYS stored in the CLIENT subfolder
    */
-  async upload({ params, request, auth, response }: HttpContext) {
+  async upload(ctx: HttpContext) {
+    const { params, request, auth, response } = ctx
     const client = auth.use('client').user!
 
     // Verifier que le client peut uploader
@@ -148,6 +150,23 @@ export default class ClientDocumentsController {
         message: 'Erreur lors de l\'upload du document',
         error: result.error,
       })
+    }
+
+    // Log activity for timeline
+    if (result.document) {
+      await ActivityLogger.logDocumentUploaded(
+        result.document.id,
+        params.dossierId,
+        client.id,
+        'client',
+        {
+          documentName: nom,
+          documentType: typeDocument,
+          mimeType: file.headers['content-type'] || null,
+          dossierLocation: 'client',
+        },
+        ctx
+      )
     }
 
     // Notifier l'admin responsable

@@ -179,21 +179,25 @@ export default class TimelineController {
             : 'Informations mises a jour',
         }
 
-      case 'document.uploaded':
+      case 'document.uploaded': {
+        const locationLabel = metadata.dossierLocation === 'client' ? 'CLIENT' : 'CABINET'
         return {
           icon: 'upload',
-          color: 'green',
-          title: 'Document ajoute',
+          color: metadata.dossierLocation === 'client' ? 'green' : 'blue',
+          title: `Document ajoute (${locationLabel})`,
           description: metadata.documentName || 'Nouveau document',
         }
+      }
 
-      case 'document.deleted':
+      case 'document.deleted': {
+        const delLocationLabel = metadata.dossierLocation === 'client' ? 'CLIENT' : 'CABINET'
         return {
           icon: 'trash-2',
           color: 'red',
-          title: 'Document supprime',
+          title: `Document supprime (${delLocationLabel})`,
           description: metadata.documentName || 'Document',
         }
+      }
 
       case 'evenement.created':
         return {

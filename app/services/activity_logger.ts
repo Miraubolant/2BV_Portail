@@ -101,7 +101,12 @@ export default class ActivityLogger {
     dossierId: string,
     userId: string,
     userType: 'admin' | 'client',
-    metadata: { documentName: string; documentType: string | null; mimeType: string | null },
+    metadata: {
+      documentName: string
+      documentType: string | null
+      mimeType: string | null
+      dossierLocation?: 'cabinet' | 'client'
+    },
     ctx?: HttpContext
   ) {
     return this.log({
@@ -122,7 +127,7 @@ export default class ActivityLogger {
     documentId: string,
     dossierId: string,
     adminId: string,
-    metadata: { documentName: string },
+    metadata: { documentName: string; dossierLocation?: 'cabinet' | 'client' },
     ctx?: HttpContext
   ) {
     return this.log({

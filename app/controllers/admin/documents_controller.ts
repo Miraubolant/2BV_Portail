@@ -175,6 +175,7 @@ export default class DocumentsController {
           documentName: nom,
           documentType: typeDocument,
           mimeType: file.headers['content-type'] || null,
+          dossierLocation: location,
         },
         ctx
       )
@@ -276,6 +277,7 @@ export default class DocumentsController {
 
     const documentName = document.nom
     const dossierId = document.dossierId
+    const dossierLocation = document.dossierLocation
 
     const result = await documentSyncService.deleteDocument(params.id)
 
@@ -288,7 +290,7 @@ export default class DocumentsController {
       params.id,
       dossierId,
       admin.id,
-      { documentName },
+      { documentName, dossierLocation },
       ctx
     )
 
