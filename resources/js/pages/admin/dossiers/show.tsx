@@ -768,44 +768,6 @@ const DossierShowPage = () => {
                 </Button>
               </div>
               <p className="text-muted-foreground">{dossier.intitule}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <Select
-                  value={dossier.statut}
-                  onValueChange={async (value) => {
-                    try {
-                      const response = await fetch(`${ADMIN_DOSSIERS_API}/${dossierId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ statut: value }),
-                      })
-                      if (response.ok) {
-                        const updated = await response.json()
-                        setDossier(updated)
-                      }
-                    } catch (error) {
-                      console.error('Error updating statut:', error)
-                    }
-                  }}
-                >
-                  <SelectTrigger className={`h-7 w-auto text-xs font-medium gap-1 ${
-                    dossier.statut.startsWith('cloture_gagne') ? 'bg-primary text-primary-foreground' :
-                    dossier.statut.startsWith('cloture_perdu') ? 'bg-destructive text-destructive-foreground' :
-                    dossier.statut === 'archive' ? 'bg-muted text-muted-foreground' :
-                    'bg-secondary text-secondary-foreground'
-                  }`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(statutLabels).map(([key, { label }]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {dossier.typeAffaire && <Badge variant="outline">{dossier.typeAffaire}</Badge>}
-              </div>
             </div>
           </div>
           {activeTab === 'infos' && (
