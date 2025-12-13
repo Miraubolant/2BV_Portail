@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ADMIN_DEMANDES_RDV_API, formatDateTime } from '@/lib/constants'
 import { useEffect, useState, useCallback } from 'react'
+import { FilterBar } from '@/components/ui/filter-bar'
 import {
   Clock,
   Check,
@@ -267,69 +268,63 @@ const DemandesRdvPage = () => {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-              <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-[140px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
-                  <SelectValue placeholder="Responsable" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les responsables</SelectItem>
-                  <SelectItem value="none">Sans responsable</SelectItem>
-                  {responsables.map((admin) => (
-                    <SelectItem key={admin.id} value={admin.id}>
-                      {admin.username || `${admin.prenom} ${admin.nom}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={dossierFilter || 'all'} onValueChange={(v) => setDossierFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-[140px] sm:w-[170px] h-9 sm:h-10 text-xs sm:text-sm">
-                  <SelectValue placeholder="Dossier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les dossiers</SelectItem>
-                  {dossiers.map((dossier) => (
-                    <SelectItem key={dossier.id} value={dossier.id}>
-                      {dossier.reference}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                className="w-[130px] sm:w-[150px] h-9 sm:h-10 text-xs sm:text-sm"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                placeholder="Date debut"
-              />
-              <Input
-                type="date"
-                className="w-[130px] sm:w-[150px] h-9 sm:h-10 text-xs sm:text-sm"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                placeholder="Date fin"
-              />
-              {(responsableFilter || dossierFilter || dateFrom || dateTo) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 sm:h-10 sm:w-10"
-                  onClick={() => {
-                    setResponsableFilter('')
-                    setDossierFilter('')
-                    setDateFrom('')
-                    setDateTo('')
-                  }}
-                  title="Effacer les filtres"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <FilterBar
+          filters={[
+            {
+              id: 'responsable',
+              type: 'select',
+              label: 'Responsable',
+              placeholder: 'Responsable',
+              value: responsableFilter,
+              onChange: (v) => setResponsableFilter(v as string),
+              allLabel: 'Tous les responsables',
+              width: 'w-[180px]',
+              options: [
+                { value: 'none', label: 'Sans responsable' },
+                ...responsables.map((admin) => ({
+                  value: admin.id,
+                  label: admin.username || `${admin.prenom} ${admin.nom}`,
+                })),
+              ],
+            },
+            {
+              id: 'dossier',
+              type: 'select',
+              label: 'Dossier',
+              placeholder: 'Dossier',
+              value: dossierFilter,
+              onChange: (v) => setDossierFilter(v as string),
+              allLabel: 'Tous les dossiers',
+              width: 'w-[160px]',
+              options: dossiers.map((dossier) => ({
+                value: dossier.id,
+                label: dossier.reference,
+              })),
+            },
+            {
+              id: 'dateFrom',
+              type: 'date',
+              label: 'Du',
+              value: dateFrom,
+              onChange: (v) => setDateFrom(v as string),
+              width: 'w-[140px]',
+            },
+            {
+              id: 'dateTo',
+              type: 'date',
+              label: 'Au',
+              value: dateTo,
+              onChange: (v) => setDateTo(v as string),
+              width: 'w-[140px]',
+            },
+          ]}
+          onClearAll={() => {
+            setResponsableFilter('')
+            setDossierFilter('')
+            setDateFrom('')
+            setDateTo('')
+          }}
+        />
 
         {loading ? (
           <div className="flex items-center justify-center py-12">

@@ -3,23 +3,21 @@ import { getAdminLayout } from '@/components/layout/admin-layout'
 import { type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate } from '@/lib/constants'
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useClientUpdates } from '@/hooks/use-transmit'
 import { useUnifiedModal } from '@/contexts/unified-modal-context'
+import { FilterBar, type FilterConfig } from '@/components/ui/filter-bar'
 import {
   Plus,
-  Search,
   Eye,
   Edit,
   Users,
-  X,
 } from 'lucide-react'
 import {
   Dialog,
@@ -432,61 +430,49 @@ const ClientsListPage = () => {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 sm:h-10"
-                />
-              </div>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-[140px] sm:w-[170px] h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les types</SelectItem>
-                    <SelectItem value="particulier">Particulier</SelectItem>
-                    <SelectItem value="institutionnel">Institutionnel</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-[140px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Responsable" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les responsables</SelectItem>
-                    <SelectItem value="none">Sans responsable</SelectItem>
-                    {admins.map((admin) => (
-                      <SelectItem key={admin.id} value={admin.id}>
-                        {admin.username || `${admin.prenom} ${admin.nom}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {(typeFilter || responsableFilter) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 sm:h-10 sm:w-10"
-                    onClick={() => {
-                      setTypeFilter('')
-                      setResponsableFilter('')
-                    }}
-                    title="Effacer les filtres"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Rechercher un client..."
+          filters={[
+            {
+              id: 'type',
+              type: 'select',
+              label: 'Type',
+              placeholder: 'Type',
+              value: typeFilter,
+              onChange: (v) => setTypeFilter(v as string),
+              allLabel: 'Tous les types',
+              width: 'w-[160px]',
+              options: [
+                { value: 'particulier', label: 'Particulier' },
+                { value: 'institutionnel', label: 'Institutionnel' },
+              ],
+            },
+            {
+              id: 'responsable',
+              type: 'select',
+              label: 'Responsable',
+              placeholder: 'Responsable',
+              value: responsableFilter,
+              onChange: (v) => setResponsableFilter(v as string),
+              allLabel: 'Tous les responsables',
+              width: 'w-[180px]',
+              options: [
+                { value: 'none', label: 'Sans responsable' },
+                ...admins.map((admin) => ({
+                  value: admin.id,
+                  label: admin.username || `${admin.prenom} ${admin.nom}`,
+                })),
+              ],
+            },
+          ]}
+          onClearAll={() => {
+            setSearch('')
+            setTypeFilter('')
+            setResponsableFilter('')
+          }}
+        />
 
         {/* Table */}
         <DataTable

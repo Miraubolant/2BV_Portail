@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ADMIN_EVENEMENTS_API, ADMIN_DOSSIERS_API, ADMIN_RESPONSABLES_API, GOOGLE_ACTIVE_CALENDARS_API, formatDateTime } from '@/lib/constants'
-import { useEffect, useState, useCallback, memo, useRef } from 'react'
+import { useEffect, useState, useCallback, memo } from 'react'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
+import { FilterBar } from '@/components/ui/filter-bar'
 import {
   Plus,
   Calendar,
@@ -21,7 +22,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Filter,
   Edit,
   Trash2,
   User,
@@ -29,9 +29,7 @@ import {
   AlertCircle,
   CalendarDays,
   List,
-  X,
   ExternalLink,
-  Shield,
 } from 'lucide-react'
 import {
   Dialog,
@@ -981,140 +979,122 @@ const EvenementsPage = () => {
         </div>
 
         {/* Filters and View Toggle */}
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-col sm:flex-row flex-1 gap-3">
-                <div className="relative flex-1 min-w-0 sm:max-w-sm">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9 sm:h-10"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-[120px] sm:w-[150px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous les types</SelectItem>
-                      {Object.entries(typeLabels).map(([key, { label }]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filterDossier} onValueChange={setFilterDossier}>
-                    <SelectTrigger className="w-[120px] sm:w-[170px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <SelectValue placeholder="Dossier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous les dossiers</SelectItem>
-                      {dossiers.map((dossier) => (
-                        <SelectItem key={dossier.id} value={dossier.id}>
-                          {dossier.reference}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filterClient} onValueChange={setFilterClient}>
-                    <SelectTrigger className="w-[120px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <SelectValue placeholder="Client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous les clients</SelectItem>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.prenom} {client.nom}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filterResponsable} onValueChange={setFilterResponsable}>
-                    <SelectTrigger className="w-[120px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <SelectValue placeholder="Responsable" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous les responsables</SelectItem>
-                      <SelectItem value="none">Sans responsable</SelectItem>
-                      {responsables.map((resp) => (
-                        <SelectItem key={resp.id} value={resp.id}>
-                          {resp.username || `${resp.prenom} ${resp.nom}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {activeCalendars.length > 0 && (
-                    <Select value={filterCalendar} onValueChange={setFilterCalendar}>
-                      <SelectTrigger className="w-[120px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
-                        <SelectValue placeholder="Calendrier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les calendriers</SelectItem>
-                        <SelectItem value="local">Local (non sync)</SelectItem>
-                        {activeCalendars.map((cal) => (
-                          <SelectItem key={cal.id} value={cal.id}>
-                            <div className="flex items-center gap-2">
-                              {cal.calendarColor && (
-                                <div
-                                  className="h-2.5 w-2.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: cal.calendarColor }}
-                                />
-                              )}
-                              <span className="truncate">{cal.calendarName}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="showUnassigned"
-                      checked={showUnassigned}
-                      onCheckedChange={(checked) => setShowUnassigned(checked as boolean)}
-                    />
-                    <Label htmlFor="showUnassigned" className="font-normal text-xs sm:text-sm whitespace-nowrap">
-                      Sans dossier
-                    </Label>
-                  </div>
-                  {(filterType !== 'all' || filterDossier !== 'all' || filterClient !== 'all' || filterResponsable !== 'all' || filterCalendar !== 'all' || showUnassigned) && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 sm:h-10 sm:w-10"
-                      onClick={() => {
-                        setFilterType('all')
-                        setFilterDossier('all')
-                        setFilterClient('all')
-                        setFilterResponsable('all')
-                        setFilterCalendar('all')
-                        setShowUnassigned(false)
-                      }}
-                      title="Effacer les filtres"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'list')}>
-                <TabsList className="h-9 sm:h-10">
-                  <TabsTrigger value="calendar" title="Calendrier" className="px-2 sm:px-3">
-                    <CalendarDays className="h-4 w-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="list" title="Liste" className="px-2 sm:px-3">
-                    <List className="h-4 w-4" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardContent>
-        </Card>
+        <FilterBar
+          search={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Rechercher un evenement..."
+          filters={[
+            {
+              id: 'type',
+              type: 'select',
+              label: 'Type',
+              placeholder: 'Type',
+              value: filterType === 'all' ? '' : filterType,
+              onChange: (v) => setFilterType(v as string || 'all'),
+              allLabel: 'Tous les types',
+              width: 'w-[140px]',
+              options: Object.entries(typeLabels).map(([key, { label }]) => ({
+                value: key,
+                label,
+              })),
+            },
+            {
+              id: 'dossier',
+              type: 'select',
+              label: 'Dossier',
+              placeholder: 'Dossier',
+              value: filterDossier === 'all' ? '' : filterDossier,
+              onChange: (v) => setFilterDossier(v as string || 'all'),
+              allLabel: 'Tous les dossiers',
+              width: 'w-[160px]',
+              options: dossiers.map((dossier) => ({
+                value: dossier.id,
+                label: dossier.reference,
+              })),
+            },
+            {
+              id: 'client',
+              type: 'select',
+              label: 'Client',
+              placeholder: 'Client',
+              value: filterClient === 'all' ? '' : filterClient,
+              onChange: (v) => setFilterClient(v as string || 'all'),
+              allLabel: 'Tous les clients',
+              width: 'w-[160px]',
+              options: clients.map((client) => ({
+                value: client.id,
+                label: `${client.prenom} ${client.nom}`,
+              })),
+            },
+            {
+              id: 'responsable',
+              type: 'select',
+              label: 'Responsable',
+              placeholder: 'Responsable',
+              value: filterResponsable === 'all' ? '' : filterResponsable,
+              onChange: (v) => setFilterResponsable(v as string || 'all'),
+              allLabel: 'Tous les responsables',
+              width: 'w-[170px]',
+              options: [
+                { value: 'none', label: 'Sans responsable' },
+                ...responsables.map((resp) => ({
+                  value: resp.id,
+                  label: resp.username || `${resp.prenom} ${resp.nom}`,
+                })),
+              ],
+            },
+            ...(activeCalendars.length > 0
+              ? [
+                  {
+                    id: 'calendar',
+                    type: 'select' as const,
+                    label: 'Calendrier',
+                    placeholder: 'Calendrier',
+                    value: filterCalendar === 'all' ? '' : filterCalendar,
+                    onChange: (v: string | boolean) => setFilterCalendar(v as string || 'all'),
+                    allLabel: 'Tous les calendriers',
+                    width: 'w-[160px]',
+                    options: [
+                      { value: 'local', label: 'Local (non sync)' },
+                      ...activeCalendars.map((cal) => ({
+                        value: cal.id,
+                        label: cal.calendarName,
+                        color: cal.calendarColor || undefined,
+                      })),
+                    ],
+                  },
+                ]
+              : []),
+            {
+              id: 'unassigned',
+              type: 'checkbox',
+              label: 'Sans dossier',
+              value: showUnassigned,
+              onChange: (v) => setShowUnassigned(v as boolean),
+            },
+          ]}
+          onClearAll={() => {
+            setSearchQuery('')
+            setFilterType('all')
+            setFilterDossier('all')
+            setFilterClient('all')
+            setFilterResponsable('all')
+            setFilterCalendar('all')
+            setShowUnassigned(false)
+          }}
+          rightContent={
+            <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'list')}>
+              <TabsList className="h-9">
+                <TabsTrigger value="calendar" title="Calendrier" className="px-2 sm:px-3">
+                  <CalendarDays className="h-4 w-4" />
+                </TabsTrigger>
+                <TabsTrigger value="list" title="Liste" className="px-2 sm:px-3">
+                  <List className="h-4 w-4" />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
+        />
 
         {/* Calendar View */}
         {view === 'calendar' && (() => {

@@ -3,18 +3,17 @@ import { getAdminLayout } from '@/components/layout/admin-layout'
 import { type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ADMIN_DOSSIERS_API, ADMIN_CLIENTS_API, ADMIN_RESPONSABLES_API, formatDate } from '@/lib/constants'
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import { useUnifiedModal } from '@/contexts/unified-modal-context'
 import { DataTable, type Column } from '@/components/ui/data-table'
+import { FilterBar } from '@/components/ui/filter-bar'
 import {
   Plus,
-  Search,
   Eye,
   Edit,
   Upload,
@@ -483,78 +482,64 @@ const DossiersListPage = () => {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 sm:h-10"
-                />
-              </div>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                <Select value={clientFilter || 'all'} onValueChange={(v) => setClientFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-[140px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les clients</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.prenom} {client.nom}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={statutFilter || 'all'} onValueChange={(v) => setStatutFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-[140px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Statut" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les statuts</SelectItem>
-                    {STATUT_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-[140px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Responsable" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les responsables</SelectItem>
-                    <SelectItem value="none">Sans responsable</SelectItem>
-                    {responsables.map((resp) => (
-                      <SelectItem key={resp.id} value={resp.id}>
-                        {resp.username || `${resp.prenom} ${resp.nom}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {(clientFilter || statutFilter || responsableFilter) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 sm:h-10 sm:w-10"
-                    onClick={() => {
-                      setClientFilter('')
-                      setStatutFilter('')
-                      setResponsableFilter('')
-                    }}
-                    title="Effacer les filtres"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Rechercher un dossier..."
+          filters={[
+            {
+              id: 'client',
+              type: 'select',
+              label: 'Client',
+              placeholder: 'Client',
+              value: clientFilter,
+              onChange: (v) => setClientFilter(v as string),
+              allLabel: 'Tous les clients',
+              width: 'w-[180px]',
+              options: clients.map((client) => ({
+                value: client.id,
+                label: `${client.prenom} ${client.nom}`,
+              })),
+            },
+            {
+              id: 'statut',
+              type: 'select',
+              label: 'Statut',
+              placeholder: 'Statut',
+              value: statutFilter,
+              onChange: (v) => setStatutFilter(v as string),
+              allLabel: 'Tous les statuts',
+              width: 'w-[170px]',
+              options: STATUT_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              })),
+            },
+            {
+              id: 'responsable',
+              type: 'select',
+              label: 'Responsable',
+              placeholder: 'Responsable',
+              value: responsableFilter,
+              onChange: (v) => setResponsableFilter(v as string),
+              allLabel: 'Tous les responsables',
+              width: 'w-[180px]',
+              options: [
+                { value: 'none', label: 'Sans responsable' },
+                ...responsables.map((resp) => ({
+                  value: resp.id,
+                  label: resp.username || `${resp.prenom} ${resp.nom}`,
+                })),
+              ],
+            },
+          ]}
+          onClearAll={() => {
+            setSearch('')
+            setClientFilter('')
+            setStatutFilter('')
+            setResponsableFilter('')
+          }}
+        />
 
         {/* Table */}
         <DataTable
