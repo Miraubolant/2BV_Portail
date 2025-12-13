@@ -36,6 +36,23 @@ import { IntegrationStatus } from '@/components/admin/integration-status'
 import { SyncHistory } from '@/components/admin/sync-history'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import {
+  MICROSOFT_STATUS_API,
+  GOOGLE_STATUS_API,
+} from '@/lib/constants'
+
+interface IntegrationConnectionStatus {
+  onedrive: {
+    connected: boolean
+    accountEmail?: string | null
+    accountName?: string | null
+  }
+  googleCalendar: {
+    connected: boolean
+    accountEmail?: string | null
+    accountName?: string | null
+  }
+}
 
 interface Parametres {
   [key: string]: string | null
@@ -88,6 +105,10 @@ const ParametresPage = () => {
   const [newDossierType, setNewDossierType] = useState('')
   const [newEvenementType, setNewEvenementType] = useState('')
   const [activeTab, setActiveTab] = useState('compte')
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationConnectionStatus>({
+    onedrive: { connected: false },
+    googleCalendar: { connected: false },
+  })
 
   const isSuperAdmin = userRole === 'super_admin'
 
@@ -123,6 +144,40 @@ const ParametresPage = () => {
       fetchParametres()
     }
   }, [isSuperAdmin])
+
+  // Fetch integration status for regular admins
+  useEffect(() => {
+    if (userRole && !isSuperAdmin) {
+      fetchIntegrationStatus()
+    }
+  }, [userRole, isSuperAdmin])
+
+  const fetchIntegrationStatus = async () => {
+    try {
+      const [onedriveRes, googleRes] = await Promise.all([
+        fetch(MICROSOFT_STATUS_API, { credentials: 'include' }),
+        fetch(GOOGLE_STATUS_API, { credentials: 'include' }),
+      ])
+
+      const onedriveData = onedriveRes.ok ? await onedriveRes.json() : null
+      const googleData = googleRes.ok ? await googleRes.json() : null
+
+      setIntegrationStatus({
+        onedrive: {
+          connected: onedriveData?.connected ?? false,
+          accountEmail: onedriveData?.accountEmail,
+          accountName: onedriveData?.accountName,
+        },
+        googleCalendar: {
+          connected: googleData?.connected ?? false,
+          accountEmail: googleData?.accountEmail,
+          accountName: googleData?.accountName,
+        },
+      })
+    } catch (error) {
+      console.error('Error fetching integration status:', error)
+    }
+  }
 
   const fetchParametres = async () => {
     try {
@@ -414,48 +469,50 @@ const ParametresPage = () => {
           {/* Mon compte Tab */}
           <TabsContent value="compte" className="space-y-4 mt-4">
             <div className="grid gap-4 lg:grid-cols-2">
-              {/* Notifications */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Bell className="h-4 w-4" />
-                    Notifications
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm">Email nouveaux documents</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Recevoir un email quand un client ajoute un document
-                      </p>
+              {/* Notifications - Only super_admin can configure email settings */}
+              {isSuperAdmin && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Bell className="h-4 w-4" />
+                      Notifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Email nouveaux documents</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Recevoir un email quand un client ajoute un document
+                        </p>
+                      </div>
+                      <Switch
+                        checked={notifSettings.notifEmailDocument}
+                        onCheckedChange={(checked) =>
+                          setNotifSettings((prev) => ({ ...prev, notifEmailDocument: checked }))
+                        }
+                      />
                     </div>
-                    <Switch
-                      checked={notifSettings.notifEmailDocument}
-                      onCheckedChange={(checked) =>
-                        setNotifSettings((prev) => ({ ...prev, notifEmailDocument: checked }))
-                      }
-                    />
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <Label htmlFor="emailNotification" className="text-sm">Email de notification</Label>
-                    <Input
-                      id="emailNotification"
-                      type="email"
-                      value={notifSettings.emailNotification || ''}
-                      onChange={(e) =>
-                        setNotifSettings((prev) => ({
-                          ...prev,
-                          emailNotification: e.target.value || null,
-                        }))
-                      }
-                      placeholder="Votre email de connexion par defaut"
-                      className="h-9"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                    <Separator />
+                    <div className="space-y-2">
+                      <Label htmlFor="emailNotification" className="text-sm">Email de notification</Label>
+                      <Input
+                        id="emailNotification"
+                        type="email"
+                        value={notifSettings.emailNotification || ''}
+                        onChange={(e) =>
+                          setNotifSettings((prev) => ({
+                            ...prev,
+                            emailNotification: e.target.value || null,
+                          }))
+                        }
+                        placeholder="Votre email de connexion par defaut"
+                        className="h-9"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Affichage */}
               <Card>
@@ -482,6 +539,71 @@ const ParametresPage = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Integrations connectees - Only for regular admins */}
+              {!isSuperAdmin && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Plug className="h-4 w-4" />
+                      Integrations connectees
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* OneDrive */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                        <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">OneDrive</p>
+                          {integrationStatus.onedrive.connected ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 text-[10px]">
+                              Connecte
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">Non connecte</Badge>
+                          )}
+                        </div>
+                        {integrationStatus.onedrive.connected && integrationStatus.onedrive.accountEmail && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {integrationStatus.onedrive.accountEmail}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Google Calendar */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                        <Calendar className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">Google Calendar</p>
+                          {integrationStatus.googleCalendar.connected ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 text-[10px]">
+                              Connecte
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">Non connecte</Badge>
+                          )}
+                        </div>
+                        {integrationStatus.googleCalendar.connected && integrationStatus.googleCalendar.accountEmail && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {integrationStatus.googleCalendar.accountEmail}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Contactez un administrateur pour modifier les integrations.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Securite */}
