@@ -1587,6 +1587,9 @@ const DossierShowPage = () => {
                 </Button>
               )}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Apercu du document {selectedDoc?.nom}
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-hidden rounded-lg border">
             {previewLoading ? (
