@@ -70,6 +70,9 @@ import {
   Image,
   FileSpreadsheet,
   Star,
+  Folder,
+  Building2,
+  UserCircle,
 } from 'lucide-react'
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -93,6 +96,8 @@ interface DocumentType {
   visibleClient: boolean
   createdAt: string
   onedriveFileId: string | null
+  dossierLocation: 'cabinet' | 'client'
+  uploadedByClient: boolean
 }
 
 interface Dossier {
@@ -840,108 +845,238 @@ const DossierShowPage = () => {
           </TabsList>
 
           {/* Documents Tab */}
-          <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Documents ({dossier.documents?.length || 0})
-                    </CardTitle>
-                    <CardDescription>Cliquez sur un document pour l'apercevoir</CardDescription>
-                  </div>
-                  <Button size="sm" onClick={() => setUploadModalOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Ajouter
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {dossier.documents && dossier.documents.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {dossier.documents.map((doc) => (
-                      <div key={doc.id} className="group">
-                        {/* Thumbnail */}
-                        <DocumentThumbnail doc={doc} onClick={() => handlePreview(doc)} />
+          <TabsContent value="documents" className="space-y-6">
+            {/* Header avec bouton ajouter */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Folder className="h-5 w-5" />
+                  Documents ({dossier.documents?.length || 0})
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Organisation OneDrive : CABINET (internes) / CLIENT (envoyes par le client)
+                </p>
+              </div>
+              <Button size="sm" onClick={() => setUploadModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter
+              </Button>
+            </div>
 
-                        {/* Document Info */}
-                        <div className="mt-2 space-y-1">
-                          <p className="font-medium text-sm truncate" title={doc.nom}>
-                            {doc.nom}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground">
-                              {formatFileSize(doc.tailleOctets)}
-                            </p>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {(getFileType(doc.mimeType, doc.extension) === 'pdf' ||
-                                  getFileType(doc.mimeType, doc.extension) === 'image') && (
-                                  <DropdownMenuItem onClick={() => handlePreview(doc)}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Apercu
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem onClick={() => handleDownload(doc)}>
-                                  <Download className="mr-2 h-4 w-4" />
-                                  Telecharger
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openEditDocModal(doc)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Modifier
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => {
-                                    setSelectedDoc(doc)
-                                    setDeleteConfirmOpen(true)
-                                  }}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Supprimer
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                          {/* Badges */}
-                          <div className="flex gap-1 flex-wrap">
-                            {!doc.visibleClient && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0">
-                                Non visible
-                              </Badge>
-                            )}
-                            {doc.sensible && (
-                              <Badge variant="destructive" className="text-[10px] px-1 py-0">
-                                Sensible
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+            {dossier.documents && dossier.documents.length > 0 ? (
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Section CABINET */}
+                <Card className="border-blue-200 dark:border-blue-900">
+                  <CardHeader className="bg-blue-50/50 dark:bg-blue-950/20 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                        <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">Aucun document</p>
-                    <Button variant="outline" onClick={() => setUploadModalOpen(true)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Ajouter un document
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      <div>
+                        <CardTitle className="text-base">Dossier CABINET</CardTitle>
+                        <CardDescription className="text-xs">
+                          Documents internes ({dossier.documents.filter(d => d.dossierLocation === 'cabinet' || (!d.dossierLocation && !d.uploadedByClient)).length})
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {(() => {
+                      const cabinetDocs = dossier.documents.filter(d => d.dossierLocation === 'cabinet' || (!d.dossierLocation && !d.uploadedByClient))
+                      if (cabinetDocs.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground text-sm">
+                            <Building2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            Aucun document cabinet
+                          </div>
+                        )
+                      }
+                      return (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {cabinetDocs.map((doc) => (
+                            <div key={doc.id} className="group">
+                              <DocumentThumbnail doc={doc} onClick={() => handlePreview(doc)} />
+                              <div className="mt-2 space-y-1">
+                                <p className="font-medium text-xs truncate" title={doc.nom}>
+                                  {doc.nom}
+                                </p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {formatFileSize(doc.tailleOctets)}
+                                  </p>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {(getFileType(doc.mimeType, doc.extension) === 'pdf' ||
+                                        getFileType(doc.mimeType, doc.extension) === 'image') && (
+                                        <DropdownMenuItem onClick={() => handlePreview(doc)}>
+                                          <Eye className="mr-2 h-4 w-4" />
+                                          Apercu
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={() => handleDownload(doc)}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Telecharger
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => openEditDocModal(doc)}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Modifier
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() => {
+                                          setSelectedDoc(doc)
+                                          setDeleteConfirmOpen(true)
+                                        }}
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Supprimer
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                                <div className="flex gap-1 flex-wrap">
+                                  {doc.visibleClient ? (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-green-50 text-green-700 border-green-200">
+                                      Visible client
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                      Interne
+                                    </Badge>
+                                  )}
+                                  {doc.sensible && (
+                                    <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                                      Sensible
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </CardContent>
+                </Card>
+
+                {/* Section CLIENT */}
+                <Card className="border-emerald-200 dark:border-emerald-900">
+                  <CardHeader className="bg-emerald-50/50 dark:bg-emerald-950/20 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900">
+                        <UserCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">Dossier CLIENT</CardTitle>
+                        <CardDescription className="text-xs">
+                          Documents envoyes par le client ({dossier.documents.filter(d => d.dossierLocation === 'client' || (!d.dossierLocation && d.uploadedByClient)).length})
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {(() => {
+                      const clientDocs = dossier.documents.filter(d => d.dossierLocation === 'client' || (!d.dossierLocation && d.uploadedByClient))
+                      if (clientDocs.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground text-sm">
+                            <UserCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            Aucun document client
+                          </div>
+                        )
+                      }
+                      return (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {clientDocs.map((doc) => (
+                            <div key={doc.id} className="group">
+                              <DocumentThumbnail doc={doc} onClick={() => handlePreview(doc)} />
+                              <div className="mt-2 space-y-1">
+                                <p className="font-medium text-xs truncate" title={doc.nom}>
+                                  {doc.nom}
+                                </p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {formatFileSize(doc.tailleOctets)}
+                                  </p>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {(getFileType(doc.mimeType, doc.extension) === 'pdf' ||
+                                        getFileType(doc.mimeType, doc.extension) === 'image') && (
+                                        <DropdownMenuItem onClick={() => handlePreview(doc)}>
+                                          <Eye className="mr-2 h-4 w-4" />
+                                          Apercu
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={() => handleDownload(doc)}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Telecharger
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => openEditDocModal(doc)}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Modifier
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() => {
+                                          setSelectedDoc(doc)
+                                          setDeleteConfirmOpen(true)
+                                        }}
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Supprimer
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                                <div className="flex gap-1 flex-wrap">
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0 bg-emerald-50 text-emerald-700 border-emerald-200">
+                                    Du client
+                                  </Badge>
+                                  {doc.sensible && (
+                                    <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                                      Sensible
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Upload className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-4">Aucun document</p>
+                  <Button variant="outline" onClick={() => setUploadModalOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Ajouter un document
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Informations Tab */}
