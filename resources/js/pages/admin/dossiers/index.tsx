@@ -495,9 +495,9 @@ const DossiersListPage = () => {
                   className="pl-9 h-9 sm:h-10"
                 />
               </div>
-              <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <Select value={clientFilter || 'all'} onValueChange={(v) => setClientFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm">
+                  <SelectTrigger className="w-[140px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue placeholder="Client" />
                   </SelectTrigger>
                   <SelectContent>
@@ -510,7 +510,7 @@ const DossiersListPage = () => {
                   </SelectContent>
                 </Select>
                 <Select value={statutFilter || 'all'} onValueChange={(v) => setStatutFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm">
+                  <SelectTrigger className="w-[140px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue placeholder="Statut" />
                   </SelectTrigger>
                   <SelectContent>
@@ -523,11 +523,11 @@ const DossiersListPage = () => {
                   </SelectContent>
                 </Select>
                 <Select value={responsableFilter || 'all'} onValueChange={(v) => setResponsableFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm col-span-2 sm:col-span-1">
+                  <SelectTrigger className="w-[140px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue placeholder="Responsable" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="all">Tous les responsables</SelectItem>
                     <SelectItem value="none">Sans responsable</SelectItem>
                     {responsables.map((resp) => (
                       <SelectItem key={resp.id} value={resp.id}>
@@ -536,6 +536,21 @@ const DossiersListPage = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {(clientFilter || statutFilter || responsableFilter) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 sm:h-10 sm:w-10"
+                    onClick={() => {
+                      setClientFilter('')
+                      setStatutFilter('')
+                      setResponsableFilter('')
+                    }}
+                    title="Effacer les filtres"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

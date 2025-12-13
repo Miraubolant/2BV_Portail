@@ -920,14 +920,13 @@ const EvenementsPage = () => {
                     className="pl-9 h-9 sm:h-10"
                   />
                 </div>
-                <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-full sm:w-[130px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <Filter className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                    <SelectTrigger className="w-[120px] sm:w-[150px] h-9 sm:h-10 text-xs sm:text-sm">
                       <SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous types</SelectItem>
+                      <SelectItem value="all">Tous les types</SelectItem>
                       {Object.entries(typeLabels).map(([key, { label }]) => (
                         <SelectItem key={key} value={key}>
                           {label}
@@ -936,12 +935,11 @@ const EvenementsPage = () => {
                     </SelectContent>
                   </Select>
                   <Select value={filterDossier} onValueChange={setFilterDossier}>
-                    <SelectTrigger className="w-full sm:w-[140px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <FolderOpen className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                    <SelectTrigger className="w-[120px] sm:w-[170px] h-9 sm:h-10 text-xs sm:text-sm">
                       <SelectValue placeholder="Dossier" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous dossiers</SelectItem>
+                      <SelectItem value="all">Tous les dossiers</SelectItem>
                       {dossiers.map((dossier) => (
                         <SelectItem key={dossier.id} value={dossier.id}>
                           {dossier.reference}
@@ -950,12 +948,11 @@ const EvenementsPage = () => {
                     </SelectContent>
                   </Select>
                   <Select value={filterClient} onValueChange={setFilterClient}>
-                    <SelectTrigger className="w-full sm:w-[140px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <User className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                    <SelectTrigger className="w-[120px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                       <SelectValue placeholder="Client" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous clients</SelectItem>
+                      <SelectItem value="all">Tous les clients</SelectItem>
                       {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.prenom} {client.nom}
@@ -964,12 +961,11 @@ const EvenementsPage = () => {
                     </SelectContent>
                   </Select>
                   <Select value={filterResponsable} onValueChange={setFilterResponsable}>
-                    <SelectTrigger className="w-full sm:w-[140px] h-9 sm:h-10 text-xs sm:text-sm">
-                      <Shield className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 hidden sm:block" />
+                    <SelectTrigger className="w-[120px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
                       <SelectValue placeholder="Responsable" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="all">Tous les responsables</SelectItem>
                       <SelectItem value="none">Sans responsable</SelectItem>
                       {responsables.map((resp) => (
                         <SelectItem key={resp.id} value={resp.id}>
@@ -978,16 +974,33 @@ const EvenementsPage = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="flex items-center space-x-2 col-span-2 sm:col-span-1">
-                  <Checkbox
-                    id="showUnassigned"
-                    checked={showUnassigned}
-                    onCheckedChange={(checked) => setShowUnassigned(checked as boolean)}
-                  />
-                  <Label htmlFor="showUnassigned" className="font-normal text-xs sm:text-sm whitespace-nowrap">
-                    Sans dossier
-                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="showUnassigned"
+                      checked={showUnassigned}
+                      onCheckedChange={(checked) => setShowUnassigned(checked as boolean)}
+                    />
+                    <Label htmlFor="showUnassigned" className="font-normal text-xs sm:text-sm whitespace-nowrap">
+                      Sans dossier
+                    </Label>
+                  </div>
+                  {(filterType !== 'all' || filterDossier !== 'all' || filterClient !== 'all' || filterResponsable !== 'all' || showUnassigned) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 sm:h-10 sm:w-10"
+                      onClick={() => {
+                        setFilterType('all')
+                        setFilterDossier('all')
+                        setFilterClient('all')
+                        setFilterResponsable('all')
+                        setShowUnassigned(false)
+                      }}
+                      title="Effacer les filtres"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
               <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'list')}>
