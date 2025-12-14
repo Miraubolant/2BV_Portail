@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Evenement from '#models/evenement'
+import Dossier from '#models/dossier'
 import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
 import calendarSyncService from '#services/google/calendar_sync_service'
@@ -144,6 +145,18 @@ export default class EvenementsController {
     // Extraire les dates et googleCalendarId
     const { dateDebut, dateFin, googleCalendarId, ...restData } = data
 
+    // Si un dossier est specifie, prefixer le titre avec la reference du dossier
+    let finalTitre = restData.titre
+    if (restData.dossierId) {
+      const dossier = await Dossier.find(restData.dossierId)
+      if (dossier) {
+        // Verifier si le titre ne commence pas deja par la reference
+        if (!finalTitre.startsWith(dossier.reference)) {
+          finalTitre = `${dossier.reference} - ${finalTitre}`
+        }
+      }
+    }
+
     // Si syncGoogle est true mais qu'aucun calendrier n'est specifie, auto-assigner le premier calendrier actif
     let finalGoogleCalendarId = googleCalendarId || null
     if (restData.syncGoogle && !finalGoogleCalendarId) {
@@ -160,6 +173,7 @@ export default class EvenementsController {
 
     const evenement = await Evenement.create({
       ...restData,
+      titre: finalTitre,
       dateDebut: DateTime.fromISO(dateDebut),
       dateFin: DateTime.fromISO(dateFin),
       googleCalendarId: finalGoogleCalendarId,
@@ -203,14 +217,27 @@ export default class EvenementsController {
     const admin = auth.use('admin').user!
 
     // Extraire les dates, dossierId et googleCalendarId
-    const { dateDebut, dateFin, dossierId, googleCalendarId, ...restData } = data
+    const { dateDebut, dateFin, dossierId, googleCalendarId, titre, ...restData } = data
 
     if (dateDebut) evenement.dateDebut = DateTime.fromISO(dateDebut)
     if (dateFin) evenement.dateFin = DateTime.fromISO(dateFin)
 
     // Handle dossierId update (can be null to unassign, or a valid UUID to assign)
+    const newDossierId = dossierId !== undefined ? (dossierId || null) : evenement.dossierId
     if (dossierId !== undefined) {
       evenement.dossierId = dossierId || null
+    }
+
+    // Si un titre est fourni et un dossier est associe, prefixer avec la reference
+    if (titre) {
+      let finalTitre = titre
+      if (newDossierId) {
+        const dossier = await Dossier.find(newDossierId)
+        if (dossier && !finalTitre.startsWith(dossier.reference)) {
+          finalTitre = `${dossier.reference} - ${finalTitre}`
+        }
+      }
+      evenement.titre = finalTitre
     }
 
     // Handle googleCalendarId update (can be null to unassign, or a valid UUID to assign)
