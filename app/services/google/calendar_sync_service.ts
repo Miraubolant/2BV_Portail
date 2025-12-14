@@ -573,16 +573,17 @@ class CalendarSyncService {
   /**
    * Pull events from all active calendars
    * Imports events and associates them with the source calendar
+   * Also detects and deletes events that were deleted on Google
    */
   async pullFromAllActiveCalendars(
     triggeredById?: string,
-    options?: { timeRangeMonths?: number }
+    options?: { timeRangeMonths?: number; syncDeletes?: boolean }
   ): Promise<SyncResult> {
     const startTime = Date.now()
     const details: string[] = []
     let created = 0
     let updated = 0
-    const deleted = 0
+    let deleted = 0
     let errors = 0
     let skipped = 0
 
@@ -617,6 +618,9 @@ class CalendarSyncService {
         }
       }
 
+      // Track all Google event IDs we see (for delete detection)
+      const seenGoogleEventIds = new Set<string>()
+
       // Process each active calendar
       for (const calendar of activeCalendars) {
         details.push(`--- Processing: ${calendar.calendarName} (${calendar.tokenAccountEmail || 'Unknown'}) ---`)
@@ -628,6 +632,13 @@ class CalendarSyncService {
         })
 
         details.push(`  Found ${googleEvents.length} events`)
+
+        // Track Google event IDs for this calendar
+        for (const googleEvent of googleEvents) {
+          if (googleEvent.id) {
+            seenGoogleEventIds.add(googleEvent.id)
+          }
+        }
 
         for (const googleEvent of googleEvents) {
           if (!googleEvent.id || !googleEvent.summary) continue
@@ -728,6 +739,38 @@ class CalendarSyncService {
         }
       }
 
+      // Sync deletes: Remove portal events that no longer exist on Google
+      // Only delete events that were imported from Google (have googleEventId and googleCalendarId)
+      if (options?.syncDeletes !== false) {
+        details.push(`--- Checking for deleted events ---`)
+        const portalEventsToCheck = await Evenement.query()
+          .whereNotNull('google_event_id')
+          .whereNotNull('google_calendar_id')
+
+        for (const portalEvent of portalEventsToCheck) {
+          if (portalEvent.googleEventId && !seenGoogleEventIds.has(portalEvent.googleEventId)) {
+            // This event exists in portal but not in Google anymore - delete it
+            try {
+              const eventTitle = portalEvent.titre
+              await portalEvent.delete()
+              deleted++
+              details.push(`  Supprime (supprime sur Google): ${eventTitle}`)
+            } catch (error) {
+              errors++
+              details.push(
+                `  Error deleting ${portalEvent.titre}: ${error instanceof Error ? error.message : 'Unknown error'}`
+              )
+            }
+          }
+        }
+
+        if (deleted > 0) {
+          details.push(`  ${deleted} evenement(s) supprime(s) car supprime(s) sur Google Calendar`)
+        } else {
+          details.push(`  Aucun evenement a supprimer`)
+        }
+      }
+
       const duration = Date.now() - startTime
       const success = errors === 0
 
@@ -735,13 +778,13 @@ class CalendarSyncService {
       await this.logSyncOperation({
         mode: 'manual',
         statut: success ? 'success' : errors < created + updated ? 'partial' : 'error',
-        elementsTraites: created + updated + skipped,
+        elementsTraites: created + updated + skipped + deleted,
         elementsCrees: created,
         elementsModifies: updated,
         elementsSupprimes: deleted,
         elementsErreur: errors,
         message: success
-          ? `Import multi-calendriers: ${created} crees, ${updated} existants${skipped > 0 ? `, ${skipped} ignores` : ''}`
+          ? `Import multi-calendriers: ${created} crees, ${updated} existants${deleted > 0 ? `, ${deleted} supprimes` : ''}${skipped > 0 ? `, ${skipped} ignores` : ''}`
           : `Import avec ${errors} erreurs`,
         details,
         dureeMs: duration,
@@ -755,7 +798,7 @@ class CalendarSyncService {
         updated,
         deleted,
         errors,
-        message: `Import termine: ${created} importes, ${updated} existants${skipped > 0 ? `, ${skipped} ignores` : ''}`,
+        message: `Import termine: ${created} importes, ${updated} existants${deleted > 0 ? `, ${deleted} supprimes` : ''}${skipped > 0 ? `, ${skipped} ignores` : ''}`,
         details,
       }
     } catch (error) {

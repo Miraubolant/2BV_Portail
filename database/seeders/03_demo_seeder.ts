@@ -8,6 +8,7 @@ import Note from '#models/note'
 import Task from '#models/task'
 import ActivityLog from '#models/activity_log'
 import Admin from '#models/admin'
+import GoogleCalendar from '#models/google_calendar'
 import { randomUUID } from 'node:crypto'
 import { cuid } from '@adonisjs/core/helpers'
 import dossierFolderService from '#services/microsoft/dossier_folder_service'
@@ -60,8 +61,11 @@ export default class DemoSeeder extends BaseSeeder {
       const documents = await this.createDocuments(dossier, superAdmin, client)
       console.log(`   - ${documents.length} documents crees`)
 
-      // Creer les evenements
-      const evenements = await this.createEvenements(dossier, superAdmin, index)
+      // Recuperer le premier calendrier Google actif pour la sync
+      const activeCalendar = await GoogleCalendar.query().where('is_active', true).first()
+
+      // Creer les evenements (avec googleCalendarId si disponible)
+      const evenements = await this.createEvenements(dossier, superAdmin, index, activeCalendar?.id || null)
       console.log(`   - ${evenements.length} evenements crees`)
 
       // Synchroniser les evenements sur Google Calendar (si connecte)
@@ -750,12 +754,13 @@ du Portail Cabinet d'Avocats.
 
   /**
    * Creer des evenements pour un dossier
+   * @param googleCalendarId - ID du calendrier Google actif (optionnel)
    */
-  private async createEvenements(dossier: Dossier, admin: Admin, index: number) {
+  private async createEvenements(dossier: Dossier, admin: Admin, index: number, googleCalendarId: string | null) {
     const now = DateTime.now()
     const evenements: Evenement[] = []
 
-    // RDV initial (passe)
+    // RDV initial (passe) - pas de sync Google (passe)
     const rdvInitialDate = now.minus({ days: 20 + Math.floor(Math.random() * 20) })
     evenements.push(await Evenement.create({
       dossierId: dossier.id,
@@ -804,7 +809,8 @@ du Portail Cabinet d'Avocats.
       journeeEntiere: false,
       lieu: 'Cabinet',
       statut: rdvSuiviDate < now ? 'termine' : 'confirme',
-      syncGoogle: true,
+      syncGoogle: !!googleCalendarId,
+      googleCalendarId: googleCalendarId,
       rappelJ7: false,
       rappelJ1: true,
       rappelEnvoye: rdvSuiviDate < now,
@@ -825,7 +831,8 @@ du Portail Cabinet d'Avocats.
       lieu: dossier.juridiction,
       adresse: this.getAdresseJuridiction(dossier.juridiction || ''),
       statut: 'confirme',
-      syncGoogle: true,
+      syncGoogle: !!googleCalendarId,
+      googleCalendarId: googleCalendarId,
       rappelJ7: true,
       rappelJ1: true,
       rappelEnvoye: false,
@@ -843,7 +850,8 @@ du Portail Cabinet d'Avocats.
       dateFin: echeanceFutureDate.set({ hour: 23, minute: 59 }),
       journeeEntiere: true,
       statut: 'en_attente',
-      syncGoogle: true,
+      syncGoogle: !!googleCalendarId,
+      googleCalendarId: googleCalendarId,
       rappelJ7: true,
       rappelJ1: true,
       rappelEnvoye: false,
@@ -862,7 +870,8 @@ du Portail Cabinet d'Avocats.
       journeeEntiere: false,
       lieu: 'Cabinet',
       statut: 'confirme',
-      syncGoogle: true,
+      syncGoogle: !!googleCalendarId,
+      googleCalendarId: googleCalendarId,
       rappelJ7: true,
       rappelJ1: true,
       rappelEnvoye: false,
