@@ -20,18 +20,12 @@ export default class TotpVerifiedMiddleware {
       })
     }
 
-    // Vérifier que le 2FA est configuré
+    // Si le 2FA n'est pas activé, on laisse passer directement
     if (!client.totpEnabled) {
-      if (isInertiaRequest) {
-        return ctx.response.redirect('/client/totp')
-      }
-      return ctx.response.status(428).json({
-        message: 'Configuration 2FA requise',
-        code: 'TOTP_SETUP_REQUIRED',
-      })
+      return next()
     }
 
-    // Vérifier que la session a le flag totp_verified
+    // 2FA activé - Vérifier que la session a le flag totp_verified
     const totpVerified = ctx.session.get('totp_verified')
     if (!totpVerified) {
       if (isInertiaRequest) {
