@@ -22,6 +22,7 @@ export default class GoogleCalendarSync extends BaseCommand {
       const isConfigured = googleOAuthService.isConfigured()
       if (!isConfigured) {
         this.logger.warning('Google Calendar non configure. Synchronisation ignoree.')
+        await calendarSyncService.logSkippedSync('not_configured', 'auto')
         this.exitCode = 0
         return
       }
@@ -30,6 +31,7 @@ export default class GoogleCalendarSync extends BaseCommand {
       const accounts = await googleOAuthService.getAllConnectedAccounts()
       if (accounts.length === 0) {
         this.logger.warning('Aucun compte Google connecte. Synchronisation ignoree.')
+        await calendarSyncService.logSkippedSync('no_accounts', 'auto')
         this.exitCode = 0
         return
       }
@@ -40,6 +42,7 @@ export default class GoogleCalendarSync extends BaseCommand {
       const activeCalendars = await googleOAuthService.getAllActiveCalendars()
       if (activeCalendars.length === 0) {
         this.logger.warning('Aucun calendrier actif configure. Synchronisation ignoree.')
+        await calendarSyncService.logSkippedSync('no_calendars', 'auto')
         this.exitCode = 0
         return
       }

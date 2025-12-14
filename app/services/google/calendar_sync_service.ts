@@ -538,6 +538,34 @@ class CalendarSyncService {
       .limit(limit)
   }
 
+  /**
+   * Log a skipped sync operation (when no calendars are configured, etc.)
+   * This allows the sync history to show when automatic syncs ran but had nothing to do
+   */
+  async logSkippedSync(
+    reason: 'not_configured' | 'no_accounts' | 'no_calendars',
+    mode: 'auto' | 'manual' = 'auto'
+  ): Promise<void> {
+    const messages: Record<string, string> = {
+      not_configured: 'Google Calendar non configure',
+      no_accounts: 'Aucun compte Google connecte',
+      no_calendars: 'Aucun calendrier actif configure',
+    }
+
+    await this.logSyncOperation({
+      mode,
+      statut: 'success',
+      elementsTraites: 0,
+      elementsCrees: 0,
+      elementsModifies: 0,
+      elementsSupprimes: 0,
+      elementsErreur: 0,
+      message: messages[reason] + ' - synchronisation ignoree',
+      details: [messages[reason]],
+      dureeMs: 0,
+    })
+  }
+
   // ======================================================================
   // MULTI-CALENDAR SUPPORT
   // ======================================================================

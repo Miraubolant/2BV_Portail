@@ -91,7 +91,6 @@ export function IntegrationStatus({ onRefresh }: Props) {
       return {
         icon: AlertCircle,
         color: 'text-slate-400',
-        bg: 'bg-slate-100 dark:bg-slate-800/50',
         label: 'Non configure',
         labelClass: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
       }
@@ -100,7 +99,6 @@ export function IntegrationStatus({ onRefresh }: Props) {
       return {
         icon: XCircle,
         color: 'text-amber-500',
-        bg: 'bg-amber-50 dark:bg-amber-900/20',
         label: 'Deconnecte',
         labelClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       }
@@ -109,7 +107,6 @@ export function IntegrationStatus({ onRefresh }: Props) {
       return {
         icon: XCircle,
         color: 'text-red-500',
-        bg: 'bg-red-50 dark:bg-red-900/20',
         label: 'Erreur',
         labelClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       }
@@ -117,7 +114,6 @@ export function IntegrationStatus({ onRefresh }: Props) {
     return {
       icon: CheckCircle2,
       color: 'text-emerald-500',
-      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
       label: 'Connecte',
       labelClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
     }
@@ -168,10 +164,7 @@ export function IntegrationStatus({ onRefresh }: Props) {
           return (
             <div
               key={integration.type}
-              className={cn(
-                'rounded-xl border p-4 transition-all',
-                config.bg
-              )}
+              className="rounded-xl border p-4 transition-all bg-muted/30"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
