@@ -1442,13 +1442,27 @@ const EvenementsPage = () => {
           </DialogHeader>
           <form onSubmit={handleEdit} className="space-y-4">
             <EventFormFields formData={formData} setFormData={setFormData} dossiers={dossiers} activeCalendars={activeCalendars} />
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
-                Annuler
+            <DialogFooter className="pt-4 flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  setShowEditModal(false)
+                  setShowDeleteDialog(true)
+                }}
+                className="w-full sm:w-auto sm:mr-auto"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Supprimer
               </Button>
-              <Button type="submit" disabled={processing || !formData.titre}>
-                {processing ? 'Enregistrement...' : 'Enregistrer'}
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} className="flex-1 sm:flex-none">
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={processing || !formData.titre} className="flex-1 sm:flex-none">
+                  {processing ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>

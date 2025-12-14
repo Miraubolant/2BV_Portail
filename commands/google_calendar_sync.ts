@@ -64,6 +64,7 @@ export default class GoogleCalendarSync extends BaseCommand {
 
       this.logger.info(`  - Crees: ${result.created}`)
       this.logger.info(`  - Mis a jour: ${result.updated}`)
+      this.logger.info(`  - Supprimes: ${result.deleted}`)
       this.logger.info(`  - Erreurs: ${result.errors}`)
 
       // Afficher quelques details

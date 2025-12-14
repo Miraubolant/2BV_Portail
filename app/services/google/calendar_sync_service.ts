@@ -906,6 +906,7 @@ class CalendarSyncService {
         const pullResult = await this.pullFromAllActiveCalendars(triggeredById)
         created += pullResult.created
         updated += pullResult.updated
+        deleted += pullResult.deleted
         errors += pullResult.errors
         details.push(...pullResult.details)
       }
@@ -938,7 +939,7 @@ class CalendarSyncService {
         deleted,
         errors,
         message: success
-          ? `Synchronisation terminee: ${created} crees, ${updated} mis a jour`
+          ? `Synchronisation terminee: ${created} crees, ${updated} mis a jour${deleted > 0 ? `, ${deleted} supprimes` : ''}`
           : `Synchronisation terminee avec ${errors} erreurs`,
         details,
       }
