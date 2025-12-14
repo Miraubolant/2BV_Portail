@@ -60,6 +60,7 @@ export const updateClientValidator = vine.compile(
     notifEmailDocument: vine.boolean().optional(),
     notifEmailEvenement: vine.boolean().optional(),
     actif: vine.boolean().optional(),
+    totpEnabled: vine.boolean().optional(),
     notesInternes: vine.string().optional(),
     tags: vine.array(vine.string()).optional(),
     sourceAcquisition: vine.string().optional(),

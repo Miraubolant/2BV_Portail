@@ -130,12 +130,21 @@ export default class ClientsController {
     const data = await request.validateUsing(updateClientValidator)
 
     // Extraire et convertir la date
-    const { dateNaissance, ...restData } = data
+    const { dateNaissance, totpEnabled, ...restData } = data
 
     client.merge(restData)
     if (dateNaissance !== undefined) {
       client.dateNaissance = dateNaissance ? DateTime.fromISO(dateNaissance) : null
     }
+
+    // Gestion du 2FA - si on desactive, on efface le secret TOTP
+    if (totpEnabled !== undefined) {
+      client.totpEnabled = totpEnabled
+      if (!totpEnabled) {
+        client.totpSecret = null
+      }
+    }
+
     await client.save()
 
     // Charger les relations pour la reponse complete

@@ -955,12 +955,15 @@ const ClientShowPage = () => {
                     <div>
                       <p className="font-medium">Authentification 2FA</p>
                       <p className="text-sm text-muted-foreground">
-                        {client.totpEnabled ? 'Active' : 'Non configuree'}
+                        {client.totpEnabled
+                          ? 'Active - le client devra entrer un code TOTP'
+                          : 'Desactivee - le client peut l\'activer depuis ses parametres'}
                       </p>
                     </div>
-                    <Badge variant={client.totpEnabled ? 'default' : 'secondary'}>
-                      {client.totpEnabled ? 'Active' : 'Inactive'}
-                    </Badge>
+                    <Switch
+                      checked={client.totpEnabled}
+                      onCheckedChange={(checked) => handleToggle('totpEnabled', checked)}
+                    />
                   </div>
 
                   <div className="border-t pt-4">
