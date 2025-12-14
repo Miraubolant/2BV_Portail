@@ -2,7 +2,6 @@ import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import { DateTime } from 'luxon'
 import Client from '#models/client'
 import Dossier from '#models/dossier'
-import Evenement from '#models/evenement'
 import Note from '#models/note'
 import Task from '#models/task'
 import ActivityLog from '#models/activity_log'
@@ -16,13 +15,12 @@ import dossierFolderService from '#services/microsoft/dossier_folder_service'
  * - Admins (super admin + admin regulier)
  * - Clients (particuliers et entreprises)
  * - Dossiers avec structure OneDrive
- * - Evenements (syncGoogle=true, le cron google:sync fera la sync)
  * - Notes internes
  * - Taches avec differents statuts
  * - Historique d'activite (timeline)
  *
- * Note: Les documents ne sont pas crees par le seeder.
- * Les evenements seront synchronises par le cron google:sync (toutes les minutes).
+ * Note: Les documents et evenements ne sont pas crees par le seeder.
+ * Creez-les manuellement via l'interface.
  */
 export default class DemoSeeder extends BaseSeeder {
   async run() {
@@ -54,11 +52,6 @@ export default class DemoSeeder extends BaseSeeder {
       // Creer le dossier OneDrive (si connecte)
       await this.syncDossierToOneDrive(dossier)
 
-      // Creer les evenements (avec syncGoogle=true pour les futurs)
-      const evenements = await this.createEvenements(dossier, superAdmin, index)
-      const futureEvents = evenements.filter(e => e.syncGoogle).length
-      console.log(`   - ${evenements.length} evenements crees (${futureEvents} a synchroniser)`)
-
       // Creer les notes
       const notes = await this.createNotes(dossier, superAdmin, admin)
       console.log(`   - ${notes.length} notes creees`)
@@ -69,7 +62,7 @@ export default class DemoSeeder extends BaseSeeder {
 
       // Creer l'historique d'activite
       const activities = await this.createActivityHistory(
-        dossier, client, superAdmin, admin, evenements, notes, tasks
+        dossier, client, superAdmin, admin, notes, tasks
       )
       console.log(`   - ${activities.length} entrees timeline creees`)
     }
@@ -83,7 +76,6 @@ export default class DemoSeeder extends BaseSeeder {
     console.log('  Admin:    admin@cabinet.fr / Admin123!')
     console.log('  Clients:  [email]@... / Client123!')
     console.log('')
-    console.log('Note: Les evenements seront synchronises par le cron google:sync')
     console.log('IMPORTANT: Changez les mots de passe en production!')
   }
 
@@ -312,112 +304,6 @@ export default class DemoSeeder extends BaseSeeder {
   }
 
   /**
-   * Creer des evenements pour un dossier
-   * Les evenements futurs ont syncGoogle=true (sans googleCalendarId)
-   * Le cron google:sync se chargera d'assigner le calendrier et de synchroniser
-   */
-  private async createEvenements(dossier: Dossier, admin: Admin, index: number) {
-    const now = DateTime.now()
-    const evenements: Evenement[] = []
-
-    // RDV initial (passe) - pas de sync
-    const rdvInitialDate = now.minus({ days: 20 + Math.floor(Math.random() * 20) })
-    evenements.push(await Evenement.create({
-      dossierId: dossier.id,
-      titre: 'RDV initial client',
-      description: 'Premier rendez-vous pour etudier le dossier',
-      type: 'rdv_client',
-      dateDebut: rdvInitialDate.set({ hour: 10, minute: 0 }),
-      dateFin: rdvInitialDate.set({ hour: 11, minute: 0 }),
-      journeeEntiere: false,
-      lieu: 'Cabinet',
-      statut: 'termine',
-      syncGoogle: false,
-      rappelEnvoye: true,
-      createdById: admin.id,
-    }))
-
-    // Echeance passee - pas de sync
-    const echeancePasseeDate = now.minus({ days: 5 + index })
-    evenements.push(await Evenement.create({
-      dossierId: dossier.id,
-      titre: 'Echeance depot conclusions',
-      description: 'Date limite pour le depot des conclusions',
-      type: 'echeance',
-      dateDebut: echeancePasseeDate.set({ hour: 0, minute: 0 }),
-      dateFin: echeancePasseeDate.set({ hour: 23, minute: 59 }),
-      journeeEntiere: true,
-      statut: 'termine',
-      syncGoogle: false,
-      rappelEnvoye: true,
-      createdById: admin.id,
-    }))
-
-    // Audience (futur) - syncGoogle=true
-    const audienceDate = now.plus({ days: 10 + index * 7 })
-    const audienceHour = 9 + (index % 4) * 2
-    evenements.push(await Evenement.create({
-      dossierId: dossier.id,
-      titre: `Audience - ${dossier.juridiction}`,
-      description: `Audience de plaidoirie devant ${dossier.juridiction}`,
-      type: 'audience',
-      dateDebut: audienceDate.set({ hour: audienceHour, minute: 0 }),
-      dateFin: audienceDate.set({ hour: audienceHour + 2, minute: 0 }),
-      journeeEntiere: false,
-      lieu: dossier.juridiction,
-      adresse: this.getAdresseJuridiction(dossier.juridiction || ''),
-      statut: 'confirme',
-      syncGoogle: true,  // Sera synchronise par le cron
-      googleCalendarId: null,  // Sera assigne par le cron
-      rappelJ7: true,
-      rappelJ1: true,
-      rappelEnvoye: false,
-      createdById: admin.id,
-    }))
-
-    // Echeance future - syncGoogle=true
-    const echeanceFutureDate = now.plus({ days: 5 + index * 3 })
-    evenements.push(await Evenement.create({
-      dossierId: dossier.id,
-      titre: 'Echeance pieces adverses',
-      description: "Date limite pour reception des pieces",
-      type: 'echeance',
-      dateDebut: echeanceFutureDate.set({ hour: 0, minute: 0 }),
-      dateFin: echeanceFutureDate.set({ hour: 23, minute: 59 }),
-      journeeEntiere: true,
-      statut: 'en_attente',
-      syncGoogle: true,  // Sera synchronise par le cron
-      googleCalendarId: null,
-      rappelJ7: true,
-      rappelJ1: true,
-      rappelEnvoye: false,
-      createdById: admin.id,
-    }))
-
-    // RDV preparation (futur) - syncGoogle=true
-    const rdvPrepDate = audienceDate.minus({ days: 3 })
-    evenements.push(await Evenement.create({
-      dossierId: dossier.id,
-      titre: 'Preparation audience',
-      description: "Rendez-vous de preparation avant l'audience",
-      type: 'rdv_client',
-      dateDebut: rdvPrepDate.set({ hour: 16, minute: 0 }),
-      dateFin: rdvPrepDate.set({ hour: 17, minute: 30 }),
-      journeeEntiere: false,
-      lieu: 'Cabinet',
-      statut: 'confirme',
-      syncGoogle: true,  // Sera synchronise par le cron
-      googleCalendarId: null,
-      rappelJ7: true,
-      rappelJ1: true,
-      rappelEnvoye: false,
-      createdById: admin.id,
-    }))
-
-    return evenements
-  }
-
-  /**
    * Creer des notes pour un dossier
    */
   private async createNotes(dossier: Dossier, superAdmin: Admin, admin: Admin) {
@@ -517,8 +403,7 @@ export default class DemoSeeder extends BaseSeeder {
     dossier: Dossier,
     client: Client,
     superAdmin: Admin,
-    admin: Admin,
-    evenements: Evenement[],
+    _admin: Admin,
     notes: Note[],
     tasks: Task[]
   ) {
@@ -552,24 +437,6 @@ export default class DemoSeeder extends BaseSeeder {
       metadata: { oldStatut: 'ouvert', newStatut: 'en_cours' },
       createdAt: now.minus({ days: 40 }),
     }))
-
-    // Creation des evenements
-    for (const [i, evt] of evenements.entries()) {
-      activities.push(await ActivityLog.create({
-        id: randomUUID(),
-        userId: superAdmin.id,
-        userType: 'admin',
-        action: 'evenement.created',
-        resourceType: 'evenement',
-        resourceId: evt.id,
-        metadata: {
-          titre: evt.titre,
-          type: evt.type,
-          dossierId: dossier.id
-        },
-        createdAt: now.minus({ days: 30 - i * 2 }),
-      }))
-    }
 
     // Creation des notes
     for (const [i, note] of notes.entries()) {
@@ -625,18 +492,6 @@ export default class DemoSeeder extends BaseSeeder {
     }
 
     return activities
-  }
-
-  /**
-   * Retourne une adresse fictive pour une juridiction
-   */
-  private getAdresseJuridiction(juridiction: string): string {
-    if (juridiction.includes('Paris')) {
-      return '4 boulevard du Palais, 75001 Paris'
-    } else if (juridiction.includes('Lyon')) {
-      return '67 rue Servient, 69003 Lyon'
-    }
-    return 'Palais de Justice'
   }
 
   /**
