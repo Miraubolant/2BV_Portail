@@ -9,7 +9,7 @@ interface AppWrapperProps {
 export const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
   return (
     <AppProvider>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         {children}
       </ThemeProvider>
     </AppProvider>
