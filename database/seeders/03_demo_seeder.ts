@@ -9,8 +9,10 @@ import Task from '#models/task'
 import ActivityLog from '#models/activity_log'
 import Admin from '#models/admin'
 import { randomUUID } from 'node:crypto'
+import { cuid } from '@adonisjs/core/helpers'
 import dossierFolderService from '#services/microsoft/dossier_folder_service'
 import calendarSyncService from '#services/google/calendar_sync_service'
+import oneDriveService from '#services/microsoft/onedrive_service'
 
 /**
  * Seeder de demonstration complet
@@ -317,93 +319,433 @@ export default class DemoSeeder extends BaseSeeder {
   }
 
   /**
-   * Creer des documents pour un dossier
+   * Creer des documents pour un dossier (avec upload OneDrive si connecte)
    */
   private async createDocuments(dossier: Dossier, admin: Admin, client: Client) {
     const documents: Document[] = []
+    const isOneDriveReady = await oneDriveService.isReady()
+
+    // Charger le dossier avec le client pour avoir le nom complet
+    await dossier.load('client')
 
     // Documents CABINET (non visibles par le client)
     const cabinetDocs = [
-      { nom: 'Note strategie', type: 'note_interne', ext: 'docx', taille: 45000, sensible: true },
-      { nom: 'Analyse juridique', type: 'analyse', ext: 'pdf', taille: 120000, sensible: true },
-      { nom: 'Correspondance adverse', type: 'correspondance', ext: 'pdf', taille: 85000, sensible: false },
+      { nom: 'Note strategie', type: 'note_interne', ext: 'txt', sensible: true },
+      { nom: 'Analyse juridique', type: 'analyse', ext: 'txt', sensible: true },
+      { nom: 'Correspondance adverse', type: 'correspondance', ext: 'txt', sensible: false },
     ]
 
     for (const doc of cabinetDocs) {
-      documents.push(await Document.create({
-        dossierId: dossier.id,
-        nom: doc.nom,
-        nomOriginal: `${doc.nom}.${doc.ext}`,
-        typeDocument: doc.type,
-        tailleOctets: doc.taille,
-        mimeType: doc.ext === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        extension: doc.ext,
-        sensible: doc.sensible,
-        visibleClient: false,
-        uploadedByClient: false,
-        dossierLocation: 'cabinet',
-        uploadedById: admin.id,
-        uploadedByType: 'admin',
-        description: `Document interne: ${doc.nom}`,
-        dateDocument: DateTime.now().minus({ days: Math.floor(Math.random() * 30) }),
-      }))
+      const content = this.generateDocumentContent(doc.nom, doc.type, dossier, client)
+      const document = await this.createAndUploadDocument(
+        dossier,
+        doc,
+        content,
+        'cabinet',
+        false,
+        admin.id,
+        'admin',
+        isOneDriveReady
+      )
+      documents.push(document)
     }
 
     // Documents CLIENT (visibles par le client)
     const clientDocs = [
-      { nom: 'Contrat initial', type: 'contrat', ext: 'pdf', taille: 250000 },
-      { nom: 'Facture impayee', type: 'facture', ext: 'pdf', taille: 65000 },
-      { nom: 'Courrier mise en demeure', type: 'correspondance', ext: 'pdf', taille: 35000 },
-      { nom: 'Piece identite', type: 'piece_identite', ext: 'pdf', taille: 500000 },
+      { nom: 'Contrat initial', type: 'contrat', ext: 'txt', sensible: false },
+      { nom: 'Facture impayee', type: 'facture', ext: 'txt', sensible: false },
+      { nom: 'Courrier mise en demeure', type: 'correspondance', ext: 'txt', sensible: false },
+      { nom: 'Piece identite', type: 'piece_identite', ext: 'txt', sensible: false },
     ]
 
     for (const doc of clientDocs) {
-      documents.push(await Document.create({
-        dossierId: dossier.id,
-        nom: doc.nom,
-        nomOriginal: `${doc.nom}.${doc.ext}`,
-        typeDocument: doc.type,
-        tailleOctets: doc.taille,
-        mimeType: 'application/pdf',
-        extension: doc.ext,
-        sensible: false,
-        visibleClient: true,
-        uploadedByClient: false,
-        dossierLocation: 'client',
-        uploadedById: admin.id,
-        uploadedByType: 'admin',
-        description: `Document partage: ${doc.nom}`,
-        dateDocument: DateTime.now().minus({ days: Math.floor(Math.random() * 45) }),
-      }))
+      const content = this.generateDocumentContent(doc.nom, doc.type, dossier, client)
+      const document = await this.createAndUploadDocument(
+        dossier,
+        doc,
+        content,
+        'client',
+        true,
+        admin.id,
+        'admin',
+        isOneDriveReady
+      )
+      documents.push(document)
     }
 
     // Documents uploades par le client
     const clientUploadDocs = [
-      { nom: 'Justificatif domicile', type: 'justificatif', ext: 'pdf', taille: 180000 },
-      { nom: 'RIB', type: 'bancaire', ext: 'pdf', taille: 45000 },
+      { nom: 'Justificatif domicile', type: 'justificatif', ext: 'txt', sensible: false },
+      { nom: 'RIB', type: 'bancaire', ext: 'txt', sensible: false },
     ]
 
     for (const doc of clientUploadDocs) {
-      documents.push(await Document.create({
-        dossierId: dossier.id,
-        nom: doc.nom,
-        nomOriginal: `${doc.nom}.${doc.ext}`,
-        typeDocument: doc.type,
-        tailleOctets: doc.taille,
-        mimeType: 'application/pdf',
-        extension: doc.ext,
-        sensible: false,
-        visibleClient: true,
-        uploadedByClient: true,
-        dossierLocation: 'client',
-        uploadedById: client.id,
-        uploadedByType: 'client',
-        description: `Document fourni par le client`,
-        dateDocument: DateTime.now().minus({ days: Math.floor(Math.random() * 20) }),
-      }))
+      const content = this.generateDocumentContent(doc.nom, doc.type, dossier, client)
+      const document = await this.createAndUploadDocument(
+        dossier,
+        doc,
+        content,
+        'client',
+        true,
+        client.id,
+        'client',
+        isOneDriveReady
+      )
+      documents.push(document)
     }
 
     return documents
+  }
+
+  /**
+   * Creer un document et l'uploader sur OneDrive si disponible
+   */
+  private async createAndUploadDocument(
+    dossier: Dossier,
+    docInfo: { nom: string; type: string; ext: string; sensible: boolean },
+    content: string,
+    location: 'cabinet' | 'client',
+    visibleClient: boolean,
+    uploadedById: string,
+    uploadedByType: 'admin' | 'client',
+    isOneDriveReady: boolean
+  ): Promise<Document> {
+    const contentBuffer = Buffer.from(content, 'utf-8')
+    let onedriveFileId: string | null = null
+    let onedriveWebUrl: string | null = null
+    let onedriveDownloadUrl: string | null = null
+
+    // Upload sur OneDrive si disponible
+    if (isOneDriveReady) {
+      const folderId =
+        location === 'cabinet' ? dossier.onedriveCabinetFolderId : dossier.onedriveClientFolderId
+
+      if (folderId) {
+        const fileName = `${docInfo.nom}_${cuid()}.${docInfo.ext}`
+        const uploadResult = await oneDriveService.uploadFile(
+          folderId,
+          fileName,
+          contentBuffer,
+          'text/plain'
+        )
+
+        if (uploadResult.success) {
+          onedriveFileId = uploadResult.fileId || null
+          onedriveWebUrl = uploadResult.webUrl || null
+          onedriveDownloadUrl = uploadResult.downloadUrl || null
+        }
+      }
+    }
+
+    return await Document.create({
+      dossierId: dossier.id,
+      nom: docInfo.nom,
+      nomOriginal: `${docInfo.nom}.${docInfo.ext}`,
+      typeDocument: docInfo.type,
+      tailleOctets: contentBuffer.length,
+      mimeType: 'text/plain',
+      extension: docInfo.ext,
+      sensible: docInfo.sensible,
+      visibleClient,
+      uploadedByClient: uploadedByType === 'client',
+      dossierLocation: location,
+      uploadedById,
+      uploadedByType,
+      description: visibleClient ? `Document partage: ${docInfo.nom}` : `Document interne: ${docInfo.nom}`,
+      dateDocument: DateTime.now().minus({ days: Math.floor(Math.random() * 30) }),
+      onedriveFileId,
+      onedriveWebUrl,
+      onedriveDownloadUrl,
+    })
+  }
+
+  /**
+   * Generer le contenu d'un document de demonstration
+   */
+  private generateDocumentContent(
+    nom: string,
+    type: string,
+    dossier: Dossier,
+    client: Client
+  ): string {
+    const date = DateTime.now().toFormat('dd/MM/yyyy')
+    const clientNom = `${client.civilite} ${client.prenom} ${client.nom}`
+
+    const templates: Record<string, string> = {
+      note_interne: `
+================================================================================
+                            NOTE INTERNE - CABINET
+================================================================================
+
+Dossier: ${dossier.reference} - ${dossier.intitule}
+Client: ${clientNom}
+Date: ${date}
+
+--------------------------------------------------------------------------------
+                              STRATEGIE JURIDIQUE
+--------------------------------------------------------------------------------
+
+1. ANALYSE DE LA SITUATION
+   Le client nous a confie son dossier concernant ${dossier.intitule}.
+   Type d'affaire: ${dossier.typeAffaire}
+   Juridiction competente: ${dossier.juridiction}
+
+2. POINTS FORTS DU DOSSIER
+   - Documentation fournie complete
+   - Temoins potentiels identifies
+   - Jurisprudence favorable recente
+
+3. POINTS DE VIGILANCE
+   - Verifier les delais de prescription
+   - Confirmer la competence territoriale
+   - Preparer les pieces adverses
+
+4. STRATEGIE RECOMMANDEE
+   Nous recommandons une approche en deux temps:
+   a) Tentative de resolution amiable
+   b) Preparation du contentieux en parallele
+
+--------------------------------------------------------------------------------
+Document interne - Ne pas communiquer au client
+================================================================================
+`,
+      analyse: `
+================================================================================
+                         ANALYSE JURIDIQUE DETAILLEE
+================================================================================
+
+Reference: ${dossier.reference}
+Affaire: ${dossier.intitule}
+Client: ${clientNom}
+Redige le: ${date}
+
+--------------------------------------------------------------------------------
+                              FAITS ET CONTEXTE
+--------------------------------------------------------------------------------
+
+${dossier.description || 'Description du dossier non renseignee.'}
+
+Partie adverse: ${dossier.adversaireNom || 'Non identifie'}
+Avocat adverse: ${dossier.adversaireAvocat || 'Non constitue'}
+
+--------------------------------------------------------------------------------
+                           FONDEMENTS JURIDIQUES
+--------------------------------------------------------------------------------
+
+1. TEXTES APPLICABLES
+   - Code civil: articles relatifs a la responsabilite contractuelle
+   - Code de procedure civile: competence et delais
+
+2. JURISPRUDENCE PERTINENTE
+   - Cour de cassation, Civ. 1ere, 15 mars 2023
+   - Cour d'appel de Paris, 12 janvier 2024
+
+3. CONCLUSIONS
+   Au vu des elements du dossier, les chances de succes sont evaluees
+   a environ 70% en premiere instance.
+
+--------------------------------------------------------------------------------
+Document confidentiel - Cabinet uniquement
+================================================================================
+`,
+      correspondance: `
+================================================================================
+                    CORRESPONDANCE AVEC LA PARTIE ADVERSE
+================================================================================
+
+Dossier: ${dossier.reference}
+Date: ${date}
+
+--------------------------------------------------------------------------------
+
+De: Cabinet d'Avocats
+A: ${dossier.adversaireAvocat || 'Partie adverse'}
+Objet: Dossier ${dossier.reference} - ${dossier.intitule}
+
+Cher Confrere,
+
+Suite a notre entretien telephonique du ${DateTime.now().minus({ days: 7 }).toFormat('dd/MM/yyyy')},
+je vous confirme que mon client, ${clientNom}, maintient sa position
+concernant le litige qui l'oppose a votre client.
+
+Nous restons neanmoins ouverts a toute proposition de resolution amiable
+qui pourrait intervenir avant l'audience prevue.
+
+Dans l'attente de votre retour, je vous prie d'agreer, cher Confrere,
+l'expression de mes sentiments les meilleurs.
+
+Cabinet d'Avocats
+
+--------------------------------------------------------------------------------
+================================================================================
+`,
+      contrat: `
+================================================================================
+                              CONTRAT INITIAL
+================================================================================
+
+Reference dossier: ${dossier.reference}
+Client: ${clientNom}
+Date du document: ${DateTime.now().minus({ days: 90 }).toFormat('dd/MM/yyyy')}
+
+--------------------------------------------------------------------------------
+                           CONVENTION D'HONORAIRES
+--------------------------------------------------------------------------------
+
+ENTRE LES SOUSSIGNES:
+
+Le Cabinet d'Avocats, ci-apres denomme "l'Avocat"
+
+ET
+
+${clientNom}
+${client.adresseLigne1 || ''}
+${client.codePostal || ''} ${client.ville || ''}
+
+Ci-apres denomme "le Client"
+
+IL A ETE CONVENU CE QUI SUIT:
+
+ARTICLE 1 - OBJET
+L'Avocat s'engage a assister et representer le Client dans le cadre
+du dossier: ${dossier.intitule}
+
+ARTICLE 2 - HONORAIRES
+Les honoraires sont fixes comme suit:
+- Honoraires estimes: ${dossier.honorairesEstimes || 0} EUR HT
+- Provision a la signature: ${Math.floor((dossier.honorairesEstimes || 0) * 0.3)} EUR HT
+
+ARTICLE 3 - DUREE
+La presente convention est conclue pour la duree de la procedure.
+
+Fait en deux exemplaires originaux.
+
+--------------------------------------------------------------------------------
+================================================================================
+`,
+      facture: `
+================================================================================
+                                  FACTURE
+================================================================================
+
+CABINET D'AVOCATS
+Facture N°: FAC-${dossier.reference}-001
+Date: ${date}
+
+--------------------------------------------------------------------------------
+
+Client: ${clientNom}
+Dossier: ${dossier.reference} - ${dossier.intitule}
+
+--------------------------------------------------------------------------------
+                                 PRESTATIONS
+--------------------------------------------------------------------------------
+
+Description                                              Montant HT
+----------------------------------------------------------------------
+Consultation initiale et analyse du dossier                  500,00 EUR
+Redaction de conclusions                                   1 500,00 EUR
+Correspondances et suivi                                     300,00 EUR
+----------------------------------------------------------------------
+                                            TOTAL HT:      2 300,00 EUR
+                                            TVA 20%:         460,00 EUR
+                                            TOTAL TTC:     2 760,00 EUR
+
+--------------------------------------------------------------------------------
+
+Conditions de paiement: 30 jours date de facture
+RIB: FR76 XXXX XXXX XXXX XXXX XXXX XXX
+
+================================================================================
+`,
+      piece_identite: `
+================================================================================
+                     COPIE DE PIECE D'IDENTITE
+================================================================================
+
+[Document de demonstration - Simulation]
+
+Type de document: Carte Nationale d'Identite
+Nom: ${client.nom}
+Prenom: ${client.prenom}
+Date de naissance: ${client.dateNaissance?.toFormat('dd/MM/yyyy') || 'Non renseignee'}
+Nationalite: ${client.nationalite || 'Francaise'}
+
+--------------------------------------------------------------------------------
+Ce document est une simulation pour demonstration uniquement.
+Il ne constitue pas un document officiel.
+--------------------------------------------------------------------------------
+
+================================================================================
+`,
+      justificatif: `
+================================================================================
+                      JUSTIFICATIF DE DOMICILE
+================================================================================
+
+[Document de demonstration - Simulation]
+
+ATTESTATION DE DOMICILE
+
+Je soussigne(e), ${clientNom},
+atteste sur l'honneur resider a l'adresse suivante:
+
+${client.adresseLigne1 || 'Adresse non renseignee'}
+${client.codePostal || ''} ${client.ville || ''}
+
+Cette attestation est etablie pour servir et valoir ce que de droit.
+
+Fait a ${client.ville || 'Paris'}, le ${date}
+
+Signature: [Signature electronique]
+
+--------------------------------------------------------------------------------
+Document fourni par le client
+================================================================================
+`,
+      bancaire: `
+================================================================================
+                    RELEVE D'IDENTITE BANCAIRE (RIB)
+================================================================================
+
+[Document de demonstration - Simulation]
+
+Titulaire du compte: ${clientNom}
+
+Banque: Banque Nationale
+Code banque: XXXX
+Code guichet: XXXXX
+Numero de compte: XXXXXXXXXXX
+Cle RIB: XX
+
+IBAN: FR76 XXXX XXXX XXXX XXXX XXXX XXX
+BIC: BNPAFRPPXXX
+
+--------------------------------------------------------------------------------
+Document fourni par le client pour le reglement des factures
+================================================================================
+`,
+    }
+
+    return templates[type] || `
+================================================================================
+                              DOCUMENT ${nom.toUpperCase()}
+================================================================================
+
+Dossier: ${dossier.reference}
+Client: ${clientNom}
+Date: ${date}
+
+--------------------------------------------------------------------------------
+
+Contenu du document de demonstration.
+
+Ce fichier a ete genere automatiquement par le seeder de demonstration
+du Portail Cabinet d'Avocats.
+
+--------------------------------------------------------------------------------
+================================================================================
+`
   }
 
   /**

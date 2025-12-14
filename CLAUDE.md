@@ -485,6 +485,71 @@ node ace google:sync               # Sync multi-calendriers
 
 ---
 
+## Seeder de Demonstration
+
+Le projet inclut un seeder complet (`database/seeders/03_demo_seeder.ts`) qui genere des donnees realistes.
+
+### Utilisation
+
+```bash
+# Reset complet avec donnees de demo
+pnpm db:fresh
+# ou
+node ace migration:fresh && node ace db:seed
+```
+
+### Donnees Creees
+
+| Element | Quantite | Details |
+|---------|----------|---------|
+| **Admins** | 2 | 1 super_admin + 1 admin |
+| **Clients** | 5 | Particuliers et institutionnels |
+| **Dossiers** | 5 | 1 par client, types varies |
+| **Documents** | 9/dossier | Cabinet (3) + Client (4) + Client upload (2) |
+| **Evenements** | 6/dossier | Passes + en cours + futurs |
+| **Notes** | 4/dossier | Dont notes epinglees |
+| **Taches** | 6/dossier | Tous statuts et priorites |
+| **ActivityLogs** | 20+/dossier | Timeline complete |
+
+### Integrations Automatiques
+
+Si les integrations sont connectees avant le seeder:
+
+**OneDrive:**
+- Structure de dossiers creee automatiquement
+- Documents generes et uploades (fichiers texte realistes)
+- Contenu personnalise: contrats, factures, notes internes, etc.
+
+**Google Calendar:**
+- Evenements avec `syncGoogle=true` synchronises
+- Audiences, RDV, echeances futurs exportes
+
+### Identifiants de Demo
+
+```
+Super Admin: admin@cabinet.fr / Admin123!
+Admin:       avocat@cabinet.fr / Admin123!
+Clients:     jean-pierre.dupont@email.fr / Client123!
+             marie.bernard@email.fr / Client123!
+             antoine.garcia@pro.fr / Client123!
+             catherine.petit@gmail.com / Client123!
+             laurent.moreau@entreprise.com / Client123!
+```
+
+### Templates de Documents
+
+Le seeder genere des fichiers texte avec contenu realiste:
+- `note_interne` : Strategie juridique et points de vigilance
+- `analyse` : Analyse juridique detaillee
+- `correspondance` : Lettres au confrere adverse
+- `contrat` : Convention d'honoraires
+- `facture` : Facture de prestations
+- `piece_identite` : Simulation CNI
+- `justificatif` : Attestation domicile
+- `bancaire` : RIB simule
+
+---
+
 ## Composants UI Importants
 
 ### FilterBar (`components/ui/filter-bar.tsx`)

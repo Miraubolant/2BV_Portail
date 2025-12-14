@@ -101,21 +101,48 @@ docker compose up -d
 # Lancer les migrations
 pnpm db:migrate
 
-# Lancer les seeders (crée le super admin)
+# Lancer les seeders (crée le super admin + données de démo)
 pnpm db:seed
 
 # Démarrer le serveur de développement
 pnpm dev
 ```
 
+### Seeders de démonstration
+
+Le projet inclut un seeder complet qui génère des données de démonstration réalistes :
+
+```bash
+# Reset complet avec données de démo
+pnpm db:fresh
+# ou
+node ace migration:fresh && node ace db:seed
+```
+
+**Ce qui est créé :**
+- 2 administrateurs (super_admin + admin)
+- 5 clients avec profils variés (particuliers/entreprises)
+- 1 dossier par client avec détails juridiques complets
+- 9 documents par dossier (notes, contrats, factures, etc.)
+- 6 événements par dossier (audiences, RDV, échéances)
+- Notes internes et tâches assignées
+- Historique d'activité complet (timeline)
+
+**Intégrations automatiques (si connectées) :**
+- ✅ **OneDrive** : Crée la structure de dossiers et upload les documents
+- ✅ **Google Calendar** : Synchronise les événements futurs
+
+> 💡 Pour bénéficier des intégrations, connectez OneDrive et Google Calendar dans les paramètres admin avant de lancer le seeder.
+
 ### Accès par défaut
 
 | Portail | URL | Identifiants |
 |---------|-----|--------------|
-| Admin | http://localhost:3333/admin/login | `admin@cabinet.fr` / `Admin123!` |
-| Client | http://localhost:3333/client/login | (créer via admin) |
+| Admin (super) | http://localhost:3333/admin/login | `admin@cabinet.fr` / `Admin123!` |
+| Admin | http://localhost:3333/admin/login | `avocat@cabinet.fr` / `Admin123!` |
+| Clients démo | http://localhost:3333/client/login | `jean-pierre.dupont@email.fr` / `Client123!` |
 
-> ⚠️ **Changez le mot de passe admin par défaut immédiatement**
+> ⚠️ **Changez les mots de passe par défaut en production !**
 
 ---
 
