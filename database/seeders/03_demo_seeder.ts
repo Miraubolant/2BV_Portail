@@ -9,6 +9,8 @@ import Task from '#models/task'
 import ActivityLog from '#models/activity_log'
 import Admin from '#models/admin'
 import { randomUUID } from 'node:crypto'
+import dossierFolderService from '#services/microsoft/dossier_folder_service'
+import calendarSyncService from '#services/google/calendar_sync_service'
 
 /**
  * Seeder de demonstration complet
@@ -24,12 +26,11 @@ import { randomUUID } from 'node:crypto'
  */
 export default class DemoSeeder extends BaseSeeder {
   async run() {
-    // Verifier si des clients existent deja
-    const existingClients = await Client.query().count('* as total')
-    const clientCount = Number(existingClients[0].$extras.total)
+    // Verifier si des clients demo existent deja (via email specifique)
+    const existingDemoClient = await Client.findBy('email', 'jean-pierre.dupont@email.fr')
 
-    if (clientCount >= 5) {
-      console.log(`${clientCount} clients existent deja, seeder demo ignore`)
+    if (existingDemoClient) {
+      console.log('Donnees de demo deja presentes, seeder ignore')
       return
     }
 
@@ -50,6 +51,9 @@ export default class DemoSeeder extends BaseSeeder {
       const client = await this.createClient(clientData, superAdmin, admin)
       const dossier = await this.createDossier(clientData, client, superAdmin, admin, index)
 
+      // Creer le dossier OneDrive (si connecte)
+      await this.syncDossierToOneDrive(dossier)
+
       // Creer les documents
       const documents = await this.createDocuments(dossier, superAdmin, client)
       console.log(`   - ${documents.length} documents crees`)
@@ -57,6 +61,9 @@ export default class DemoSeeder extends BaseSeeder {
       // Creer les evenements
       const evenements = await this.createEvenements(dossier, superAdmin, index)
       console.log(`   - ${evenements.length} evenements crees`)
+
+      // Synchroniser les evenements sur Google Calendar (si connecte)
+      await this.syncEvenementsToGoogle(evenements)
 
       // Creer les notes
       const notes = await this.createNotes(dossier, superAdmin, admin)
@@ -871,5 +878,53 @@ export default class DemoSeeder extends BaseSeeder {
       return '2 allee Jules Guesde, 31000 Toulouse'
     }
     return 'Palais de Justice'
+  }
+
+  /**
+   * Synchroniser un dossier avec OneDrive (creer la structure de dossiers)
+   */
+  private async syncDossierToOneDrive(dossier: Dossier) {
+    try {
+      const result = await dossierFolderService.createDossierFolder(dossier.id)
+      if (result.success) {
+        console.log(`   - Dossier OneDrive cree: ${result.folderPath}`)
+      } else if (result.error?.includes('not connected')) {
+        console.log(`   - OneDrive non connecte (dossier non cree sur OneDrive)`)
+      } else {
+        console.log(`   - Erreur OneDrive: ${result.error}`)
+      }
+    } catch (error) {
+      console.log(`   - OneDrive non disponible`)
+    }
+  }
+
+  /**
+   * Synchroniser les evenements avec Google Calendar
+   */
+  private async syncEvenementsToGoogle(evenements: Evenement[]) {
+    const eventsToSync = evenements.filter((e) => e.syncGoogle)
+    if (eventsToSync.length === 0) return
+
+    let synced = 0
+    let skipped = 0
+
+    for (const evt of eventsToSync) {
+      try {
+        const result = await calendarSyncService.syncEventToGoogle(evt.id)
+        if (result.success) {
+          synced++
+        } else if (result.error?.includes('not connected')) {
+          skipped++
+        }
+      } catch {
+        skipped++
+      }
+    }
+
+    if (synced > 0) {
+      console.log(`   - ${synced} evenements synchronises sur Google Calendar`)
+    } else if (skipped > 0) {
+      console.log(`   - Google Calendar non connecte (${skipped} evenements non synchronises)`)
+    }
   }
 }
