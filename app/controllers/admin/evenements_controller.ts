@@ -4,6 +4,7 @@ import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
 import calendarSyncService from '#services/google/calendar_sync_service'
 import GoogleToken from '#models/google_token'
+import GoogleCalendar from '#models/google_calendar'
 import googleConfig from '#config/google'
 import ActivityLogger from '#services/activity_logger'
 import logger from '@adonisjs/core/services/logger'
@@ -143,11 +144,25 @@ export default class EvenementsController {
     // Extraire les dates et googleCalendarId
     const { dateDebut, dateFin, googleCalendarId, ...restData } = data
 
+    // Si syncGoogle est true mais qu'aucun calendrier n'est specifie, auto-assigner le premier calendrier actif
+    let finalGoogleCalendarId = googleCalendarId || null
+    if (restData.syncGoogle && !finalGoogleCalendarId) {
+      const activeCalendar = await GoogleCalendar.query().where('is_active', true).first()
+      if (activeCalendar) {
+        finalGoogleCalendarId = activeCalendar.id
+        logger.info({ calendarId: activeCalendar.id, calendarName: activeCalendar.calendarName }, 'Auto-assigned Google Calendar for new event')
+      } else {
+        // Aucun calendrier actif - desactiver syncGoogle
+        restData.syncGoogle = false
+        logger.warn('No active Google Calendar found, disabling syncGoogle for new event')
+      }
+    }
+
     const evenement = await Evenement.create({
       ...restData,
       dateDebut: DateTime.fromISO(dateDebut),
       dateFin: DateTime.fromISO(dateFin),
-      googleCalendarId: googleCalendarId || null,
+      googleCalendarId: finalGoogleCalendarId,
       createdById: admin.id,
     })
 

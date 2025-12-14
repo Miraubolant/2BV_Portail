@@ -28,6 +28,7 @@ import {
   ADMIN_DOSSIERS_API,
   ADMIN_EVENEMENTS_API,
   ADMIN_RESPONSABLES_API,
+  GOOGLE_ACTIVE_CALENDARS_API,
 } from '@/lib/constants'
 import {
   UserPlus,
@@ -71,6 +72,14 @@ interface AdminOption {
   nom: string
   prenom: string
   username: string | null
+}
+
+interface GoogleCalendarOption {
+  id: string
+  calendarId: string
+  calendarName: string
+  calendarColor: string | null
+  tokenAccountEmail: string | null
 }
 
 interface UnifiedAddModalProps {
@@ -531,10 +540,12 @@ const EventForm = memo(function EventForm({
   formData,
   setFormData,
   dossiers,
+  googleCalendars,
 }: {
   formData: any
   setFormData: (data: any) => void
   dossiers: DossierOption[]
+  googleCalendars: GoogleCalendarOption[]
 }) {
   const [dossierSearch, setDossierSearch] = useState('')
 
@@ -768,19 +779,63 @@ const EventForm = memo(function EventForm({
           />
         </div>
 
-        <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-blue-600" />
-            <div>
-              <p className="text-sm font-medium">Google Calendar</p>
-              <p className="text-xs text-muted-foreground">Synchroniser avec votre agenda Google</p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium">Google Calendar</p>
+                <p className="text-xs text-muted-foreground">Synchroniser avec votre agenda Google</p>
+              </div>
             </div>
+            <Checkbox
+              id="syncGoogle"
+              checked={formData.syncGoogle}
+              onCheckedChange={(checked) => setFormData({ ...formData, syncGoogle: checked, googleCalendarId: checked ? formData.googleCalendarId : '' })}
+            />
           </div>
-          <Checkbox
-            id="syncGoogle"
-            checked={formData.syncGoogle}
-            onCheckedChange={(checked) => setFormData({ ...formData, syncGoogle: checked })}
-          />
+
+          {formData.syncGoogle && googleCalendars.length > 0 && (
+            <div className="space-y-2 pl-3">
+              <Label htmlFor="googleCalendarId" className="text-sm">Calendrier cible</Label>
+              <Select
+                value={formData.googleCalendarId || 'auto'}
+                onValueChange={(value) => setFormData({ ...formData, googleCalendarId: value === 'auto' ? '' : value })}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Selectionner un calendrier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">
+                    <span className="text-muted-foreground">Automatique (premier calendrier actif)</span>
+                  </SelectItem>
+                  {googleCalendars.map((cal) => (
+                    <SelectItem key={cal.id} value={cal.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: cal.calendarColor || '#4285f4' }}
+                        />
+                        <span>{cal.calendarName}</span>
+                        {cal.tokenAccountEmail && (
+                          <span className="text-muted-foreground text-xs">({cal.tokenAccountEmail})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {formData.syncGoogle && googleCalendars.length === 0 && (
+            <Alert className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                Aucun calendrier Google actif. Configurez-le dans les parametres.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </div>
     </div>
@@ -804,6 +859,7 @@ export function UnifiedAddModal({
   const [clients, setClients] = useState<ClientOption[]>([])
   const [dossiers, setDossiers] = useState<DossierOption[]>([])
   const [admins, setAdmins] = useState<AdminOption[]>([])
+  const [googleCalendars, setGoogleCalendars] = useState<GoogleCalendarOption[]>([])
 
   // Form states
   const [clientForm, setClientForm] = useState({
@@ -848,6 +904,7 @@ export function UnifiedAddModal({
     adresse: '',
     salle: '',
     syncGoogle: true,
+    googleCalendarId: '',
   })
 
   // Fetch data
@@ -893,13 +950,28 @@ export function UnifiedAddModal({
     }
   }, [])
 
+  const fetchGoogleCalendars = useCallback(async () => {
+    try {
+      const response = await fetch(GOOGLE_ACTIVE_CALENDARS_API, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setGoogleCalendars(result || [])
+      }
+    } catch (error) {
+      console.error('Error fetching Google calendars:', error)
+    }
+  }, [])
+
   useEffect(() => {
     if (open) {
       fetchClients()
       fetchDossiers()
       fetchAdmins()
+      fetchGoogleCalendars()
     }
-  }, [open, fetchClients, fetchDossiers, fetchAdmins])
+  }, [open, fetchClients, fetchDossiers, fetchAdmins, fetchGoogleCalendars])
 
   useEffect(() => {
     setActiveTab(defaultTab)
@@ -948,6 +1020,7 @@ export function UnifiedAddModal({
         adresse: '',
         salle: '',
         syncGoogle: true,
+        googleCalendarId: '',
       })
     }
   }, [open])
@@ -1057,6 +1130,7 @@ export function UnifiedAddModal({
         adresse: eventForm.adresse || null,
         salle: eventForm.salle || null,
         syncGoogle: eventForm.syncGoogle,
+        googleCalendarId: eventForm.googleCalendarId || null,
       }
 
       const response = await fetch(ADMIN_EVENEMENTS_API, {
@@ -1193,7 +1267,7 @@ export function UnifiedAddModal({
               </TabsContent>
 
               <TabsContent value="evenement" className="mt-0 h-full">
-                <EventForm formData={eventForm} setFormData={setEventForm} dossiers={dossiers} />
+                <EventForm formData={eventForm} setFormData={setEventForm} dossiers={dossiers} googleCalendars={googleCalendars} />
               </TabsContent>
             </div>
           </Tabs>

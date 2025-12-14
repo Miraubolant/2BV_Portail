@@ -835,6 +835,7 @@ class CalendarSyncService {
   /**
    * Full sync for multi-calendar mode:
    * - Push all portal events with syncGoogle=true to their target calendars
+   * - Auto-assign calendar to events that don't have one
    * - Pull events from all active calendars
    */
   async fullSyncMultiCalendar(
@@ -850,6 +851,25 @@ class CalendarSyncService {
     let skipped = 0
 
     try {
+      // Get the first active calendar for auto-assignment
+      const activeCalendars = await GoogleCalendar.findAllActive()
+      const defaultCalendar = activeCalendars.length > 0 ? activeCalendars[0] : null
+
+      // First, auto-assign calendar to events that have syncGoogle=true but no calendar
+      if (defaultCalendar) {
+        const unassignedEvents = await Evenement.query()
+          .where('sync_google', true)
+          .whereNull('google_calendar_id')
+
+        if (unassignedEvents.length > 0) {
+          details.push(`Auto-assigning ${unassignedEvents.length} events to calendar: ${defaultCalendar.calendarName}`)
+          for (const event of unassignedEvents) {
+            event.googleCalendarId = defaultCalendar.id
+            await event.save()
+          }
+        }
+      }
+
       // Get all events that should be synced and have a target calendar
       const evenements = await Evenement.query()
         .where('sync_google', true)
