@@ -512,6 +512,42 @@ const ParametresPage = () => {
                         className="h-9"
                       />
                     </div>
+
+                    <Separator />
+
+                    {/* Configuration email expediteur */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <Label className="text-sm font-medium">Configuration email expediteur</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground -mt-1">
+                        Expediteur des emails automatiques envoyes aux clients
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="email_from_address" className="text-xs text-muted-foreground">Email</Label>
+                          <Input
+                            id="email_from_address"
+                            type="email"
+                            value={parametres.email_from_address || ''}
+                            onChange={(e) => handleChange('email_from_address', e.target.value)}
+                            placeholder="noreply@cabinet.fr"
+                            className="h-9"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email_from_name" className="text-xs text-muted-foreground">Nom</Label>
+                          <Input
+                            id="email_from_name"
+                            value={parametres.email_from_name || ''}
+                            onChange={(e) => handleChange('email_from_name', e.target.value)}
+                            placeholder="Cabinet d'Avocats"
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -766,41 +802,6 @@ const ParametresPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Config Email */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Configuration email
-                    </CardTitle>
-                    <CardDescription>
-                      Expediteur des emails automatiques
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email_from_address" className="text-sm">Email expediteur</Label>
-                      <Input
-                        id="email_from_address"
-                        type="email"
-                        value={parametres.email_from_address || ''}
-                        onChange={(e) => handleChange('email_from_address', e.target.value)}
-                        placeholder="noreply@cabinet.fr"
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email_from_name" className="text-sm">Nom expediteur</Label>
-                      <Input
-                        id="email_from_name"
-                        value={parametres.email_from_name || ''}
-                        onChange={(e) => handleChange('email_from_name', e.target.value)}
-                        placeholder="Cabinet d'Avocats"
-                        className="h-9"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Types personnalises */}
