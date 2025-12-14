@@ -3,7 +3,7 @@ import { CommandOptions } from '@adonisjs/core/types/ace'
 
 export default class OnedriveReverseSync extends BaseCommand {
   static commandName = 'onedrive:reverse-sync'
-  static description = 'Scan OneDrive folders and import files to existing dossiers'
+  static description = 'Scanner les dossiers OneDrive et importer les fichiers vers les dossiers existants'
 
   static options: CommandOptions = {
     startApp: true,
@@ -12,30 +12,30 @@ export default class OnedriveReverseSync extends BaseCommand {
   async run() {
     const { default: syncService } = await import('#services/microsoft/sync_service')
 
-    this.logger.info('Starting OneDrive reverse sync...')
-    this.logger.info('Scanning /Portail Cabinet/Clients/ folder...')
+    this.logger.info('Demarrage du sync inverse OneDrive...')
+    this.logger.info('Scan du dossier /Portail Cabinet/Clients/...')
 
     const result = await syncService.reverseSyncFromOneDrive()
 
     if (result.success) {
-      this.logger.success(`Reverse sync completed successfully!`)
+      this.logger.success(`Sync inverse termine avec succes!`)
     } else {
-      this.logger.warning(`Reverse sync completed with issues`)
+      this.logger.warning(`Sync inverse termine avec des erreurs`)
     }
 
-    this.logger.info(`Files imported: ${result.created}`)
-    this.logger.info(`Dossiers linked: ${result.linkedDossiers}`)
-    this.logger.info(`Errors: ${result.errors}`)
+    this.logger.info(`Fichiers importes: ${result.created}`)
+    this.logger.info(`Dossiers lies: ${result.linkedDossiers}`)
+    this.logger.info(`Erreurs: ${result.errors}`)
 
     if (result.unmatchedClients.length > 0) {
-      this.logger.warning(`Unmatched client folders: ${result.unmatchedClients.length}`)
+      this.logger.warning(`Dossiers clients non reconnus: ${result.unmatchedClients.length}`)
       for (const client of result.unmatchedClients) {
         this.logger.info(`  - ${client}`)
       }
     }
 
     if (result.unmatchedDossiers.length > 0) {
-      this.logger.warning(`Unmatched dossier folders: ${result.unmatchedDossiers.length}`)
+      this.logger.warning(`Dossiers affaires non reconnus: ${result.unmatchedDossiers.length}`)
       for (const dossier of result.unmatchedDossiers) {
         this.logger.info(`  - ${dossier}`)
       }
@@ -48,7 +48,7 @@ export default class OnedriveReverseSync extends BaseCommand {
         this.logger.info(`  ${detail}`)
       }
       if (result.details.length > 20) {
-        this.logger.info(`  ... and ${result.details.length - 20} more`)
+        this.logger.info(`  ... et ${result.details.length - 20} autres`)
       }
     }
   }

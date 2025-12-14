@@ -137,11 +137,11 @@ class SyncService {
           try {
             await this.importFileFromOneDrive(dossier, item)
             created++
-            details.push(`Imported: ${item.name}`)
+            details.push(`Importe: ${item.name}`)
           } catch (error) {
             errors++
             details.push(
-              `Error importing ${item.name}: ${error instanceof Error ? error.message : 'Unknown'}`
+              `Erreur import ${item.name}: ${error instanceof Error ? error.message : 'Inconnu'}`
             )
           }
         } else {
@@ -156,7 +156,7 @@ class SyncService {
             existingDoc.onedriveDownloadUrl = item['@microsoft.graph.downloadUrl'] || null
             await existingDoc.save()
             updated++
-            details.push(`Updated: ${item.name}`)
+            details.push(`Mis a jour: ${item.name}`)
 
             // Log activity for timeline
             await ActivityLogger.logDocumentSyncedFromOneDrive(existingDoc.id, dossier.id, {
@@ -182,7 +182,7 @@ class SyncService {
           doc.onedriveDownloadUrl = null
           await doc.save()
           deleted++
-          details.push(`Marked as deleted (removed from OneDrive): ${doc.nom}`)
+          details.push(`Supprime de OneDrive: ${doc.nom}`)
 
           // Log activity for timeline
           await ActivityLogger.logDocumentRemovedFromOneDrive(doc.id, dossier.id, {
@@ -207,7 +207,7 @@ class SyncService {
         elementsModifies: updated,
         elementsSupprimes: deleted,
         elementsErreur: errors,
-        message: `Sync completed for ${dossier.reference}`,
+        message: `Sync termine pour ${dossier.reference}`,
         details: { dossierReference: dossier.reference, details },
         dureeMs: duration,
         triggeredById,
@@ -222,7 +222,7 @@ class SyncService {
         updated,
         deleted,
         errors,
-        message: errors === 0 ? 'Sync completed successfully' : 'Sync completed with errors',
+        message: errors === 0 ? 'Synchronisation terminee' : 'Synchronisation terminee avec erreurs',
         details,
       }
     } catch (error) {
@@ -365,7 +365,7 @@ class SyncService {
       elementsModifies: totalUpdated,
       elementsSupprimes: totalDeleted,
       elementsErreur: totalErrors,
-      message: `Full sync completed: ${dossiers.length} dossiers processed`,
+      message: `Sync complet termine: ${dossiers.length} dossiers traites`,
       details: { totalDossiers: dossiers.length, details },
       dureeMs: duration,
       triggeredById,
@@ -378,7 +378,7 @@ class SyncService {
       updated: totalUpdated,
       deleted: totalDeleted,
       errors: totalErrors,
-      message: `Sync completed: ${dossiers.length} dossiers processed`,
+      message: `Synchronisation terminee: ${dossiers.length} dossiers traites`,
       details,
     }
   }
@@ -398,7 +398,7 @@ class SyncService {
       elementsModifies: 0,
       elementsSupprimes: 0,
       elementsErreur: result.errors,
-      message: 'Initialization sync completed',
+      message: 'Initialisation terminee',
       details: { details: result.details },
       triggeredById,
     })
@@ -410,7 +410,7 @@ class SyncService {
       updated: 0,
       deleted: 0,
       errors: result.errors,
-      message: `Initialization completed: ${result.synced} folders created`,
+      message: `Initialisation terminee: ${result.synced} dossiers crees`,
       details: result.details,
     }
   }
@@ -633,7 +633,7 @@ class SyncService {
         elementsModifies: updated,
         elementsSupprimes: 0,
         elementsErreur: errors,
-        message: `Reverse sync completed: ${created} files imported, ${linkedDossiers} dossiers linked`,
+        message: `Sync inverse termine: ${created} fichiers importes, ${linkedDossiers} dossiers lies`,
         details: {
           unmatchedClients,
           unmatchedDossiers,
@@ -651,7 +651,7 @@ class SyncService {
         updated,
         deleted: 0,
         errors,
-        message: `Reverse sync completed: ${created} files imported, ${linkedDossiers} dossiers linked`,
+        message: `Sync inverse termine: ${created} fichiers importes, ${linkedDossiers} dossiers lies`,
         details,
         unmatchedClients,
         unmatchedDossiers,
@@ -768,7 +768,7 @@ class SyncService {
       }
     } catch (error) {
       errors++
-      details.push(`Error scanning folder: ${error instanceof Error ? error.message : 'Unknown'}`)
+      details.push(`Erreur scan dossier: ${error instanceof Error ? error.message : 'Inconnu'}`)
     }
 
     return { created, updated, errors, details }
@@ -833,14 +833,14 @@ class SyncService {
         created: true,
         updated: false,
         error: false,
-        message: `Imported: ${fileName} (${location.toUpperCase()})`,
+        message: `Importe: ${fileName} (${location.toUpperCase()})`,
       }
     } catch (error) {
       return {
         created: false,
         updated: false,
         error: true,
-        message: `Error importing ${item.name}: ${error instanceof Error ? error.message : 'Unknown'}`,
+        message: `Erreur import ${item.name}: ${error instanceof Error ? error.message : 'Inconnu'}`,
       }
     }
   }
