@@ -6,6 +6,7 @@ import Client from '#models/client'
 import SyncLog from '#models/sync_log'
 import { DateTime } from 'luxon'
 import logger from '@adonisjs/core/services/logger'
+import ActivityLogger from '#services/activity_logger'
 
 const ROOT_FOLDER_NAME = 'Portail Cabinet'
 const CLIENTS_FOLDER_NAME = 'Clients'
@@ -156,6 +157,13 @@ class SyncService {
             await existingDoc.save()
             updated++
             details.push(`Updated: ${item.name}`)
+
+            // Log activity for timeline
+            await ActivityLogger.logDocumentSyncedFromOneDrive(existingDoc.id, dossier.id, {
+              documentName: item.name,
+              onedriveFileId: item.id,
+              changes: ['Metadata updated from OneDrive'],
+            })
           }
         }
       }
@@ -164,6 +172,9 @@ class SyncService {
       for (const doc of existingDocs) {
         if (doc.onedriveFileId && !oneDriveFileIds.has(doc.onedriveFileId)) {
           // File was deleted from OneDrive
+          const deletedFileId = doc.onedriveFileId
+          const deletedFileName = doc.nom
+
           // Option: Mark as deleted or actually delete
           // For now, we'll clear the OneDrive references
           doc.onedriveFileId = null
@@ -172,6 +183,12 @@ class SyncService {
           await doc.save()
           deleted++
           details.push(`Marked as deleted (removed from OneDrive): ${doc.nom}`)
+
+          // Log activity for timeline
+          await ActivityLogger.logDocumentRemovedFromOneDrive(doc.id, dossier.id, {
+            documentName: deletedFileName,
+            onedriveFileId: deletedFileId,
+          })
         }
       }
 
@@ -228,29 +245,45 @@ class SyncService {
   /**
    * Import a file from OneDrive into the database
    */
-  private async importFileFromOneDrive(dossier: Dossier, item: DriveItem): Promise<Document> {
+  private async importFileFromOneDrive(
+    dossier: Dossier,
+    item: DriveItem,
+    location: 'cabinet' | 'client' = 'client'
+  ): Promise<Document> {
     // Extract file info
     const fileName = item.name
     const extension = fileName.includes('.') ? fileName.split('.').pop() || '' : ''
     const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
+    const typeDocument = this.guessDocumentType(extension)
 
     // Create document record
     const document = await Document.create({
       dossierId: dossier.id,
       nom: nameWithoutExt,
       nomOriginal: fileName,
-      typeDocument: this.guessDocumentType(extension),
+      typeDocument,
       tailleOctets: item.size || null,
       mimeType: item.file?.mimeType || null,
       extension: extension || null,
       sensible: false,
-      visibleClient: true,
+      visibleClient: location === 'client',
       uploadedByClient: false,
       uploadedById: dossier.createdById || 'system',
       uploadedByType: 'admin',
+      dossierLocation: location,
       onedriveFileId: item.id,
       onedriveWebUrl: item.webUrl || null,
       onedriveDownloadUrl: item['@microsoft.graph.downloadUrl'] || null,
+    })
+
+    // Log activity for timeline
+    await ActivityLogger.logDocumentImportedFromOneDrive(document.id, dossier.id, {
+      documentName: fileName,
+      documentType: typeDocument,
+      mimeType: item.file?.mimeType || null,
+      dossierLocation: location,
+      onedriveFileId: item.id,
+      source: 'sync',
     })
 
     return document
@@ -764,13 +797,14 @@ class SyncService {
       const fileName = item.name
       const extension = fileName.includes('.') ? fileName.split('.').pop() || '' : ''
       const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
+      const typeDocument = this.guessDocumentType(extension)
 
       // Create document record
-      await Document.create({
+      const document = await Document.create({
         dossierId: dossier.id,
         nom: nameWithoutExt,
         nomOriginal: fileName,
-        typeDocument: this.guessDocumentType(extension),
+        typeDocument,
         tailleOctets: item.size || null,
         mimeType: item.file?.mimeType || null,
         extension: extension || null,
@@ -783,6 +817,16 @@ class SyncService {
         onedriveFileId: item.id,
         onedriveWebUrl: item.webUrl || null,
         onedriveDownloadUrl: item['@microsoft.graph.downloadUrl'] || null,
+      })
+
+      // Log activity for timeline
+      await ActivityLogger.logDocumentImportedFromOneDrive(document.id, dossier.id, {
+        documentName: fileName,
+        documentType: typeDocument,
+        mimeType: item.file?.mimeType || null,
+        dossierLocation: location,
+        onedriveFileId: item.id,
+        source: 'sync',
       })
 
       return {

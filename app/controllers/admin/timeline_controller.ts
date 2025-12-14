@@ -81,7 +81,24 @@ export default class TimelineController {
 
     // Filtrer par type d'action si specifie
     if (actionFilter) {
-      query = query.where('action', 'like', `${actionFilter}%`)
+      if (actionFilter === 'onedrive') {
+        // Filtrer tous les events OneDrive (onedrive.*, document.*_onedrive, dossier.onedrive_*)
+        query = query.where((builder) => {
+          builder
+            .where('action', 'like', 'onedrive%')
+            .orWhere('action', 'like', '%_onedrive')
+            .orWhere('action', 'like', 'dossier.onedrive%')
+        })
+      } else if (actionFilter === 'google_calendar') {
+        // Filtrer tous les events Google Calendar (google_calendar.*, evenement.*_google)
+        query = query.where((builder) => {
+          builder
+            .where('action', 'like', 'google_calendar%')
+            .orWhere('action', 'like', '%_google')
+        })
+      } else {
+        query = query.where('action', 'like', `${actionFilter}%`)
+      }
     }
 
     const activities = await query
@@ -279,6 +296,185 @@ export default class TimelineController {
           color: 'red',
           title: 'Tache supprimee',
           description: metadata.titre || 'Tache',
+        }
+
+      // ============================================
+      // EVENTS ONEDRIVE SYNC
+      // ============================================
+
+      case 'document.imported_onedrive': {
+        const importLocationLabel = metadata.dossierLocation === 'client' ? 'CLIENT' : 'CABINET'
+        return {
+          icon: 'cloud-download',
+          color: 'cyan',
+          title: `Document importe depuis OneDrive (${importLocationLabel})`,
+          description: metadata.documentName || 'Document',
+        }
+      }
+
+      case 'document.synced_onedrive':
+        return {
+          icon: 'refresh-cw',
+          color: 'cyan',
+          title: 'Document synchronise depuis OneDrive',
+          description: metadata.documentName || 'Document',
+        }
+
+      case 'document.removed_onedrive':
+        return {
+          icon: 'cloud-off',
+          color: 'orange',
+          title: 'Document retire de OneDrive',
+          description: `${metadata.documentName || 'Document'} a ete supprime sur OneDrive`,
+        }
+
+      case 'onedrive.sync':
+        return {
+          icon: 'cloud',
+          color: 'cyan',
+          title: 'Synchronisation OneDrive',
+          description: `${metadata.imported || 0} importes, ${metadata.updated || 0} maj, ${metadata.deleted || 0} supprimes`,
+        }
+
+      case 'dossier.onedrive_linked':
+        return {
+          icon: 'link',
+          color: 'cyan',
+          title: 'Dossier OneDrive lie',
+          description: metadata.onedriveFolderPath || 'Dossier lie a OneDrive',
+        }
+
+      // ============================================
+      // EVENTS GOOGLE CALENDAR
+      // ============================================
+
+      case 'evenement.imported_google':
+        return {
+          icon: 'calendar-check',
+          color: 'emerald',
+          title: 'Evenement importe de Google Calendar',
+          description: metadata.titre || 'Evenement',
+        }
+
+      case 'evenement.synced_google':
+        return {
+          icon: 'calendar-check',
+          color: 'emerald',
+          title: 'Evenement synchronise vers Google Calendar',
+          description: metadata.titre || 'Evenement',
+        }
+
+      case 'google_calendar.sync':
+        return {
+          icon: 'calendar',
+          color: 'emerald',
+          title: 'Synchronisation Google Calendar',
+          description: `${metadata.imported || 0} importes, ${metadata.updated || 0} maj${metadata.calendarName ? ` (${metadata.calendarName})` : ''}`,
+        }
+
+      // ============================================
+      // EVENTS NOTE SUPPLEMENTAIRES
+      // ============================================
+
+      case 'note.deleted':
+        return {
+          icon: 'trash-2',
+          color: 'red',
+          title: 'Note supprimee',
+          description: metadata.preview || 'Note',
+        }
+
+      case 'note.pinned':
+        return {
+          icon: 'pin',
+          color: 'yellow',
+          title: 'Note epinglee',
+          description: 'Note mise en avant',
+        }
+
+      case 'note.unpinned':
+        return {
+          icon: 'pin-off',
+          color: 'gray',
+          title: 'Note desepinglee',
+          description: 'Note retiree des epinglees',
+        }
+
+      // ============================================
+      // EVENTS DOSSIER SUPPLEMENTAIRES
+      // ============================================
+
+      case 'dossier.responsable_changed':
+        return {
+          icon: 'user-check',
+          color: 'blue',
+          title: 'Responsable modifie',
+          description: metadata.newResponsable?.nom
+            ? `Nouveau responsable: ${metadata.newResponsable.nom}`
+            : 'Responsable modifie',
+        }
+
+      case 'dossier.client_changed':
+        return {
+          icon: 'users',
+          color: 'blue',
+          title: 'Client modifie',
+          description: metadata.newClient?.nom ? `Nouveau client: ${metadata.newClient.nom}` : 'Client modifie',
+        }
+
+      case 'dossier.archived':
+        return {
+          icon: 'archive',
+          color: 'gray',
+          title: 'Dossier archive',
+          description: `Dossier "${metadata.reference}" archive`,
+        }
+
+      case 'dossier.reopened':
+        return {
+          icon: 'folder-open',
+          color: 'green',
+          title: 'Dossier rouvert',
+          description: `Dossier "${metadata.reference}" rouvert`,
+        }
+
+      // ============================================
+      // EVENTS DOCUMENT SUPPLEMENTAIRES
+      // ============================================
+
+      case 'document.visibility_changed':
+        return {
+          icon: metadata.newVisibility ? 'eye' : 'eye-off',
+          color: metadata.newVisibility ? 'green' : 'orange',
+          title: metadata.newVisibility ? 'Document rendu visible' : 'Document masque',
+          description: `${metadata.documentName || 'Document'} ${metadata.newVisibility ? 'visible par le client' : 'masque au client'}`,
+        }
+
+      case 'document.moved': {
+        const fromLabel = metadata.oldLocation === 'client' ? 'CLIENT' : 'CABINET'
+        const toLabel = metadata.newLocation === 'client' ? 'CLIENT' : 'CABINET'
+        return {
+          icon: 'move',
+          color: 'blue',
+          title: 'Document deplace',
+          description: `${metadata.documentName || 'Document'} deplace de ${fromLabel} vers ${toLabel}`,
+        }
+      }
+
+      case 'document.renamed':
+        return {
+          icon: 'edit-2',
+          color: 'blue',
+          title: 'Document renomme',
+          description: `"${metadata.oldName}" → "${metadata.newName}"`,
+        }
+
+      case 'document.downloaded':
+        return {
+          icon: 'download',
+          color: 'green',
+          title: 'Document telecharge',
+          description: metadata.documentName || 'Document',
         }
 
       default:

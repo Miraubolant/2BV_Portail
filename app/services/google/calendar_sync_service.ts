@@ -5,6 +5,7 @@ import Dossier from '#models/dossier'
 import GoogleCalendar from '#models/google_calendar'
 import { DateTime } from 'luxon'
 import logger from '@adonisjs/core/services/logger'
+import ActivityLogger from '#services/activity_logger'
 
 interface SyncResult {
   success: boolean
@@ -448,6 +449,13 @@ class CalendarSyncService {
               createdById: triggeredById || null,
             })
 
+            // Log activity for timeline
+            await ActivityLogger.logEvenementImportedFromGoogle(newEvent.id, dossierId, {
+              titre: newEvent.titre,
+              googleEventId: googleEvent.id,
+              source: 'sync',
+            })
+
             created++
             details.push(`Importe: ${newEvent.titre}${dossierInfo}`)
           } catch (error) {
@@ -668,6 +676,15 @@ class CalendarSyncService {
                 syncGoogle: true,
                 googleLastSync: DateTime.now(),
                 createdById: triggeredById || null,
+              })
+
+              // Log activity for timeline
+              await ActivityLogger.logEvenementImportedFromGoogle(newEvent.id, dossierId, {
+                titre: newEvent.titre,
+                googleEventId: googleEvent.id,
+                googleCalendarId: calendar.id,
+                googleCalendarName: calendar.calendarName,
+                source: 'sync',
               })
 
               created++

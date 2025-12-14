@@ -20,8 +20,10 @@ import {
   CalendarPlus,
   Calendar,
   CalendarX,
+  CalendarCheck,
   StickyNote,
   Edit3,
+  Edit2,
   LoaderCircle,
   ChevronDown,
   User,
@@ -29,6 +31,21 @@ import {
   CheckSquare,
   CheckCircle,
   RotateCcw,
+  CloudDownload,
+  CloudOff,
+  Cloud,
+  Link,
+  Pin,
+  PinOff,
+  UserCheck,
+  Users,
+  Archive,
+  FolderOpen,
+  Eye,
+  EyeOff,
+  Move,
+  Download,
+  Bot,
 } from 'lucide-react'
 
 interface TimelineEntry {
@@ -61,12 +78,32 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'calendar-plus': CalendarPlus,
   'calendar': Calendar,
   'calendar-x': CalendarX,
+  'calendar-check': CalendarCheck,
   'sticky-note': StickyNote,
   'edit-3': Edit3,
+  'edit-2': Edit2,
   'activity': Activity,
   'check-square': CheckSquare,
   'check-circle': CheckCircle,
   'rotate-ccw': RotateCcw,
+  // OneDrive sync icons
+  'cloud-download': CloudDownload,
+  'cloud-off': CloudOff,
+  'cloud': Cloud,
+  'link': Link,
+  // Note icons
+  'pin': Pin,
+  'pin-off': PinOff,
+  // Dossier icons
+  'user-check': UserCheck,
+  'users': Users,
+  'archive': Archive,
+  'folder-open': FolderOpen,
+  // Document icons
+  'eye': Eye,
+  'eye-off': EyeOff,
+  'move': Move,
+  'download': Download,
 }
 
 const colorMap: Record<string, string> = {
@@ -76,6 +113,9 @@ const colorMap: Record<string, string> = {
   purple: 'bg-purple-500',
   yellow: 'bg-yellow-500',
   gray: 'bg-gray-500',
+  cyan: 'bg-cyan-500',
+  emerald: 'bg-emerald-500',
+  orange: 'bg-orange-500',
 }
 
 const filterOptions = [
@@ -85,6 +125,8 @@ const filterOptions = [
   { value: 'evenement', label: 'Evenements' },
   { value: 'note', label: 'Notes' },
   { value: 'task', label: 'Taches' },
+  { value: 'onedrive', label: 'OneDrive' },
+  { value: 'google_calendar', label: 'Google Calendar' },
 ]
 
 export function DossierTimeline({ dossierId }: DossierTimelineProps) {
@@ -286,19 +328,31 @@ export function DossierTimeline({ dossierId }: DossierTimelineProps) {
                             </div>
                           </div>
 
-                          {entry.user && (
-                            <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
-                              <User className="h-3 w-3" />
-                              <span>
-                                {entry.user.prenom} {entry.user.nom}
-                                {entry.user.type === 'client' && (
-                                  <Badge variant="secondary" className="ml-1.5 text-[10px] py-0">
-                                    Client
+                          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                            {entry.user ? (
+                              <>
+                                <User className="h-3 w-3" />
+                                <span>
+                                  {entry.user.prenom} {entry.user.nom}
+                                  {entry.user.type === 'client' && (
+                                    <Badge variant="secondary" className="ml-1.5 text-[10px] py-0">
+                                      Client
+                                    </Badge>
+                                  )}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Bot className="h-3 w-3" />
+                                <span>
+                                  Systeme
+                                  <Badge variant="outline" className="ml-1.5 text-[10px] py-0">
+                                    Auto
                                   </Badge>
-                                )}
-                              </span>
-                            </div>
-                          )}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
