@@ -47,8 +47,12 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
-    ports:
-      - "3333:3333"
+    expose:
+      - "3333"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portail-app.entrypoints=http,https"
+      - "traefik.http.services.portail-app.loadbalancer.server.port=3333"
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,6 +64,7 @@ services:
       start_period: 40s
     networks:
       - portail_network
+      - coolify
     # Limite les ressources pour eviter les abus
     deploy:
       resources:
@@ -115,3 +120,5 @@ networks:
   portail_network:
     driver: bridge
     name: portail_cabinet_network
+  coolify:
+    external: true
