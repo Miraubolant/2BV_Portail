@@ -1,6 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOCKER COMPOSE - Production pour Coolify
 # Portail Cabinet d'Avocats
+# Documentation: https://coolify.io/docs/knowledge-base/docker/compose
 # ═══════════════════════════════════════════════════════════════════════════════
 
 services:
@@ -12,7 +13,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: portail_cabinet_app
     restart: unless-stopped
     environment:
       # Application
@@ -22,8 +22,9 @@ services:
       TZ: Europe/Paris
       LOG_LEVEL: ${LOG_LEVEL:-info}
       APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL}
 
-      # Database (connexion interne Docker)
+      # Database (connexion interne Docker - utilise le nom du service)
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
@@ -47,25 +48,19 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+    # Port interne expose (Coolify/Traefik route vers ce port)
     expose:
       - "3333"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.portail-app.entrypoints=http,https"
-      - "traefik.http.services.portail-app.loadbalancer.server.port=3333"
     depends_on:
       postgres:
         condition: service_healthy
+    # Healthcheck simple - verifie que le serveur repond
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3333/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3333/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
-    networks:
-      - portail_network
-      - coolify
-    # Limite les ressources pour eviter les abus
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -78,26 +73,19 @@ services:
   # ─────────────────────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: portail_cabinet_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE:-portail_cabinet}
-      # Optimisations PostgreSQL pour production
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=fr_FR.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_DATABASE:-portail_cabinet}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
-    networks:
-      - portail_network
-    # La DB n'est PAS exposee a l'exterieur (securite)
-    # Pour l'administration, utiliser un tunnel SSH ou pgAdmin dans un container separe
     deploy:
       resources:
         limits:
@@ -111,14 +99,3 @@ services:
 volumes:
   postgres_data:
     driver: local
-    name: portail_cabinet_postgres_data
-
-# ─────────────────────────────────────────────────────────────────────────────
-# RESEAU INTERNE
-# ─────────────────────────────────────────────────────────────────────────────
-networks:
-  portail_network:
-    driver: bridge
-    name: portail_cabinet_network
-  coolify:
-    external: true
